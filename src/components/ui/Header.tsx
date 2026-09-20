@@ -27,6 +27,7 @@ export default function Header() {
   const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
   const [open, setOpen] = useState(false);
+  const [narrow, setNarrow] = useState(false);
 
   // 세션은 localStorage 라 브라우저에서만 읽힌다. 경로가 바뀔 때마다 다시 본다.
   // (모바일 메뉴는 링크 onClick 에서 닫는다 — 여기서 닫으면 렌더가 한 번 더 돈다.)
@@ -37,6 +38,16 @@ export default function Header() {
       alive = false;
     };
   }, [pathname]);
+
+  // 좁은 화면(=햄버거가 뜨는 폭)에서는 계정 묶음을 상단에서 빼고 메뉴 안으로 넣는다.
+  // 아바타+이메일+로그아웃이 줄바꿈도 축소도 안 되는 묶음이라 390px 에서 가로로 넘쳤다.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   const menu = session?.isAdmin ? [...MENU, ADMIN_MENU] : MENU;
 
@@ -68,19 +79,34 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="pf-gnb-right">
+          <div className="pf-gnb-right" style={{ minWidth: 0, flexShrink: 1 }}>
             {session ? (
-              <>
-                <span className="pf-gnb-user">
-                  <span className="pf-avatar" aria-hidden="true">
-                    {session.email.slice(0, 2).toUpperCase()}
+              !narrow && (
+                <>
+                  <span className="pf-gnb-user" style={{ minWidth: 0 }}>
+                    <span className="pf-avatar" aria-hidden="true">
+                      {session.email.slice(0, 2).toUpperCase()}
+                    </span>
+                    <span
+                      style={{
+                        maxWidth: 220,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {session.email}
+                    </span>
                   </span>
-                  {session.email}
-                </span>
-                <button type="button" className="pf-btn pf-btn-ghost pf-btn-sm" onClick={onSignOut}>
-                  로그아웃
-                </button>
-              </>
+                  <button
+                    type="button"
+                    className="pf-btn pf-btn-ghost pf-btn-sm"
+                    onClick={onSignOut}
+                  >
+                    로그아웃
+                  </button>
+                </>
+              )
             ) : (
               <>
                 <Link href="/login/" className="pf-btn pf-btn-ghost pf-btn-sm">
@@ -117,6 +143,47 @@ export default function Header() {
                 {m.label}
               </Link>
             ))}
+
+            {session && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  minWidth: 0,
+                  marginTop: 8,
+                  paddingTop: 12,
+                  borderTop: "1px solid var(--pf-border)",
+                }}
+              >
+                <span className="pf-gnb-user" style={{ minWidth: 0, paddingLeft: 0, border: 0 }}>
+                  <span className="pf-avatar" aria-hidden="true">
+                    {session.email.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {session.email}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="pf-btn pf-btn-ghost pf-btn-sm"
+                  style={{ flex: "none" }}
+                  onClick={() => {
+                    setOpen(false);
+                    onSignOut();
+                  }}
+                >
+                  로그아웃
+                </button>
+              </div>
+            )}
           </nav>
         )}
       </Container>
