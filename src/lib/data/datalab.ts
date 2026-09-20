@@ -65,12 +65,20 @@ export async function getDatalabMeta(): Promise<DatalabMeta | null> {
 
 /**
  * 탭별 표 데이터. 어댑터 인터페이스 밖의 보조 조회다 — 인사이트 화면만 쓴다.
- * weekly 는 급상승 20건(signals.json), trend·safety 는 원료 상위 목록에서 태그로 갈라 온다.
+ * 세 탭 모두 원료 상위 목록에서 태그로 갈라 온다.
+ *
+ * 정렬은 탭이 묻는 질문에 맞춘다 — 급상승 탭은 "무엇이 움직였나"라서 변화율 순이고,
+ * 계절·표시 탭은 "무엇이 큰가"라서 검색량 순이다. signals.json(오늘의 신호)은
+ * 언제나 검색량 순이다(절대량 우선).
  */
 export async function listSignalRows(tab: InsightTab): Promise<Signal[]> {
-  if (tab === "weekly") return (await load<Signal>("signals.json"))?.rows ?? [];
   const rows = (await load<Signal>("ingredients-top.json"))?.rows ?? [];
-  return rows.filter((r) => r.tabs?.includes(tab));
+  const picked = rows.filter((r) => r.tabs?.includes(tab));
+  return picked.sort((a, b) =>
+    tab === "weekly"
+      ? b.changePct - a.changePct
+      : b.monthlyVolume - a.monthlyVolume || b.changePct - a.changePct,
+  );
 }
 
 export const datalabData: DataAdapter = {

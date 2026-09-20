@@ -98,6 +98,16 @@
   color: var(--pf-ink-3);
   font-weight: 500;
 }
+/* 기저 낮음 경고 — 색만으로 말하지 않고 문장을 그대로 적는다. */
+.lowBase {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--pf-warn-ink);
+}
+
 .period {
   display: block;
   font-size: 11px;

@@ -73,7 +73,7 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
                       {r.grade}
                     </span>
                   )}
-                  {r.category}
+                  {[r.category, r.functionCategory].filter(Boolean).join(" · ")}
                 </span>
               </td>
               <td className={c.vol}>
@@ -82,6 +82,8 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
               </td>
               <td className={`${c.chg} ${dir === "up" ? c.up : dir === "down" ? c.down : c.flat}`}>
                 {observed ? `${mark} ${r.changePct > 0 ? "+" : ""}${r.changePct.toFixed(1)}%` : "—"}
+                {/* 기저가 낮으면 퍼센트가 몇 배로 튄다. 숫자 옆에서 바로 말해 준다. */}
+                {r.lowBase && <span className={c.lowBase}>직전 주 기저 매우 낮음</span>}
                 <span className={c.period}>{r.periodLabel}</span>
               </td>
               <td className={c.sparkCell}>

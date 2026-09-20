@@ -112,7 +112,8 @@ export default function InsightTabs() {
   const ready = loaded?.tab === tab ? loaded : null;
   const rows = ready?.rows;
   const notes = ready?.notes;
-  const topRow = rows?.[0];
+  // 기준 주는 관측이 있는 첫 줄에서 가져온다 — 맨 윗줄이 「주간 비교 미제공」일 수 있다.
+  const topRow = rows?.find((r) => r.changeStatus !== "미제공");
 
   return (
     <Container>

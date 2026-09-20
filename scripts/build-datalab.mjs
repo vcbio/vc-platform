@@ -24,6 +24,12 @@ const OUT_DIR = path.join(process.cwd(), "public", "data");
 const SOURCE = "한국 공개자료 · 데이터랩";
 /** 검색량이 작은 원료는 한 주만 튀어도 변화율이 몇 배로 뛴다. 하한을 두고 화면에 그 하한을 적는다. */
 const MIN_VOLUME = 1000;
+/**
+ * 「오늘의 신호」용 하한. 대표 원칙 = 절대 검색량이 먼저고 퍼센트는 그다음이다
+ * (2026-09-10 "절대 검색량이 우선이야 %는 별로 안중요해"). 데이터랩 페이블 화면의
+ * 「오늘의 한 줄」과 같은 문법 — 오른 원료 중 월 검색량 상위를 앞에 둔다.
+ */
+const SIGNAL_MIN_VOLUME = 10000;
 
 const log = (...a) => console.log("[build-datalab]", ...a);
 
@@ -69,6 +75,14 @@ async function main() {
 
   const DATA = carve(html, "const DATA=[", "[", "]");
   const OBS = carve(html, ", OBS={", "{", "}");
+  // 분류 라벨의 정본. 없으면 DATA 의 s2·s4 만으로 같은 판정을 한다(데이터랩 함수와 동일한 ?? 순서).
+  let CLASSIFICATION = { items: [] };
+  try {
+    CLASSIFICATION = carve(html, "CLASSIFICATION={", "{", "}");
+  } catch {
+    log("주의 — CLASSIFICATION 을 못 읽었습니다. s2·s4 만으로 분류합니다.");
+  }
+  const classById = new Map((CLASSIFICATION.items ?? []).map((x) => [x.id, x]));
   log(`DATA ${DATA.length}건 · OBS ${OBS.items.length}건 · 마지막 완전주 ${OBS.completeWeekEnd}`);
 
   const obsById = new Map(OBS.items.map((o) => [o.id, o]));
@@ -89,7 +103,25 @@ async function main() {
       observedAt: cur.end,
       weeks8: weeks.slice(-8).map((w) => round3(w.mean)),
       riseWeeks: o.score8 ?? null,
+      // 직전 주가 8주 최고의 20% 에도 못 미치면 퍼센트가 몇 배로 튄다. 화면에 그 사실을 적는다.
+      lowBase: prev.mean < Math.max(...weeks.slice(-8).map((w) => w.mean)) * 0.2,
     };
+  }
+
+  /* ── 분류 라벨 ── 데이터랩 페이지의 classLabel() 을 그대로 옮겼다.
+     우리가 문구를 만들지 않는다 — 데이터랩이 화면에 쓰는 말을 그대로 쓴다. */
+  const classInfo = (d) => classById.get(d.id) ?? {};
+  const healthScope = (d) => classInfo(d).healthScope ?? d.s2;
+  const generalScope = (d) => !healthScope(d) && (classInfo(d).generalScope ?? d.s4);
+  const classGrade = (d) => classInfo(d).gradeFilter || d.grade;
+  function classLabel(d) {
+    const x = classInfo(d);
+    if (x.defaultInclude === false) return "원료 아닌 참고 분류";
+    if (healthScope(d)) return x.registrationKind === "generic_related_keyword" ? "건기식 관련 검색어" : "건강기능식품 원료";
+    if (generalScope(d)) return "일반식품 원료";
+    if (d.role?.includes("의약품")) return "의약품 참고";
+    // 데이터랩도 모르는 줄이다. 그럴듯한 말을 지어 채우지 않고 비워 둔다.
+    return x.displayClassification || "";
   }
 
   const href = (row) => `${PAGE}#id=${row.id}`;
@@ -101,7 +133,8 @@ async function main() {
     return {
       id: row.id,
       name: row.name,
-      category: row.cat === "기타" ? row.role : `${row.cat} · ${row.role}`,
+      category: classLabel(row),
+      functionCategory: row.cat && row.cat !== "기타" ? row.cat : "",
       monthlyVolume: row.search ?? 0,
       changePct: w ? w.changePct : 0,
       changeStatus: w ? "관측" : "미제공",
@@ -109,13 +142,14 @@ async function main() {
       observedAt: w ? w.observedAt : searchAsOf(row),
       source: SOURCE,
       href: href(row),
-      grade: row.grade,
+      grade: classGrade(row),
       distribution: row.dist || "",
       verdict: row.verdict || "",
       season: row.season || "",
       seasonMonth: row.seasonMonth || "",
       weeks8: w?.weeks8 ?? [],
       riseWeeks: w?.riseWeeks ?? null,
+      lowBase: w?.lowBase ?? false,
       tabs,
     };
   }
@@ -123,14 +157,23 @@ async function main() {
   const ingredients = DATA.filter((d) => d.role === "원료");
   const usable = ingredients.filter((d) => d.trust === "쓸만함");
 
-  /* ── ① 주간 급상승 TOP 20 ── */
+  /* ── ① 오늘의 신호 (signals.json) ── 오른 원료 중 월 검색량이 큰 순서.
+     퍼센트로 줄을 세우면 월 1,150회짜리가 1위로 올라온다 — 절대량이 먼저다. */
+  const signals = usable
+    .filter((d) => (d.search ?? 0) >= SIGNAL_MIN_VOLUME && (weekly(d)?.changePct ?? 0) > 0)
+    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0) || weekly(b).changePct - weekly(a).changePct)
+    .slice(0, 20)
+    .map((d) => toSignal(d, []));
+
+  /* ── ② 주간 급상승 탭 ── 여기는 변화율 순으로 둔다(무엇이 움직였나를 보는 자리).
+     기저가 낮아 퍼센트가 튄 줄에는 lowBase 표시가 붙는다. */
   const risers = usable
     .filter((d) => (d.search ?? 0) >= MIN_VOLUME && weekly(d))
     .sort((a, b) => weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, ["weekly"]));
 
-  /* ── ② 계절·예측 ── 데이터랩이 「계절반복」으로 판정했거나 2주 예측 조건을 통과한 원료. */
+  /* ── ③ 계절·예측 ── 데이터랩이 「계절반복」으로 판정했거나 2주 예측 조건을 통과한 원료. */
   const seasonal = usable.filter((d) => d.season === "계절반복");
   const forecastable = usable.filter((d) => d.forecastV4?.status === "eligible");
   const trendRows = [...new Set([...seasonal, ...forecastable])]
@@ -138,19 +181,20 @@ async function main() {
     .slice(0, 16)
     .map((d) => toSignal(d, ["trend"]));
 
-  /* ── ③ 표시·안전 ── 기능성 표시가 제한되는 지위인데 검색은 많은 원료 + 의약품 성분. */
+  /* ── ④ 표시·안전 ── 기능성 표시가 제한되는 지위인데 검색은 많은 원료 + 의약품 성분. */
+  // 지위는 CLASSIFICATION 이 덮어쓴 값(classGrade)으로 본다 — 화면에 찍히는 값과 같아야 한다.
   const unapproved = usable
-    .filter((d) => d.grade === "비인정" && (d.search ?? 0) >= MIN_VOLUME)
+    .filter((d) => classGrade(d) === "비인정" && (d.search ?? 0) >= MIN_VOLUME)
     .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
     .slice(0, 12);
-  const medicinal = DATA.filter((d) => d.grade === "의약품")
+  const medicinal = DATA.filter((d) => classGrade(d) === "의약품")
     .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
     .slice(0, 6);
   const safetyRows = [...unapproved, ...medicinal].map((d) => toSignal(d, ["safety"]));
 
   /* ── 원료 상위 100 (검색량 순) ── 탭 태그를 붙여 화면이 곧바로 갈라 쓸 수 있게 둔다. */
   const tagged = new Map();
-  for (const s of [...trendRows, ...safetyRows]) {
+  for (const s of [...risers, ...trendRows, ...safetyRows]) {
     const hit = tagged.get(s.id);
     if (hit) hit.tabs = [...new Set([...hit.tabs, ...s.tabs])];
     else tagged.set(s.id, s);
@@ -274,12 +318,13 @@ async function main() {
     sourcePage: PAGE,
     rawSource: OBS.rawSource,
     minVolume: MIN_VOLUME,
+    signalMinVolume: SIGNAL_MIN_VOLUME,
     note: "검색량은 참고값(정확 산정기간 미제공) · 원료 간 시장 규모를 뜻하지 않습니다",
   };
 
   await mkdir(OUT_DIR, { recursive: true });
   const files = [
-    ["signals.json", { meta, rows: risers }],
+    ["signals.json", { meta, rows: signals }],
     ["insights.json", { meta, rows: insights }],
     ["ingredients-top.json", { meta, rows: top100 }],
   ];
@@ -296,6 +341,8 @@ async function main() {
     const w = weekly(check);
     log(`검산 젖산마그네슘 — 월 검색량 ${num(check.search)}회 · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "주간 미제공"}`);
   }
+  log(`검산 오늘의 신호 상위 3 — ${signals.slice(0, 3).map((r, i) => `${i + 1}위 ${r.name} ${num(r.monthlyVolume)}회 ${pct(r.changePct)}`).join(" · ")}`);
+  log(`검산 급상승 탭 1위 — ${risers[0].name} ${num(risers[0].monthlyVolume)}회 ${pct(risers[0].changePct)}${risers[0].lowBase ? " (기저 낮음 표시)" : ""}`);
 }
 
 main().catch((e) => {
