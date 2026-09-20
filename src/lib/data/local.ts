@@ -22,21 +22,43 @@ const KEY = {
   quotes: "vcp.quotes",
 } as const;
 
+// localStorage 가 막힌 브라우저(사파리 시크릿·쿠키 전면 차단)에서도 화면이 돌게
+// 메모리 저장소로 조용히 내려앉는다. (2026-09-20 검증 지적 — SecurityError 로 가입 버튼 정지)
+const mem = new Map<string, string>();
+function getRaw(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key) ?? mem.get(key) ?? null;
+  } catch {
+    return mem.get(key) ?? null;
+  }
+}
+function setRaw(key: string, value: string) {
+  mem.set(key, value);
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // 저장소 차단 — 메모리에만 남긴다(탭을 닫으면 사라진다).
+  }
+}
+
 function load<T>(key: string, seed: T[]): T[] {
   if (typeof window === "undefined") return seed;
   try {
-    const raw = window.localStorage.getItem(key);
-    if (raw) return JSON.parse(raw) as T[];
+    const raw = getRaw(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed as T[];
+    }
   } catch {
     // 저장분이 깨졌으면 시드로 되돌린다. 화면이 멈추는 것보다 낫다.
   }
-  window.localStorage.setItem(key, JSON.stringify(seed));
+  setRaw(key, JSON.stringify(seed));
   return seed;
 }
 
 function save<T>(key: string, rows: T[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(rows));
+  setRaw(key, JSON.stringify(rows));
 }
 
 function newId(prefix: string) {

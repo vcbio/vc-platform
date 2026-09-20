@@ -6,10 +6,19 @@ const ADMIN_EMAIL = "vcbio15@gmail.com";
 
 type StoredUser = { email: string; company?: string; createdAt: string };
 
+// localStorage 가 막힌 브라우저에서도 가입·로그인이 멈추지 않게 메모리로 내려앉는다.
+const mem = new Map<string, string>();
+
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
-    const raw = window.localStorage.getItem(key);
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(key);
+    } catch {
+      raw = null;
+    }
+    raw = raw ?? mem.get(key) ?? null;
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -18,7 +27,13 @@ function read<T>(key: string, fallback: T): T {
 
 function write(key: string, value: unknown) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  const raw = JSON.stringify(value);
+  mem.set(key, raw);
+  try {
+    window.localStorage.setItem(key, raw);
+  } catch {
+    // 저장소 차단 — 메모리에만 남긴다.
+  }
 }
 
 function normalize(email: string) {
@@ -77,6 +92,11 @@ export const localAuth: AuthAdapter = {
 
   async signOut() {
     if (typeof window === "undefined") return;
-    window.localStorage.removeItem(SESSION_KEY);
+    mem.delete(SESSION_KEY);
+    try {
+      window.localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // 저장소 차단 — 메모리 세션만 지우면 된다.
+    }
   },
 };
