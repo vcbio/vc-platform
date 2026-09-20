@@ -18,6 +18,7 @@
 import { mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 
+/** 값을 긁어 오는 대상. 화면 링크용 주소는 `src/lib/data/datalab.ts` 의 DATALAB_URL 이다(같이 바꿀 것). */
 const PAGE = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
 const BASE = "https://vcbio.github.io/shelf/d/";
 const OUT_DIR = path.join(process.cwd(), "public", "data");
@@ -154,7 +155,22 @@ async function main() {
     return x.displayClassification || "";
   }
 
-  const href = (row) => `${PAGE}#id=${row.id}`;
+  /**
+   * 한 주 앞당겨 같은 산식으로 본 변화율. 「지난주에는 몇 위였나」를 세는 데만 쓴다.
+   * ⚠️ 월 검색량은 지난주 스냅샷이 없어 현재 값을 그대로 쓴다. 따라서 직전 순위는
+   *    "그때도 오르고 있었나"의 차이만 반영한다 — 검색량 변동은 반영하지 못한다.
+   */
+  function weeklyPrev(row) {
+    const o = obsById.get(row.id);
+    const weeks = o?.weeks ?? [];
+    if (!o?.eligible || weeks.length < 3) return null;
+    const cur = weeks.at(-2);
+    const prev = weeks.at(-3);
+    if (!(prev.mean > 0)) return null;
+    return { changePct: round1((cur.mean / prev.mean - 1) * 100) };
+  }
+
+  const href = (row) => `${PAGE}#view=ingredients&id=${row.id}&tab=trend`;
   const searchAsOf = (row) => row.q?.asOf?.["검색"] ?? OBS.sourceDate;
 
   /** DATA 한 줄 → Signal. 주간 관측이 없으면 변화율 자리를 비운 채로 낸다(0 으로 꾸미지 않는다). */
@@ -194,6 +210,26 @@ async function main() {
     .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
+
+  /* 직전 완전주 기준으로 같은 규칙을 한 번 더 돌려 「지난주 순위」를 만든다. */
+  const prevRank = new Map();
+  usable
+    .filter((d) => volumeOf(d) >= SIGNAL_MIN_VOLUME && (weeklyPrev(d)?.changePct ?? 0) > 0)
+    .sort((a, b) => volumeOf(b) - volumeOf(a) || weeklyPrev(b).changePct - weeklyPrev(a).changePct)
+    .slice(0, 20)
+    .forEach((d, i) => prevRank.set(d.id, i + 1));
+
+  // 지난주를 판정할 수 없는 줄은 필드를 아예 붙이지 않는다 — 0 으로 채우면 "제자리"라는 거짓말이 된다.
+  signals.forEach((r, i) => {
+    const row = usable.find((d) => d.id === r.id);
+    if (!row || !weeklyPrev(row)) return;
+    const before = prevRank.get(r.id);
+    if (before == null) r.isNew = true;
+    else {
+      r.isNew = false;
+      r.rankDelta = before - (i + 1);
+    }
+  });
 
   /* ── ② 주간 급상승 탭 ── 여기는 변화율 순으로 둔다(무엇이 움직였나를 보는 자리).
      기저가 낮아 퍼센트가 튄 줄에는 lowBase 표시가 붙는다. */
@@ -347,6 +383,13 @@ async function main() {
     source: SOURCE,
     sourcePage: PAGE,
     rawSource: OBS.rawSource,
+    catalogCount: DATA.length,
+    historyYears: (() => {
+      // 가장 이른 관측 시작일로 햇수를 센다. "10년"을 손으로 적어 두면 해가 바뀌어도 그대로 남는다.
+      const starts = DATA.map((d) => d.obs0).filter(Boolean).sort();
+      if (!starts.length) return undefined;
+      return Math.max(1, new Date(OBS.sourceDate).getFullYear() - new Date(starts[0]).getFullYear());
+    })(),
     minVolume: MIN_VOLUME,
     signalMinVolume: SIGNAL_MIN_VOLUME,
     note: "검색량은 참고값(정확 산정기간 미제공) · 원료 간 시장 규모를 뜻하지 않습니다",
@@ -372,6 +415,12 @@ async function main() {
     log(`검산 젖산마그네슘 — 월 검색량 ${num(volumeOf(check))}회 · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "주간 미제공"}`);
   }
   log(`검산 오늘의 신호 상위 3 — ${signals.slice(0, 3).map((r, i) => `${i + 1}위 ${r.name} ${num(r.monthlyVolume)}회 ${pct(r.changePct)}`).join(" · ")}`);
+  log(
+    `검산 순위 변동 상위 5 — ${signals
+      .slice(0, 5)
+      .map((r, i) => `${r.name} 현재 ${i + 1}위 / 직전 ${prevRank.get(r.id) ?? "없음"} / ${r.isNew ? "NEW" : r.rankDelta != null ? (r.rankDelta > 0 ? `▲${r.rankDelta}` : r.rankDelta < 0 ? `▼${-r.rankDelta}` : "-") : "판정불가"}`)
+      .join(" · ")}`,
+  );
   for (const nm of ["글루타치온", "병아리콩", "모링가"]) {
     const d = ingredients.find((x) => x.name === nm);
     if (d) log(`검산 ${nm} — 화면값 ${num(volumeOf(d))}회 (갱신 전 DATA.search ${num(d.search ?? 0)}회)`);

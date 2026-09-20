@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge, Card, Container } from "@/components/ui";
 import { getData, type Insight, type InsightTab, type Signal } from "@/lib/data";
-import { getDatalabMeta, listSignalRows, type DatalabMeta } from "@/lib/data/datalab";
+import { datalabLink, getDatalabMeta, listSignalRows, type DatalabMeta } from "@/lib/data/datalab";
 import { KV, Note, PageHead, styles as s } from "@/components/deal/shared";
 import SignalTable from "./SignalTable";
 import c from "./insight.module.css";
@@ -18,21 +18,31 @@ import c from "./insight.module.css";
  * 정적 내보내기라 라우터 대신 history.replaceState 로 주소만 바꾼다(페이지 이동 없음).
  */
 
-const TABS: { id: InsightTab; label: string; lead: string }[] = [
+/**
+ * `hash` 는 데이터랩 화면의 view 다. 데이터랩이 허용 목록에 없는 view 를 받으면
+ * 원료 화면으로 되돌리므로, 값이 바뀌어도 빈 화면이 뜨지는 않는다.
+ */
+const TABS: { id: InsightTab; label: string; lead: string; hash: string; more: string }[] = [
   {
     id: "weekly",
     label: "주간 급상승",
     lead: "마지막 완전주의 검색이 직전 주보다 얼마나 움직였는지 봅니다.",
+    hash: "#view=ingredients&tab=trend",
+    more: "원료 전체 목록은 데이터랩에서",
   },
   {
     id: "trend",
     label: "계절·예측",
     lead: "해마다 같은 달에 되돌아오는 원료와, 데이터랩이 2주 예측을 낸 원료입니다.",
+    hash: "#view=forecast",
+    more: "예측·계절 전체는 데이터랩에서",
   },
   {
     id: "safety",
     label: "표시·안전 점검",
     lead: "검색은 많지만 기능성 표시가 제한되는 지위의 원료를 모았습니다.",
+    hash: "#view=news",
+    more: "공개 소식 전체는 데이터랩에서",
   },
 ];
 
@@ -122,8 +132,26 @@ export default function InsightTabs() {
           eyebrow="Market Signals"
           title="원료 검색 동향"
           sub="지금 시장이 무엇을 찾고 있는지 공개 검색 자료로 봅니다. 눈에 띄는 원료는 그 자리에서 견적으로 넘길 수 있습니다."
-          right={<Badge tone="neutral">기준 {meta?.observedAt ?? "—"}</Badge>}
+          right={
+            <span className={c.headRight}>
+              <Badge tone="neutral">기준 {meta?.observedAt ?? "—"}</Badge>
+              <a
+                className={c.cta}
+                href={datalabLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                데이터랩에서 전체 보기 <span aria-hidden="true">↗</span>
+              </a>
+            </span>
+          }
         />
+
+        <p className={c.ctaNote}>
+          {meta?.catalogCount ? `${meta.catalogCount.toLocaleString("ko-KR")}개 원료` : "원료 전수"} ·{" "}
+          {meta?.historyYears ? `${meta.historyYears}년 검색 흐름` : "장기 검색 흐름"} · 예측 · 홈쇼핑 편성은
+          데이터랩에서 봅니다.
+        </p>
 
         {meta && (
           <p className={c.caption}>
@@ -182,6 +210,16 @@ export default function InsightTabs() {
                     </div>
                   )}
                 </Card>
+
+                <p className={c.more}>
+                  <a
+                    href={datalabLink(current.hash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {current.more} <span aria-hidden="true">→</span>
+                  </a>
+                </p>
 
                 <section className={c.notes}>
                   <h2 className={c.notesHead}>읽는 법</h2>

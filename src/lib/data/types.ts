@@ -112,4 +112,8 @@ export type Signal = {
   riseWeeks?: number | null;
   /** 이 줄을 어느 탭에서 보여 줄지. */
   tabs?: InsightTab[];
+  /** 직전 완전주 같은 규칙으로 매긴 순위에서 몇 계단 올랐는지(양수=상승). 판정 못 하면 필드가 없다. */
+  rankDelta?: number;
+  /** 직전 주 목록 20위 밖이었으면 true. 판정 못 하면 필드가 없다. */
+  isNew?: boolean;
 };

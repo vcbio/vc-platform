@@ -17,10 +17,29 @@ import type { Insight, InsightTab, Signal } from "./types";
 
 /** GitHub Pages 하위 경로. next.config.ts 의 basePath 와 같아야 한다. */
 const BASE_PATH = "/vc-platform";
+
+/**
+ * 데이터랩 공개 화면 주소. **화면에 나가는 링크는 전부 여기 한 곳을 본다** —
+ * 정식 버전이 확정되면 이 한 줄만 바꾸면 된다.
+ * ⚠️ 빌드 스크립트(`scripts/build-datalab.mjs`)의 `PAGE` 도 같은 주소를 본다.
+ *    그쪽은 값을 긁어 오는 대상이라 따로 두었다 — 주소를 바꾸면 두 곳을 같이 바꾼다.
+ */
+export const DATALAB_URL = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
+
+/** 데이터랩 화면의 특정 view 로 바로 보내는 주소. hash 는 "#view=…" 형태로 준다. */
+export const datalabLink = (hash = "") => `${DATALAB_URL}${hash}`;
+
+/** 원료 상세(추이 탭)로 바로 보내는 주소. */
+export const datalabIngredient = (id: string) =>
+  datalabLink(`#view=ingredients&id=${encodeURIComponent(id)}&tab=trend`);
 const TTL_MS = 5 * 60 * 1000;
 
 export type DatalabMeta = {
   observedAt: string;
+  /** 데이터랩이 다루는 원료·검색어 수. 캡션이 이 값을 읽는다(손으로 적지 않는다). */
+  catalogCount?: number;
+  /** 관측이 시작된 해부터 지금까지의 햇수. */
+  historyYears?: number;
   sourceDate: string;
   source: string;
   sourcePage: string;

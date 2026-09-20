@@ -1,13 +1,62 @@
 /* 동향 인사이트 표 — 에디토리얼 데이터 저널. 카드를 띄우지 않고 룰선으로 가른다.
    색은 globals.css 의 --pf-* 토큰만 쓴다(새 색 없음). */
 
+/* ── 데이터랩 전체 보기 ────────────────────────────────────────────────────
+   이 화면은 요약이고 원본은 데이터랩에 있다. 그 사실을 제목 옆에서 바로 말한다. */
+.headRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding-inline: 20px;
+  border-radius: var(--pf-radius);
+  background: var(--pf-accent);
+  color: var(--pf-paper);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background var(--pf-motion-fast);
+}
+.cta:hover {
+  background: var(--pf-accent-hover);
+  color: var(--pf-paper);
+  text-decoration: none;
+}
+.ctaNote {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pf-ink-3);
+  text-wrap: pretty;
+}
+
+/* 표 아래 — 이 탭에 해당하는 데이터랩 화면으로 바로 보낸다. */
+.more {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+.more a {
+  color: var(--pf-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 /* ── 기준일·출처 캡션 ─────────────────────────────────────────────────────── */
 .caption {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px 14px;
-  margin: -6px 0 18px;
+  margin: 10px 0 18px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--pf-rule);
   font-size: 13px;
@@ -47,6 +96,26 @@
 .nameLink:hover {
   text-decoration-color: var(--pf-accent);
   color: var(--pf-accent);
+}
+/* 이 이름이 바깥으로 나가는 링크라는 표시. 줄에 마우스를 올리거나 키보드가 닿으면 드러난다. */
+.goMark {
+  margin-left: 6px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pf-accent);
+  opacity: 0;
+  transition: opacity var(--pf-motion-fast);
+  white-space: nowrap;
+}
+tr:hover .goMark,
+tr:focus-within .goMark {
+  opacity: 1;
+}
+@media (hover: none) {
+  .goMark {
+    opacity: 1;
+  }
 }
 .sub {
   display: block;
@@ -172,6 +241,18 @@
   }
   .nameCell {
     min-width: 132px;
+  }
+}
+
+/* 좁은 화면에서는 버튼을 제목 아래 전폭으로 내린다 — 칩 옆에 끼우면 글자가 눌린다. */
+@media (max-width: 560px) {
+  .headRight {
+    width: 100%;
+    gap: 10px;
+  }
+  .cta {
+    width: 100%;
+    justify-content: center;
   }
 }
 
