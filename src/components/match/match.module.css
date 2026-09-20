@@ -4,22 +4,22 @@
 .maker {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px;
-  border: 1px solid var(--pf-border);
+  gap: 13px;
+  padding: 20px;
+  border: 1px solid var(--pf-rule-strong);
   border-radius: var(--pf-radius);
   background: var(--pf-card);
   box-shadow: var(--pf-shadow);
   transition:
-    box-shadow var(--pf-motion),
+    background-color var(--pf-motion),
     border-color var(--pf-motion),
     transform var(--pf-motion);
 }
 @media (hover: hover) and (pointer: fine) {
   .maker:hover {
-    box-shadow: var(--pf-shadow-lift);
-    border-color: #bae6fd;
-    transform: translateY(-2px);
+    border-color: var(--pf-accent);
+    background: var(--pf-paper-2);
+    transform: translateY(-1px);
   }
 }
 
@@ -35,16 +35,16 @@
   gap: 12px;
   min-width: 0;
 }
-/* 동심 반경: 카드 10px − 패딩 22px 이므로 내부 면은 한 단계 아래인 8px */
+/* 동심 반경: 카드 4px − 패딩 20px 이므로 내부 면은 한 단계 아래인 3px */
 .makerLogo {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   flex: none;
   border-radius: var(--pf-radius-sm);
   display: grid;
   place-items: center;
-  background: var(--pf-blue-soft);
-  color: var(--pf-blue-deep);
+  background: var(--pf-accent-soft);
+  color: var(--pf-accent-deep);
   font-size: 16px;
   font-weight: 700;
 }
@@ -67,33 +67,37 @@
   flex: none;
 }
 .rate b {
-  font-size: 24px;
+  display: block;
+  font-size: 40px;
   font-weight: 700;
-  color: var(--pf-blue);
-  letter-spacing: -0.02em;
+  color: var(--pf-ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .rate span {
   display: block;
   font-size: 13px;
+  font-weight: 600;
   color: var(--pf-ink-3);
   letter-spacing: 0.06em;
-  margin-top: 3px;
+  text-transform: uppercase;
+  margin-top: 5px;
 }
 
 .bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--pf-bg-2);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pf-rule);
   overflow: hidden;
 }
 .bar i {
   display: block;
   height: 100%;
   width: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   transform-origin: left center;
-  background: var(--pf-blue);
+  background: var(--pf-accent);
   transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -138,10 +142,10 @@
 .eyebrow {
   display: block;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--pf-blue);
+  color: var(--pf-accent);
   margin-bottom: 8px;
 }
 .pageSub {
@@ -213,25 +217,27 @@
 .tbl th {
   text-align: left;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
-  color: var(--pf-ink-3);
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--pf-border);
-  background: var(--pf-bg-2);
+  text-transform: uppercase;
+  color: var(--pf-ink-2);
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--pf-ink);
+  background: transparent;
   white-space: nowrap;
 }
 .tbl td {
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--pf-border);
+  height: var(--pf-row);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--pf-rule);
   vertical-align: middle;
-  color: var(--pf-ink-2);
+  color: var(--pf-ink);
 }
 .tbl tbody tr:last-child td {
   border-bottom: 0;
 }
 .tbl tbody tr:hover {
-  background: var(--pf-bg);
+  background: var(--pf-paper-2);
 }
 .tbl .num {
   text-align: right;
@@ -276,6 +282,6 @@
   }
   .tbl th,
   .tbl td {
-    padding-inline: 16px;
+    padding-inline: 12px;
   }
 }

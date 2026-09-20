@@ -1,6 +1,6 @@
 import Container from "./Container";
 
-/** 푸터. 딥그린 브랜드색은 로고 글자에만 쓴다(본문·버튼에는 쓰지 않는다). */
+/** 푸터. 브랜드 줄 · 이름 풀이 · 시연 고지 세 덩어리로만 둔다. */
 export default function Footer() {
   return (
     <footer className="pf-foot">
@@ -8,7 +8,8 @@ export default function Footer() {
         <div className="pf-foot-in">
           <div>
             <b>VC 플랫폼</b>
-            <p>Value Chain Platform · 건강기능식품 B2B OEM/ODM 매칭</p>
+            <em>Value Chain Platform</em>
+            <p>건강기능식품 제조사와 유통사를 잇는 B2B OEM/ODM 매칭</p>
           </div>
           <p>
             시연용 화면입니다. 표시된 제조사·원료·견적은 실제 자료가 아닙니다.

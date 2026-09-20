@@ -14,10 +14,10 @@
 .eyebrow {
   display: block;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--pf-blue);
+  color: var(--pf-accent);
   margin-bottom: 8px;
 }
 .pageSub {
@@ -50,7 +50,7 @@
   width: 100%;
   text-align: left;
   padding: 14px 4px 16px;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
   color: var(--pf-ink-3);
   transition:
     color var(--pf-motion-fast),
@@ -64,8 +64,8 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background: var(--pf-bg-2);
+  border-radius: var(--pf-radius-sm);
+  background: var(--pf-paper-2);
   color: var(--pf-ink-3);
   font-size: 13px;
   font-weight: 700;
@@ -79,18 +79,19 @@
 }
 .stepper .active {
   color: var(--pf-ink);
-  border-color: var(--pf-blue-strong);
+  font-weight: 700;
+  border-color: var(--pf-accent);
 }
 .stepper .active .stepNo {
-  background: var(--pf-blue-strong);
-  color: #ffffff;
+  background: var(--pf-accent);
+  color: var(--pf-paper);
 }
 .stepper .done {
   color: var(--pf-ink-2);
 }
 .stepper .done .stepNo {
-  background: var(--pf-blue-soft);
-  color: var(--pf-blue-deep);
+  background: var(--pf-accent-soft);
+  color: var(--pf-accent-deep);
 }
 
 /* ---------------- 옵션 그리드 ---------------- */
@@ -124,8 +125,8 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .opt:hover {
-    border-color: var(--pf-blue);
-    background: var(--pf-bg);
+    border-color: var(--pf-accent);
+    background: var(--pf-paper-2);
   }
 }
 .opt input {
@@ -144,12 +145,12 @@
   color: var(--pf-ink-3);
 }
 .opt:has(input:checked) {
-  border-color: var(--pf-blue-strong);
-  background: var(--pf-blue-soft);
-  box-shadow: 0 0 0 1px var(--pf-blue-strong) inset;
+  border-color: var(--pf-accent);
+  background: var(--pf-accent-soft);
+  box-shadow: 0 0 0 1px var(--pf-accent) inset;
 }
 .opt:has(input:checked) .optTitle {
-  color: var(--pf-blue-deep);
+  color: var(--pf-accent-deep);
 }
 .opt:has(input:focus-visible) {
   outline: 3px solid var(--pf-ink);
@@ -257,10 +258,10 @@
   gap: 20px;
 }
 .asideNote {
-  background: var(--pf-bg-2);
-  border: 1px solid var(--pf-border);
+  background: var(--pf-paper-2);
+  border: 1px solid var(--pf-rule-strong);
   border-radius: var(--pf-radius);
-  padding: 22px;
+  padding: 20px;
 }
 .asideNote h2 {
   font-size: 15px;
@@ -280,11 +281,10 @@
   content: "";
   position: absolute;
   left: 0;
-  top: 10px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--pf-blue);
+  top: 12px;
+  width: 8px;
+  height: 2px;
+  background: var(--pf-accent);
 }
 .asideNote li:last-child {
   margin-bottom: 0;
@@ -298,10 +298,10 @@
   text-align: center;
 }
 .doneMark {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   margin: 0 auto 20px;
-  border-radius: 50%;
+  border-radius: var(--pf-radius);
   display: grid;
   place-items: center;
   background: var(--pf-ok-soft);
@@ -314,7 +314,7 @@
   margin-top: 20px;
   padding: 12px 18px;
   border-radius: var(--pf-radius);
-  background: var(--pf-bg-2);
+  background: var(--pf-paper-2);
   border: 1px solid var(--pf-border);
   font-size: 15px;
   color: var(--pf-ink-2);

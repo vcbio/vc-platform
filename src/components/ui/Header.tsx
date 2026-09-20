@@ -22,7 +22,7 @@ function isCurrent(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-/** 상단 GNB. 반투명 레이어 + 스크롤 엣지 마스크(하드 1px 보더 대신). */
+/** 상단 GNB. 아이보리 반투명 레이어 + 1px 룰선(데이터랩과 같은 문법). */
 export default function Header() {
   const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
@@ -65,6 +65,7 @@ export default function Header() {
               VC
             </span>
             VC 플랫폼
+            <em>Value Chain Platform</em>
           </Link>
 
           <nav className="pf-gnb-nav" aria-label="주요 메뉴">

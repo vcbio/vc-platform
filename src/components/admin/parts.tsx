@@ -124,7 +124,7 @@ export function CheckGroup<T extends string>({
                 type="checkbox"
                 checked={on}
                 onChange={() => onChange(on ? value.filter((v) => v !== o) : [...value, o])}
-                style={{ width: 16, height: 16, accentColor: "var(--pf-blue-strong)" }}
+                style={{ width: 16, height: 16, accentColor: "var(--pf-accent)" }}
               />
               {o}
             </label>

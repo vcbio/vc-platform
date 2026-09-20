@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import TrustBar from "@/components/home/TrustBar";
 import MatchPreview from "@/components/home/MatchPreview";
+import HeroPanel from "@/components/home/HeroPanel";
 import { previewResults } from "@/components/home/preview";
 import { homeStats } from "@/components/home/stats";
 import { getData, type Insight } from "@/lib/data";
@@ -48,113 +49,157 @@ export default async function Home() {
     getData().listInsights(),
   ]);
 
+  const signals = insights.slice(0, 3);
+  const latest = signals.map((i) => i.publishedAt).sort().at(-1);
+
   return (
-    <Container>
-      <div className={s.page}>
-        <section className={s.hero}>
-          <div className={s.heroIn}>
-            <span className={s.eyebrow}>B2B Sourcing Platform</span>
+    <>
+      {/* ── 히어로 ── 왼쪽은 주장, 오른쪽은 그 주장을 증명하는 실제 화면 조각 ── */}
+      <section className={s.hero}>
+        <Container>
+          <div className="pf-rise">
+            <span className={s.eyebrow}>Value Chain Platform</span>
             <h1 className={s.heroTitle}>
-              원료 소싱부터 <span className={s.nowrap}>생산·품질 서류까지,</span>
+              원료 소싱부터 <span className={s.nowrap}>생산·품질까지,</span>
               <br />
-              <em>한 곳에서</em> 끝내는 건강기능식품 B2B
+              <em className={s.nowrap}>한 곳에서</em> 끝내는{" "}
+              <span className={s.nowrap}>건강기능식품 B2B</span>
             </h1>
-            <p className={s.heroLead}>
-              제형·물량·일정을 입력하면 조건에 맞는 GMP·HACCP 제조사를 바로 추려 보여 드립니다.
-              제조사 열 곳에 따로 문의하던 2주를 조건 입력 3분으로 줄입니다.
-            </p>
-            <div className={s.heroCta}>
-              <ButtonLink href="/quote/">견적 요청하기</ButtonLink>
-              <ButtonLink href="/insight/" variant="secondary">
-                이번 주 업계 동향 보기
-              </ButtonLink>
+            <div className={s.heroRule} aria-hidden="true" />
+          </div>
+
+          <div className={s.heroGrid}>
+            <div className={`${s.heroCopy} pf-rise`} style={{ "--d": "60ms" } as React.CSSProperties}>
+              <p className={s.heroLead}>
+                제형·물량·일정을 입력하면 조건에 맞는 GMP·HACCP 제조사를 바로 추려 보여 드립니다.
+                제조사 열 곳에 따로 문의하던 2주를 조건 입력 3분으로 줄입니다.
+              </p>
+              <div className={s.heroCta}>
+                <ButtonLink href="/quote/">견적 요청하기</ButtonLink>
+                <Link href="/match/" className="pf-link">
+                  제조사 먼저 둘러보기
+                </Link>
+              </div>
+              <p className={s.heroNote}>
+                가입과 조건 입력은 무료입니다. 추천 결과를 보고 진행 여부를 정하시면 됩니다.
+              </p>
             </div>
-            <p className={s.heroNote}>
-              가입과 조건 입력은 무료입니다. 추천 결과를 보고 진행 여부를 정하시면 됩니다.
-            </p>
+
+            <HeroPanel initial={preview} />
           </div>
-        </section>
+        </Container>
+      </section>
 
-        <TrustBar initial={stats} />
-        <p className="pf-help" style={{ marginTop: 10 }}>
-          지표는 플랫폼에 등록된 시연용 데모 데이터를 그대로 센 값입니다.
-        </p>
-
-        <div className={s.secHead}>
-          <div>
-            <h2>제조사 추천 미리보기</h2>
-            <p>GMP 보유 · 리드타임 6주 이내 조건으로 지금 추천되는 제조사입니다.</p>
-          </div>
-          <ButtonLink href="/match/" variant="ghost" size="sm">
-            내 조건으로 찾아보기
-          </ButtonLink>
-        </div>
-        <MatchPreview initial={preview} />
-
-        <div className={s.grid21}>
-          <Card
-            title="오늘의 업계 동향"
-            padded={false}
-            action={
-              <ButtonLink href="/insight/" variant="ghost" size="sm">
-                전체 보기
-              </ButtonLink>
-            }
-          >
-            <ul className={s.feed}>
-              {insights.slice(0, 3).map((i) => (
-                <FeedItem key={i.id} insight={i} />
-              ))}
-            </ul>
-          </Card>
-
-          <Card title="이용 안내">
-            <dl>
-              <div className={s.kv}>
-                <dt>플랫폼 가입</dt>
-                <dd>무료</dd>
-              </div>
-              <div className={s.kv}>
-                <dt>조건 매칭 · 견적 요청</dt>
-                <dd>무료</dd>
-              </div>
-              <div className={s.kv}>
-                <dt>원료 중개 수수료</dt>
-                <dd>거래액의 10~15%</dd>
-              </div>
-              <div className={s.kv}>
-                <dt>완제품 중개 수수료</dt>
-                <dd>거래액의 5~10%</dd>
-              </div>
-            </dl>
-            <p className={s.noteLine}>
-              수수료율은 품목·물량·거래 조건에 따라 위 범위 안에서 협의로 정합니다. 견적 금액은
-              제조사 회신 단계에서 개별 안내됩니다.
-            </p>
-          </Card>
-        </div>
-
-        <div className={s.secHead}>
-          <div>
-            <h2>서비스 흐름</h2>
-            <p>기획부터 출시까지 여섯 단계를 플랫폼 안에서 그대로 따라갑니다.</p>
-          </div>
-        </div>
-        <div className={s.flow}>
-          {FLOW.map((f) => (
-            <div key={f.no}>
-              <span className={s.flowNo}>{f.no}</span>
-              <b>{f.name}</b>
-              <p>{f.desc}</p>
-              {f.soon && (
-                <span className={s.flowSoon}>
-                  <Badge tone="neutral">준비 중</Badge>
-                </span>
-              )}
-            </div>
+      {/* ── 오늘의 신호 ── 동향 어댑터의 최신 세 건을 한 줄로 ── */}
+      <Container>
+        <div className={s.signal}>
+          <span className={s.signalLabel}>오늘의 신호</span>
+          {signals.map((i) => (
+            <span key={i.id} className={s.signalItem}>
+              <em>{TAB_LABEL[i.tab].text}</em>
+              <Link href="/insight/">{i.title}</Link>
+            </span>
           ))}
+          {latest && <span className={s.signalTail}>최신 {latest}</span>}
         </div>
+      </Container>
+
+      {/* ── 지표 ── 숫자는 크게, 라벨은 작게 ── */}
+      <div className={s.band}>
+        <Container>
+          <TrustBar initial={stats} />
+          <p className={s.bandNote}>
+            지표는 플랫폼에 등록된 시연용 데모 데이터를 그대로 센 값입니다.
+          </p>
+        </Container>
       </div>
-    </Container>
+
+      <section className={s.sec}>
+        <Container>
+          <div className={s.secHead}>
+            <div>
+              <h2>제조사 추천 미리보기</h2>
+              <p>GMP 보유 · 리드타임 6주 이내 조건으로 지금 추천되는 제조사입니다.</p>
+            </div>
+            <ButtonLink href="/match/" variant="secondary" size="sm">
+              내 조건으로 찾아보기
+            </ButtonLink>
+          </div>
+          <MatchPreview initial={preview} />
+        </Container>
+      </section>
+
+      <section className={`${s.sec} ${s.secBand}`}>
+        <Container>
+          <div className={s.grid21}>
+            <Card
+              title="오늘의 업계 동향"
+              padded={false}
+              action={
+                <ButtonLink href="/insight/" variant="ghost" size="sm">
+                  전체 보기
+                </ButtonLink>
+              }
+            >
+              <ul className={s.feed}>
+                {insights.slice(0, 3).map((i) => (
+                  <FeedItem key={i.id} insight={i} />
+                ))}
+              </ul>
+            </Card>
+
+            <Card title="이용 안내">
+              <dl>
+                <div className={s.kv}>
+                  <dt>플랫폼 가입</dt>
+                  <dd>무료</dd>
+                </div>
+                <div className={s.kv}>
+                  <dt>조건 매칭 · 견적 요청</dt>
+                  <dd>무료</dd>
+                </div>
+                <div className={s.kv}>
+                  <dt>원료 중개 수수료</dt>
+                  <dd>거래액의 10~15%</dd>
+                </div>
+                <div className={s.kv}>
+                  <dt>완제품 중개 수수료</dt>
+                  <dd>거래액의 5~10%</dd>
+                </div>
+              </dl>
+              <p className={s.noteLine}>
+                수수료율은 품목·물량·거래 조건에 따라 위 범위 안에서 협의로 정합니다. 견적 금액은
+                제조사 회신 단계에서 개별 안내됩니다.
+              </p>
+            </Card>
+          </div>
+        </Container>
+      </section>
+
+      <section className={s.sec}>
+        <Container>
+          <div className={s.secHead}>
+            <div>
+              <h2>서비스 흐름</h2>
+              <p>기획부터 출시까지 여섯 단계를 플랫폼 안에서 그대로 따라갑니다.</p>
+            </div>
+          </div>
+          <div className={s.flow}>
+            {FLOW.map((f) => (
+              <div key={f.no}>
+                <span className={s.flowNo}>{f.no}</span>
+                <b>{f.name}</b>
+                <p>{f.desc}</p>
+                {f.soon && (
+                  <span className={s.flowSoon}>
+                    <Badge tone="neutral">준비 중</Badge>
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+    </>
   );
 }

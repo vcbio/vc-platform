@@ -20,10 +20,10 @@
   display: block;
   margin-bottom: 8px;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em; /* 전부 대문자는 항상 자간을 준다 */
+  font-weight: 700;
+  letter-spacing: 0.06em; /* 전부 대문자는 항상 자간을 준다 */
   text-transform: uppercase;
-  color: var(--pf-blue);
+  color: var(--pf-accent);
 }
 .sub {
   margin-top: 8px;
@@ -97,27 +97,28 @@
 }
 .table th {
   text-align: left;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--pf-border);
-  background: var(--pf-bg-2);
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--pf-ink);
+  background: transparent;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--pf-ink-3);
+  color: var(--pf-ink-2);
   white-space: nowrap;
 }
 .table td {
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--pf-border);
+  height: var(--pf-row);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--pf-rule);
   vertical-align: middle;
-  color: var(--pf-ink-2);
+  color: var(--pf-ink);
 }
 .table tbody tr:last-child td {
   border-bottom: 0;
 }
 .table tbody tr:hover {
-  background: var(--pf-bg);
+  background: var(--pf-paper-2);
 }
 .table td b {
   font-weight: 600;
@@ -134,7 +135,7 @@
   white-space: nowrap;
 }
 .selectedRow td {
-  background: var(--pf-blue-soft);
+  background: var(--pf-accent-soft);
 }
 
 /* ---------------- key/value ---------------- */
@@ -167,7 +168,7 @@
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 15px 24px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--pf-border);
 }
 .feed li:last-child {
@@ -211,8 +212,8 @@
   min-width: 0;
   padding: 16px 14px;
   border: 1px solid var(--pf-border);
-  border-radius: var(--pf-radius-sm); /* 카드 10px 안쪽이라 8px — 동심 반경 */
-  background: var(--pf-bg-2);
+  border-radius: var(--pf-radius-sm); /* 카드 4px 안쪽이라 3px — 동심 반경 */
+  background: var(--pf-paper-2);
 }
 .pipe span {
   display: block;
@@ -235,26 +236,26 @@
   color: var(--pf-ink-3);
 }
 .done {
-  background: var(--pf-blue-soft) !important;
-  border-color: #bae6fd !important;
+  background: var(--pf-accent-soft) !important;
+  border-color: var(--pf-accent) !important;
 }
 .done b,
 .done span,
 .done small {
-  color: var(--pf-blue-deep) !important; /* 8.24:1 */
+  color: var(--pf-accent-deep) !important; /* 8.24:1 */
 }
 .now {
-  background: var(--pf-blue-deep) !important;
-  border-color: var(--pf-blue-deep) !important;
+  background: var(--pf-accent) !important;
+  border-color: var(--pf-accent) !important;
 }
 .now span {
-  color: #bae6fd !important; /* 7.13:1 */
+  color: var(--pf-accent-soft) !important; /* 딥그린 위 8.80:1 */
 }
 .now b {
-  color: #ffffff !important; /* 9.46:1 */
+  color: var(--pf-paper) !important; /* 11.23:1 */
 }
 .now small {
-  color: #cbd5e1 !important; /* 6.37:1 */
+  color: var(--pf-accent-soft) !important; /* 8.80:1 */
 }
 @media (max-width: 900px) {
   .pipe {
@@ -300,8 +301,8 @@
   border: 2px solid var(--pf-border-strong);
 }
 .timeline .hit::before {
-  background: var(--pf-blue-strong);
-  border-color: var(--pf-blue-strong);
+  background: var(--pf-accent);
+  border-color: var(--pf-accent);
 }
 .timeline b {
   display: block;
@@ -327,19 +328,25 @@
   height: 44px; /* 최소 터치 영역 */
   padding: 0 16px;
   margin-bottom: -1px;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
   font-size: 15px;
   font-weight: 600;
   color: var(--pf-ink-3);
   white-space: nowrap;
-  transition: color var(--pf-motion-fast), border-color var(--pf-motion-fast);
+  text-decoration: none;
+  transition: color var(--pf-motion-fast), background-color var(--pf-motion-fast),
+    border-color var(--pf-motion-fast);
 }
 .tab:hover {
   color: var(--pf-ink);
 }
 .tab[aria-selected="true"] {
-  color: var(--pf-blue);
-  border-color: var(--pf-blue-strong);
+  color: var(--pf-accent);
+  font-weight: 700;
+  border-color: var(--pf-accent);
+}
+.tab:hover {
+  background: var(--pf-paper-2);
 }
 .panel {
   animation: pfFade 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -364,14 +371,16 @@
 }
 .statLabel {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--pf-ink-3);
 }
 .statValue {
-  font-size: 28px;
+  font-size: 44px;
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
   color: var(--pf-ink);
   font-variant-numeric: tabular-nums;
 }
@@ -438,7 +447,7 @@
   min-height: 40px; /* 손가락·마우스 최소 영역 */
   font-size: 14px;
   font-weight: 600;
-  color: var(--pf-blue);
+  color: var(--pf-accent);
 }
 .detail summary:hover {
   text-decoration: underline;
@@ -459,8 +468,8 @@
 
 /* 관리자 하위 메뉴는 링크라 aria-selected 대신 aria-current 를 쓴다. */
 .tab[aria-current="page"] {
-  color: var(--pf-blue);
-  border-color: var(--pf-blue-strong);
+  color: var(--pf-accent);
+  border-color: var(--pf-accent);
 }
 .tab {
   display: inline-flex;
@@ -471,13 +480,13 @@
   width: min(440px, calc(100vw - 32px));
   padding: 0;
   border: 1px solid var(--pf-border);
-  border-radius: var(--pf-radius-lg); /* 모달은 정본이 지정한 16px */
+  border-radius: var(--pf-radius-lg); /* 모달만 한 단계 큰 6px */
   background: var(--pf-card);
   box-shadow: var(--pf-shadow-lift);
   color: var(--pf-ink);
 }
 .dialog::backdrop {
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(27, 27, 26, 0.45);
 }
 .dialogBody {
   padding: 24px;
@@ -499,7 +508,7 @@
 .danger {
   background: var(--pf-danger) !important;
   border-color: var(--pf-danger) !important;
-  color: #ffffff !important;
+  color: var(--pf-paper) !important;
 }
 .danger:hover:not([disabled]) {
   background: var(--pf-danger-ink) !important;
