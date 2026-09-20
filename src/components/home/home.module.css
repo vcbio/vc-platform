@@ -87,6 +87,8 @@
   color: var(--pf-ink);
 }
 .deckName a {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--pf-ink);
   text-decoration: underline;
   text-decoration-thickness: 2px;
@@ -106,12 +108,30 @@
 }
 
 /* 거대 숫자 — 이 화면의 주인공 */
+/* 숫자 줄은 감기지 않는다 — 감기는 순간 아래 블록이 통째로 밀려
+   자동 순환마다 CTA·검색창이 튄다(2026-09-21 실측 52px). */
 .deckNum {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   margin-top: 6px;
+}
+/* 변화율은 숫자 아래 자기 줄에 둔다. 높이가 고정이라 원료가 바뀌어도 자리가 안 변한다. */
+.deckMove {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 38px;
+  margin-top: 10px;
+}
+.deckMove em {
+  font-style: normal;
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
 }
 .odoBig {
   font-size: clamp(64px, 11vw, 168px);
@@ -139,12 +159,6 @@
   font-size: 17px;
   font-weight: 600;
   color: var(--pf-ink-3);
-}
-.deckPeriod {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--pf-ink-3);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ── 오도미터 ── 자리마다 0~9 를 쌓아 두고 밀어 올린다 ── */
@@ -229,7 +243,7 @@
   display: flex;
   justify-content: space-between;
   margin-top: 5px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--pf-muted);
@@ -257,9 +271,12 @@
   color: var(--pf-muted);
 }
 .searchInput:focus {
-  outline: none;
   border-color: var(--pf-accent);
-  box-shadow: 0 0 0 2px var(--pf-accent-soft);
+}
+.searchInput:focus-visible {
+  outline: 2px solid var(--pf-ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--pf-paper);
 }
 .searchList {
   position: absolute;
@@ -298,6 +315,18 @@
 .searchOn,
 .searchOn b {
   color: var(--pf-accent-deep);
+}
+
+/* 후보가 없을 때 — 길을 막지 않고 그대로 견적으로 보낸다 */
+.searchEmpty {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pf-ink-3);
+}
+
+.rankWrap {
+  min-width: 0;
 }
 
 .deckCta {

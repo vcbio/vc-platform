@@ -16,9 +16,15 @@ import s from "./home.module.css";
  */
 
 const TOP_URL = "/vc-platform/data/ingredients-top.json";
-const MAX = 5;
+const MAX = 6;
 
-type Row = { name: string; monthlyVolume: number };
+type Row = {
+  name: string;
+  monthlyVolume: number;
+  category?: string;
+  /** 기능성 분류(혈당·관절 …). 이름이 안 맞아도 이 말로 찾는 사람이 많다. */
+  functionCategory?: string;
+};
 
 let topCache: Promise<Row[]> | null = null;
 
@@ -33,6 +39,31 @@ function loadTop(): Promise<Row[]> {
 }
 
 const nf = new Intl.NumberFormat("ko-KR");
+
+/**
+ * 앞글자만 맞추면 「관절」·「콜라겐」·「Q10」 같은 말로는 한 건도 안 걸린다.
+ * 그래서 ①이름 앞글자 ②이름 어디든 ③기능성·분류 순으로 점수를 매겨 위에서부터 자른다.
+ */
+function match(key: string, pool: Row[]): Row[] {
+  if (!key) return [];
+  const k = key.toLowerCase();
+  const seen = new Set<string>();
+  const scored: { row: Row; rank: number }[] = [];
+
+  for (const r of pool) {
+    if (!r?.name || seen.has(r.name)) continue;
+    const name = r.name.toLowerCase();
+    const tag = `${r.functionCategory ?? ""} ${r.category ?? ""}`.toLowerCase();
+    const rank = name.startsWith(k) ? 0 : name.includes(k) ? 1 : tag.includes(k) ? 2 : -1;
+    if (rank < 0) continue;
+    seen.add(r.name);
+    scored.push({ row: r, rank });
+  }
+
+  // 같은 등급 안에서는 검색량이 큰 쪽을 먼저 보여 준다.
+  scored.sort((a, b) => a.rank - b.rank || b.row.monthlyVolume - a.row.monthlyVolume);
+  return scored.slice(0, MAX).map((x) => x.row);
+}
 
 export default function IngredientSearch({
   signals,
@@ -59,17 +90,7 @@ export default function IngredientSearch({
   }, []);
 
   const key = q.trim();
-  const pool = [...signals, ...rows];
-  const seen = new Set<string>();
-  const hits: Row[] = [];
-  if (key) {
-    for (const r of pool) {
-      if (!r?.name || seen.has(r.name) || !r.name.startsWith(key)) continue;
-      seen.add(r.name);
-      hits.push(r);
-      if (hits.length >= MAX) break;
-    }
-  }
+  const hits = match(key, [...signals, ...rows]);
 
   function choose(name: string) {
     setOpen(false);
@@ -84,6 +105,12 @@ export default function IngredientSearch({
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") {
       setOpen(false);
+      return;
+    }
+    if (e.key === "Enter" && hits.length === 0 && key) {
+      // 목록에 없어도 길은 열어 둔다 — 적은 말 그대로 견적 폼으로 싣고 간다.
+      e.preventDefault();
+      choose(key);
       return;
     }
     if (hits.length === 0) return;
@@ -116,6 +143,9 @@ export default function IngredientSearch({
         role="combobox"
         aria-expanded={open && hits.length > 0}
         aria-controls={boxId}
+        aria-activedescendant={
+          open && hits.length > 0 ? `${boxId}-opt-${Math.min(cursor, hits.length - 1)}` : undefined
+        }
         aria-autocomplete="list"
         autoComplete="off"
         value={q}
@@ -128,11 +158,18 @@ export default function IngredientSearch({
         onKeyDown={onKeyDown}
       />
 
+      {open && key !== "" && hits.length === 0 && (
+        <p className={s.searchEmpty} role="status">
+          일치하는 원료가 없습니다 — Enter 를 누르면 「{key}」 그대로 견적요청합니다.
+        </p>
+      )}
+
       {open && hits.length > 0 && (
         <ul className={s.searchList} id={boxId} role="listbox" aria-label="검색 후보">
           {hits.map((r, i) => (
             <li
               key={r.name}
+              id={`${boxId}-opt-${i}`}
               role="option"
               aria-selected={i === cursor}
               className={i === cursor ? s.searchOn : undefined}

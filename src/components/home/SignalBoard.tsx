@@ -198,7 +198,8 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
 
       <div className={s.deckGrid}>
         <div className={s.deckMain}>
-          <p className={s.deckName}>
+          {/* 이 화면의 제목은 문구가 아니라 지금 뜨는 원료 이름이다 */}
+          <h1 className={s.deckName}>
             {top.href ? (
               <a href={top.href} target="_blank" rel="noopener noreferrer">
                 {top.name}
@@ -208,17 +209,21 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
               top.name
             )}
             {top.category && <em>{top.category}</em>}
-          </p>
+          </h1>
 
           <p className={s.deckNum}>
             <Odometer text={nf.format(top.monthlyVolume)} reduced={reduced} className={s.odoBig} />
             <span className={s.deckUnit}>회 / 월</span>
+          </p>
+
+          {/* 변화율은 숫자와 같은 줄에 두지 않는다 — 자릿수가 길면 줄이 감겨
+              아래 블록이 통째로 밀린다(자동 순환마다 52px 점프, 2026-09-21 실측) */}
+          <p className={s.deckMove}>
             <span className={s.up}>
               <Odometer text={pct(top.changePct)} reduced={reduced} duration={600} stagger={30} />
             </span>
+            <em>{top.periodLabel}</em>
           </p>
-
-          <p className={s.deckPeriod}>{top.periodLabel}</p>
 
           {top.weeks8 && top.weeks8.length > 1 && (
             <Sparkline
@@ -231,7 +236,12 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
           )}
 
           <IngredientSearch
-            signals={signals.map((r) => ({ name: r.name, monthlyVolume: r.monthlyVolume }))}
+            signals={signals.map((r) => ({
+              name: r.name,
+              monthlyVolume: r.monthlyVolume,
+              category: r.category,
+              functionCategory: (r as { functionCategory?: string }).functionCategory,
+            }))}
             onPick={pickByName}
           />
 
@@ -248,15 +258,17 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
           </div>
         </div>
 
-        <ol
-          className={s.rankList}
-          role="listbox"
-          tabIndex={0}
-          aria-label="원료 순위 1위부터 10위 — 위아래 방향키로 고릅니다"
-          aria-activedescendant={`sig-opt-${sel}`}
-          onKeyDown={onListKeyDown}
-        >
-          {signals.map((sig, i) => (
+        <div className={s.rankWrap}>
+          <h2 className="pf-sr-only">지금 뜨는 원료 순위</h2>
+          <ol
+            className={s.rankList}
+            role="listbox"
+            tabIndex={0}
+            aria-label="원료 순위 1위부터 10위 — 위아래 방향키로 고릅니다"
+            aria-activedescendant={`sig-opt-${sel}`}
+            onKeyDown={onListKeyDown}
+          >
+            {signals.map((sig, i) => (
             <li
               key={sig.id}
               id={`sig-opt-${i}`}
@@ -284,8 +296,9 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
                 <Delta row={sig} ready={ready} />
               </span>
             </li>
-          ))}
-        </ol>
+            ))}
+          </ol>
+        </div>
       </div>
 
       <p className={s.deckFoot}>
