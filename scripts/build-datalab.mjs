@@ -15,13 +15,17 @@
  * ⚠️ 데이터랩 저장소는 읽기 전용이다. 이 스크립트는 아무것도 올리지 않는다.
  */
 
-import { mkdir, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 /** 값을 긁어 오는 대상. 화면 링크용 주소는 `src/lib/data/datalab.ts` 의 DATALAB_URL 이다(같이 바꿀 것). */
 const PAGE = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
 const BASE = "https://vcbio.github.io/shelf/d/";
 const OUT_DIR = path.join(process.cwd(), "public", "data");
+/** 주차별 스냅샷 보관소. 순위 변동(▲▼)은 지난주 파일이 있어야 계산할 수 있다. */
+const HISTORY_DIR = path.join(OUT_DIR, "history");
+/** 비교 대상으로 인정하는 최소 간격. 같은 주의 파일을 지난주로 착각하지 않게 한다. */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const SOURCE = "한국 공개자료 · 데이터랩";
 /** 검색량이 작은 원료는 한 주만 튀어도 변화율이 몇 배로 뛴다. 하한을 두고 화면에 그 하한을 적는다. */
 const MIN_VOLUME = 1000;
@@ -156,18 +160,29 @@ async function main() {
   }
 
   /**
-   * 한 주 앞당겨 같은 산식으로 본 변화율. 「지난주에는 몇 위였나」를 세는 데만 쓴다.
-   * ⚠️ 월 검색량은 지난주 스냅샷이 없어 현재 값을 그대로 쓴다. 따라서 직전 순위는
-   *    "그때도 오르고 있었나"의 차이만 반영한다 — 검색량 변동은 반영하지 못한다.
+   * 지난주 스냅샷 읽기 — 이번 기준일보다 7일 이상 이전인 것 중 가장 최근 것.
+   * 없으면 null 이고, 그때는 순위 변동을 아예 내지 않는다(모르는 것을 0 으로 채우지 않는다).
    */
-  function weeklyPrev(row) {
-    const o = obsById.get(row.id);
-    const weeks = o?.weeks ?? [];
-    if (!o?.eligible || weeks.length < 3) return null;
-    const cur = weeks.at(-2);
-    const prev = weeks.at(-3);
-    if (!(prev.mean > 0)) return null;
-    return { changePct: round1((cur.mean / prev.mean - 1) * 100) };
+  async function loadPreviousSnapshot(currentObservedAt) {
+    let names = [];
+    try {
+      names = await readdir(HISTORY_DIR);
+    } catch {
+      return null;
+    }
+    const cutoff = new Date(currentObservedAt).getTime() - WEEK_MS;
+    const found = [];
+    for (const n of names.filter((n) => n.startsWith("signals-") && n.endsWith(".json"))) {
+      try {
+        const snap = JSON.parse(await readFile(path.join(HISTORY_DIR, n), "utf8"));
+        if (!snap?.observedAt || !Array.isArray(snap.rows)) continue;
+        if (new Date(snap.observedAt).getTime() <= cutoff) found.push(snap);
+      } catch {
+        // 깨진 파일 하나 때문에 빌드를 세우지 않는다.
+      }
+    }
+    found.sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+    return found.at(-1) ?? null;
   }
 
   const href = (row) => `${PAGE}#view=ingredients&id=${row.id}&tab=trend`;
@@ -211,25 +226,23 @@ async function main() {
     .slice(0, 20)
     .map((d) => toSignal(d, []));
 
-  /* 직전 완전주 기준으로 같은 규칙을 한 번 더 돌려 「지난주 순위」를 만든다. */
-  const prevRank = new Map();
-  usable
-    .filter((d) => volumeOf(d) >= SIGNAL_MIN_VOLUME && (weeklyPrev(d)?.changePct ?? 0) > 0)
-    .sort((a, b) => volumeOf(b) - volumeOf(a) || weeklyPrev(b).changePct - weeklyPrev(a).changePct)
-    .slice(0, 20)
-    .forEach((d, i) => prevRank.set(d.id, i + 1));
-
-  // 지난주를 판정할 수 없는 줄은 필드를 아예 붙이지 않는다 — 0 으로 채우면 "제자리"라는 거짓말이 된다.
-  signals.forEach((r, i) => {
-    const row = usable.find((d) => d.id === r.id);
-    if (!row || !weeklyPrev(row)) return;
-    const before = prevRank.get(r.id);
-    if (before == null) r.isNew = true;
-    else {
-      r.isNew = false;
-      r.rankDelta = before - (i + 1);
-    }
-  });
+  /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
+     같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
+  const previous = await loadPreviousSnapshot(OBS.completeWeekEnd);
+  if (previous) {
+    const prevRank = new Map(previous.rows.map((r, i) => [r.id, i + 1]));
+    signals.forEach((r, i) => {
+      const before = prevRank.get(r.id);
+      if (before == null) r.isNew = true;
+      else {
+        r.isNew = false;
+        r.rankDelta = before - (i + 1);
+      }
+    });
+    log(`지난주 스냅샷 ${previous.observedAt} (${previous.rows.length}행) 기준으로 순위 변동을 냈습니다.`);
+  } else {
+    log("지난주 스냅샷이 없습니다 — 순위 변동(rankDelta·isNew)은 이번 회차에 내지 않습니다.");
+  }
 
   /* ── ② 주간 급상승 탭 ── 여기는 변화율 순으로 둔다(무엇이 움직였나를 보는 자리).
      기저가 낮아 퍼센트가 튄 줄에는 lowBase 표시가 붙는다. */
@@ -408,6 +421,28 @@ async function main() {
     log(`생성 ${name} — ${payload.rows.length}건 · ${kb.toFixed(1)}KB${kb > 300 ? "  ⚠️ 300KB 초과" : ""}`);
   }
 
+  /* ── 이번 주 스냅샷 남기기 ──
+     파일 이름의 날짜는 실행일이 아니라 **자료의 완전주 기준일**이다.
+     그래야 하루에 여러 번(매일 cron) 돌아도 파일이 한 주에 하나만 쌓이고,
+     "7일 이상 이전" 비교가 정확해진다. 같은 주면 같은 파일을 덮어쓴다. */
+  await mkdir(HISTORY_DIR, { recursive: true });
+  const snapFile = path.join(HISTORY_DIR, `signals-${asOf}.json`);
+  await writeFile(
+    snapFile,
+    JSON.stringify({
+      observedAt: asOf,
+      generatedAt: meta.generatedAt,
+      source: SOURCE,
+      rows: signals.map((r) => ({
+        id: r.id,
+        name: r.name,
+        monthlyVolume: r.monthlyVolume,
+        changePct: r.changePct,
+      })),
+    }),
+  );
+  log(`스냅샷 history/signals-${asOf}.json — ${signals.length}행 · ${((await stat(snapFile)).size / 1024).toFixed(1)}KB`);
+
   // 검산 — 지시받은 대조값이 그대로 나오는지 본다.
   const check = ingredients.find((d) => d.name === "젖산마그네슘");
   if (check) {
@@ -418,7 +453,7 @@ async function main() {
   log(
     `검산 순위 변동 상위 5 — ${signals
       .slice(0, 5)
-      .map((r, i) => `${r.name} 현재 ${i + 1}위 / 직전 ${prevRank.get(r.id) ?? "없음"} / ${r.isNew ? "NEW" : r.rankDelta != null ? (r.rankDelta > 0 ? `▲${r.rankDelta}` : r.rankDelta < 0 ? `▼${-r.rankDelta}` : "-") : "판정불가"}`)
+      .map((r, i) => `${r.name} ${i + 1}위/${r.isNew ? "NEW" : r.rankDelta != null ? (r.rankDelta > 0 ? `▲${r.rankDelta}` : r.rankDelta < 0 ? `▼${-r.rankDelta}` : "제자리") : "미판정"}`)
       .join(" · ")}`,
   );
   for (const nm of ["글루타치온", "병아리콩", "모링가"]) {

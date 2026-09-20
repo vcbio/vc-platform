@@ -2,10 +2,14 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # 스냅샷 커밋이 다시 이 워크플로를 부르지 않게 한다(무한 재귀 방지 1/2).
+    paths-ignore:
+      - "public/data/history/**"
   workflow_dispatch:
   schedule: [{ cron: "30 22 * * *" }]   # 매일 07:30 KST — 데이터랩 갱신 반영
 permissions:
-  contents: read
+  # 주차별 스냅샷을 저장소에 되돌려 넣어야 해서 write 가 필요하다.
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -22,6 +26,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # prebuild 가 만든 이번 주 스냅샷을 저장소에 남긴다.
+      # 다음 회차가 이 파일을 읽어 순위 변동(▲▼)을 낸다.
+      - name: Commit weekly snapshot
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/history
+          if git diff --cached --quiet; then
+            echo "새 스냅샷 없음 - 커밋하지 않습니다"
+            exit 0
+          fi
+          # [skip ci] 로 한 번 더 막는다(무한 재귀 방지 2/2).
+          git commit -m "data: snapshot $(date -u +%F) [skip ci]"
+          git push
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
