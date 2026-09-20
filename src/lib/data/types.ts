@@ -72,3 +72,19 @@ export type MatchResult = {
   score: number;
   matched: string[];
 };
+
+/**
+ * 시장 신호 — 데이터랩(공개데이터)에서 오는 "지금 뜨는 원료" 한 줄.
+ * 홈 히어로·「오늘의 신호」 띠·인사이트가 이걸 쓴다. 값은 전부 공개 검색량 기반이며 가격 정보는 없다.
+ */
+export type Signal = {
+  id: string;
+  name: string;              // 원료명 (예: 젖산마그네슘)
+  category?: string;         // 건강기능식품 원료 / 일반식품 원료 …
+  monthlyVolume: number;     // 월 검색량(회)
+  changePct: number;         // 직전 기간 대비 변화율(%) — 양수 상승
+  periodLabel: string;       // 비교 기간 설명 (예: "주간 08-31~09-06")
+  observedAt: string;        // 데이터 기준일 ISO (예: 2026-09-07)
+  source: string;            // 출처 표기 (예: "한국 공개자료 · 데이터랩")
+  href?: string;             // 데이터랩 원료 상세 URL
+};

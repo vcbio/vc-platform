@@ -7,6 +7,7 @@ import type {
   Insight,
   InsightTab,
   Quote,
+  Signal,
 } from "./types";
 
 export * from "./types";
@@ -35,6 +36,9 @@ export type DataAdapter = {
   removeQuote(id: string): Promise<void>;
 
   listInsights(tab?: InsightTab): Promise<Insight[]>;
+
+  /** 지금 뜨는 원료 상위 n건 (변화율 내림차순). 데이터랩 연결 전엔 로컬 시드 스텁. */
+  listSignals(limit?: number): Promise<Signal[]>;
 
   matchManufacturers(criteria: MatchCriteria): Promise<MatchResult[]>;
 };
