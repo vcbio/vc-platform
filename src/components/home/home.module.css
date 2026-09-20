@@ -2,282 +2,367 @@
    지면은 아이보리 한 장이고, 면을 띄우는 대신 1px 룰선과 옅은 띠로 구획한다.
    그라디언트·글로우·블롭은 한 곳도 쓰지 않는다. */
 
-/* ---------------- 히어로 ---------------- */
+/* ---------------- 첫 화면 시세판 ----------------
+   문구가 없다. 숫자·선·순위가 화면을 끌고 간다(대표 결정 2026-09-21 D11).
+   움직이는 것은 넷뿐 — 오도미터 · 스파크라인 그리기 · 순위 롤링 · LIVE 점.
+   전부 transform·opacity 로만 움직인다(레이아웃 애니메이션 금지 = 60fps). */
 
 .hero {
-  padding: 52px 0 36px;
+  padding: 30px 0 34px;
   border-bottom: 1px solid var(--pf-rule-strong);
 }
-.eyebrow {
-  display: block;
+
+.deck {
+  min-width: 0;
+}
+.deckHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--pf-ink);
+}
+.deckEyebrow {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--pf-accent);
-  margin-bottom: 16px;
-}
-/* 제목은 두 단 위에 통으로 얹는다 — 신문 제호처럼 지면 전체를 먼저 잡는다.
-   폭을 ch 로 재지 않는다(ch 는 부모 글자 크기 기준이라 큰 제목에서 엉뚱하게 좁아진다). */
-.heroTitle {
-  max-width: 1080px;
-  font-size: clamp(32px, 4.6vw, 62px);
-  font-weight: 800;
-  line-height: 1.06;
-  letter-spacing: -0.035em;
-  color: var(--pf-ink);
-}
-.heroTitle em {
-  font-style: normal;
-  color: var(--pf-accent);
-}
-.nowrap {
-  white-space: nowrap;
-}
-/* 굵은 딥그린 룰 — 제목과 본문을 가르는 한 줄. 장식이 아니라 구획이다. */
-.heroRule {
-  width: 84px;
-  height: 4px;
-  margin: 28px 0 24px;
-  background: var(--pf-accent);
-}
-/* 보드가 주인공이다 — 오른쪽 단을 넓게 잡고 카피는 좁게 받친다 */
-.heroGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
-  grid-template-areas:
-    "copy board"
-    "band board";
-  grid-template-rows: auto 1fr;
-  gap: 24px 48px;
-  align-items: start;
-}
-.heroCopy {
-  grid-area: copy;
-}
-.board {
-  grid-area: board;
-}
-.heroCopy {
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
   min-width: 0;
 }
-.heroLead {
-  font-size: 17px;
-  line-height: 1.7;
-  color: var(--pf-ink-2);
-  max-width: 52ch;
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--pf-accent);
 }
-.heroCta {
+.liveDot,
+.liveDotStill {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pf-accent);
+}
+/* 점 하나가 조용히 숨 쉰다 — 네온·글로우 없이 퍼지는 테두리 하나뿐 */
+.liveDot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--pf-accent);
+  animation: pfPulse 2s var(--pf-ease) infinite;
+}
+@keyframes pfPulse {
+  from { transform: scale(1); opacity: 0.55; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+
+.deckGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 392px);
+  gap: 40px;
+  align-items: start;
+  padding-top: 22px;
+}
+.deckMain {
+  min-width: 0;
+}
+
+.deckName {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: clamp(26px, 2.6vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--pf-ink);
+}
+.deckName a {
+  color: var(--pf-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--pf-rule-strong);
+}
+.deckName a:hover {
+  color: var(--pf-accent);
+  text-decoration-color: currentColor;
+}
+.deckName em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pf-ink-3);
+}
+
+/* 거대 숫자 — 이 화면의 주인공 */
+.deckNum {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.odoBig {
+  font-size: clamp(64px, 11vw, 168px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  color: var(--pf-ink);
+}
+/* 화면에서 유일하게 큰 주황 — 「급등」 하나에만 쓴다 */
+.up {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: var(--pf-radius-sm);
+  background: var(--pf-up-soft);
+  color: var(--pf-up-ink);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deckUnit {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pf-ink-3);
+}
+.deckPeriod {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 오도미터 ── 자리마다 0~9 를 쌓아 두고 밀어 올린다 ── */
+.odo {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.odoRow {
+  display: inline-flex;
+  align-items: flex-start;
+}
+.odoCell {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+}
+.odoCol {
+  display: block;
+  transition-property: transform;
+  transition-timing-function: var(--pf-ease);
+  will-change: transform;
+}
+.odoCol > span {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+.odoSep {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* ── 스파크라인 ── 축·격자 없음. 모양만 읽히면 된다 ── */
+.spark {
+  margin: 20px 0 0;
+  max-width: 560px;
+}
+.sparkPlot {
+  position: relative;
+  height: 44px;
+}
+.spark svg {
+  display: block;
+  width: 100%;
+  height: 44px;
+  overflow: visible;
+}
+.sparkPath,
+.sparkPathStill {
+  fill: none;
+  stroke: var(--pf-accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sparkPath {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: pfDraw 700ms var(--pf-ease) forwards;
+}
+@keyframes pfDraw {
+  to { stroke-dashoffset: 0; }
+}
+.sparkDot,
+.sparkDotStill {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--pf-up);
+}
+.sparkDot {
+  opacity: 0;
+  animation: pfDot 200ms var(--pf-ease) 620ms forwards;
+}
+@keyframes pfDot {
+  to { opacity: 1; }
+}
+.sparkCap {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pf-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 검색 한 줄 ── */
+.search {
+  position: relative;
+  margin-top: 22px;
+  max-width: 560px;
+}
+.searchInput {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--pf-border-strong);
+  border-radius: var(--pf-radius);
+  background: var(--pf-paper);
+  font-size: 16px;
+  color: var(--pf-ink);
+  transition: border-color var(--pf-motion-fast), box-shadow var(--pf-motion-fast);
+}
+.searchInput::placeholder {
+  color: var(--pf-muted);
+}
+.searchInput:focus {
+  outline: none;
+  border-color: var(--pf-accent);
+  box-shadow: 0 0 0 2px var(--pf-accent-soft);
+}
+.searchList {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  background: var(--pf-paper);
+  border: 1px solid var(--pf-ink);
+  border-radius: 0 0 var(--pf-radius) var(--pf-radius);
+}
+.searchList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--pf-rule);
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--pf-ink);
+}
+.searchList li:last-child {
+  border-bottom: 0;
+}
+.searchList b {
+  font-weight: 600;
+  color: var(--pf-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.searchOn {
+  background: var(--pf-accent-soft);
+}
+.searchOn,
+.searchOn b {
+  color: var(--pf-accent-deep);
+}
+
+.deckCta {
   display: flex;
   align-items: center;
   gap: 22px;
-  margin-top: 26px;
   flex-wrap: wrap;
-}
-.heroNote {
   margin-top: 22px;
-  padding-top: 14px;
-  border-top: 1px solid var(--pf-rule);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--pf-ink-3);
-  max-width: 52ch;
+}
+.ctaBig {
+  height: 56px;
+  padding: 0 26px;
+  font-size: 17px;
 }
 
-/* ---------------- 히어로 오른쪽 — 지금 뜨는 원료 라이브 보드 ----------------
-   숫자가 주인공이다. 면을 띄우지 않고 굵은 룰선으로 지면을 자른 뒤
-   그 안에서 검색량만 크게 세운다. 주황은 변화율 한 곳에만 쓴다. */
-
-/* pf-rise 애니메이션이 쌓임 맥락을 만들어서, 펼친 목록(z-index 20)이 보드 안에 갇힌다.
-   보드 자체를 뒤 섹션보다 위로 올려 둬야 목록이 아래 섹션 위에 제대로 덮인다. */
-.board {
-  position: relative;
-  z-index: 10;
+/* ── 순위판 1~10 ── */
+.rankList {
+  list-style: none;
   border: 1px solid var(--pf-rule-strong);
   border-top: 3px solid var(--pf-ink);
   border-radius: var(--pf-radius);
   background: var(--pf-paper);
   min-width: 0;
 }
-.boardHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 18px;
+.rankList:focus-visible {
+  outline: 2px solid var(--pf-ink);
+  outline-offset: 2px;
+}
+.rankList li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto 52px;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 14px 0 11px;
+  border-left: 3px solid transparent;
   border-bottom: 1px solid var(--pf-rule);
+  cursor: pointer;
+  transition: background-color var(--pf-motion-fast), border-color var(--pf-motion-fast);
 }
-.boardHead b {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--pf-ink-2);
-}
-.boardHead span {
-  font-size: 13px;
-  color: var(--pf-ink-3);
-}
-.boardTop {
-  padding: 18px 18px 20px;
-}
-.boardRank {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.boardRank i {
-  font-style: normal;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--pf-accent);
-  font-variant-numeric: tabular-nums;
-}
-.boardRank span {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--pf-ink-3);
-  letter-spacing: 0.01em;
-}
-.boardName {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  color: var(--pf-ink);
-}
-/* 원료명은 데이터랩 문법 그대로 — 밑줄 있는 이름이 곧 출처 링크다 */
-.boardName a {
-  color: var(--pf-ink);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-  text-decoration-color: var(--pf-rule-strong);
-}
-.boardName a:hover {
-  color: var(--pf-accent);
-  text-decoration-color: currentColor;
-  text-decoration-thickness: 2px;
-}
-.boardNum {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 10px;
-}
-.boardNum b {
-  font-size: clamp(44px, 5.4vw, 76px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--pf-ink);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-.boardNum small {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--pf-ink-3);
-  letter-spacing: 0;
-}
-.boardMove {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-/* 화면에서 유일하게 큰 주황 — 「급등」 하나에만 쓴다 */
-.up {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 11px;
-  border-radius: var(--pf-radius-sm);
-  background: var(--pf-up-soft);
-  color: var(--pf-up-ink);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-.boardMove em {
-  font-style: normal;
-  font-size: 13px;
-  color: var(--pf-ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.boardCta {
-  margin-top: 16px;
-}
-/* ── 한 줄 티커 ── 인기검색어 위젯 문법. 평소엔 한 줄, 손대면 1~10 이 아래로 펼쳐진다.
-   펼침은 겹쳐 뜬다(문서 흐름을 밀지 않는다 — 히어로가 들썩이지 않게). */
-
-.tickerWrap {
-  position: relative;
-  border-top: 1px solid var(--pf-rule);
-}
-.ticker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 44px;
-  padding: 0 14px 0 15px;
-  border-left: 3px solid var(--pf-accent);
-  text-align: left;
-  transition: background-color var(--pf-motion-fast);
+.rankList li:last-child {
+  border-bottom: 0;
 }
 @media (hover: hover) and (pointer: fine) {
-  .ticker:hover {
+  .rankList li:hover {
     background: var(--pf-paper-2);
   }
 }
-/* 한 줄만 보이는 창 — 밀려 올라가는 줄과 올라오는 줄이 이 안에서 교대한다 */
-.tickerView {
-  position: relative;
-  display: block;
-  flex: 1;
-  min-width: 0;
-  height: 22px;
-  overflow: hidden;
-}
-.tickerNow,
-.tickerIn,
-.tickerOut {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto 58px;
-  align-items: center;
-  gap: 10px;
-}
-@keyframes pfRollIn {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: none; opacity: 1; }
-}
-@keyframes pfRollOut {
-  from { transform: none; opacity: 1; }
-  to   { transform: translateY(-100%); opacity: 0; }
-}
-.tickerIn {
-  animation: pfRollIn 220ms var(--pf-ease) both;
-}
-.tickerOut {
-  animation: pfRollOut 220ms var(--pf-ease) both;
-}
-.tickerMore {
-  flex: none;
+
+.deckFoot {
+  margin-top: 18px;
+  padding-top: 11px;
+  border-top: 1px solid var(--pf-rule);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--pf-accent);
-  white-space: nowrap;
+  line-height: 1.55;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.deckFoot em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  color: var(--pf-muted);
 }
 
-/* ── 순위 변동 ── 색만으로 알리지 않는다(▲▼ 기호 + 숫자를 함께 쓴다) ── */
 .boardRowDelta {
   text-align: right;
   font-size: 13px;
@@ -312,59 +397,6 @@
    행은 38px 한 단계로 촘촘하게. 고른 행은 색만으로 알리지 않는다 —
    딥그린 좌측 룰 + 굵기 + aria-selected 를 함께 쓴다. */
 
-.boardRows {
-  position: absolute;
-  top: 100%;
-  left: -1px;
-  right: -1px;
-  z-index: 20;
-  list-style: none;
-  background: var(--pf-paper);
-  border: 1px solid var(--pf-ink);
-  border-top: 0;
-  border-radius: 0 0 var(--pf-radius) var(--pf-radius);
-  animation: pfDrop 160ms var(--pf-ease) both;
-  max-height: min(352px, 60vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-@keyframes pfDrop {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: none; }
-}
-/* 아래 공간이 모자라면 위로 펼친다 — 뒤쪽 순위가 화면 밖으로 밀려 못 눌리는 일을 막는다 */
-.dropUp {
-  top: auto;
-  bottom: 100%;
-  border-top: 1px solid var(--pf-ink);
-  border-bottom: 0;
-  border-radius: var(--pf-radius) var(--pf-radius) 0 0;
-}
-
-.boardRows:focus-visible {
-  outline: 2px solid var(--pf-ink);
-  outline-offset: -2px;
-}
-.boardRows li {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto 58px;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 14px 0 15px;
-  border-left: 3px solid transparent;
-  border-bottom: 1px solid var(--pf-rule);
-  cursor: pointer;
-  transition: background-color var(--pf-motion-fast), border-color var(--pf-motion-fast);
-}
-.boardRows li:last-child {
-  border-bottom: 0;
-}
-@media (hover: hover) and (pointer: fine) {
-  .boardRows li:hover {
-    background: var(--pf-paper-2);
-  }
-}
 .rowOn {
   background: var(--pf-accent-soft);
   border-left-color: var(--pf-accent);
@@ -404,140 +436,6 @@
   font-weight: 600;
   color: var(--pf-ink-2);
   font-variant-numeric: tabular-nums;
-}
-
-/* ── 롤링 진행 바 ── 딥그린 2px 한 줄, 6초 선형 ── */
-.boardProgress {
-  height: 2px;
-  background: var(--pf-paper-2);
-  overflow: hidden;
-}
-.progressRun {
-  display: block;
-  height: 100%;
-  background: var(--pf-accent);
-  transform-origin: left center;
-  animation: pfSweep linear both;
-}
-@keyframes pfSweep {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-.boardFoot em {
-  display: block;
-  margin-top: 3px;
-  font-style: normal;
-  color: var(--pf-muted);
-}
-
-.boardFoot {
-  padding: 11px 18px;
-  border-top: 1px solid var(--pf-rule);
-  background: var(--pf-paper-2);
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--pf-ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------------- 오늘의 신호 띠 ----------------
-   데이터랩 「오늘의 한 줄」 문법 그대로 — 위는 굵은 룰, 아래는 얇은 룰, 한 줄.
-   원료명은 밑줄, 변화율만 주황. 이 문법을 매칭 화면도 그대로 쓴다. */
-
-.signal {
-  display: flex;
-  align-items: baseline;
-  gap: 8px 24px;
-  flex-wrap: wrap;
-  padding: 11px 0;
-  border-top: 1px solid var(--pf-rule-strong);
-  border-bottom: 1px solid var(--pf-rule);
-  font-size: 15px;
-}
-.signalLabel {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--pf-accent);
-  white-space: nowrap;
-}
-.signalItem {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  min-width: 0;
-}
-.signalItem a {
-  color: var(--pf-ink);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--pf-rule-strong);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.signalItem a:hover {
-  color: var(--pf-accent);
-  text-decoration-color: currentColor;
-  text-decoration-thickness: 2px;
-}
-.signalPlain {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--pf-ink);
-}
-.signalItem em {
-  font-style: normal;
-  font-size: 14px;
-  color: var(--pf-ink-2);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.signalItem b {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--pf-up-ink);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.signalTail {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--pf-ink-3);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* 히어로 좌측 아래 — 같은 「오늘의 신호」 마크업을 세로 세 줄로만 다시 앉힌다.
-   1100px 아래에서는 원래의 가로 한 줄로 돌아간다(보드 아래에 붙는다). */
-@media (min-width: 1101px) {
-  .signalHero {
-    grid-area: band;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 0;
-    border-bottom: 0;
-  }
-  .signalHero .signalLabel {
-    padding-bottom: 8px;
-  }
-  .signalHero .signalItem {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: baseline;
-    gap: 10px;
-    padding: 9px 0;
-    border-top: 1px solid var(--pf-rule);
-  }
-  .signalHero .signalTail {
-    margin-left: 0;
-    padding-top: 9px;
-    border-top: 1px solid var(--pf-rule);
-  }
 }
 
 /* ---------------- 지표 띠 ---------------- */
@@ -761,17 +659,10 @@
 /* ---------------- 반응형 ---------------- */
 
 @media (max-width: 1100px) {
-  .heroGrid {
+  /* 순위판은 숫자 아래로 내려간다 */
+  .deckGrid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "copy"
-      "board"
-      "band";
-    grid-template-rows: auto;
-    gap: 32px;
-  }
-  .signalHero {
-    grid-area: band;
+    gap: 28px;
   }
   .grid21 {
     grid-template-columns: minmax(0, 1fr);
@@ -783,18 +674,17 @@
 
 @media (max-width: 680px) {
   .hero {
-    padding: 32px 0 28px;
+    padding: 22px 0 26px;
   }
-  .heroTitle {
-    letter-spacing: -0.03em;
+  .deckHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
-  .nowrap {
-    white-space: normal;
+  .deckNum {
+    gap: 10px;
   }
-  .heroCta {
-    gap: 14px;
-  }
-  .heroCta :global(.pf-btn) {
+  .deckCta :global(.pf-btn) {
     width: 100%;
   }
   .sec {
@@ -843,7 +733,23 @@
   .feedFoot {
     padding-inline: 16px;
   }
-  .signalTail {
-    margin-left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 굴림·그리기·펄스는 전부 멈춘다(전역 규칙이 duration 을 0 으로 만들지만 한 번 더 못박는다) */
+  .odoCol {
+    transition: none !important;
+  }
+  .sparkPath {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .sparkDot {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .liveDot::after {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }

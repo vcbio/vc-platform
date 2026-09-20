@@ -3,7 +3,6 @@ import { ClipboardList, Factory, TrendingUp } from "lucide-react";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import TrustBar from "@/components/home/TrustBar";
 import SignalBoard from "@/components/home/SignalBoard";
-import SignalBand from "@/components/home/SignalBand";
 import { homeStats } from "@/components/home/stats";
 import { getData, type Insight } from "@/lib/data";
 import s from "@/components/home/home.module.css";
@@ -67,39 +66,10 @@ export default async function Home() {
 
   return (
     <>
-      {/* ── 히어로 ── 주인공은 원료 순위 보드다. 왼쪽 카피는 짧게 받친다 ── */}
+      {/* ── 첫 화면 = 시세판 ── 문구 대신 숫자가 말한다(대표 결정 2026-09-21 D11) ── */}
       <section className={s.hero}>
         <Container>
-          <div className="pf-rise">
-            <span className={s.eyebrow}>Value Chain Platform</span>
-            <h1 className={s.heroTitle}>
-              지금 시장이 찾는 원료로 <span className={s.nowrap}>제품을 만드세요</span>
-            </h1>
-            <div className={s.heroRule} aria-hidden="true" />
-          </div>
-
-          <div className={s.heroGrid}>
-            <div className={`${s.heroCopy} pf-rise`} style={{ "--d": "60ms" } as React.CSSProperties}>
-              <p className={s.heroLead}>
-                공개 검색 데이터로 뜨는 원료를 고르고 조건만 입력하면 맞는 제조사를 붙여 견적으로
-                회신합니다.
-              </p>
-              <div className={s.heroCta}>
-                <ButtonLink href="/quote/">견적 요청하기</ButtonLink>
-                <Link href="/insight/" className="pf-link">
-                  동향 전체 보기
-                </Link>
-              </div>
-              <p className={s.heroNote}>
-                가입과 조건 입력은 무료입니다. 회신을 보고 진행 여부를 정하시면 됩니다.
-              </p>
-            </div>
-
-            <SignalBoard initial={signals} />
-
-            {/* 오늘의 신호 — 넓은 화면에선 카피 아래 세로 세 줄, 좁은 화면에선 보드 아래 한 줄 */}
-            <SignalBand initial={signals.slice(0, 3)} hero />
-          </div>
+          <SignalBoard initial={signals} />
         </Container>
       </section>
 
