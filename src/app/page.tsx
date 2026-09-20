@@ -8,13 +8,8 @@ import { homeStats } from "@/components/home/stats";
 import { getData, type Insight } from "@/lib/data";
 import s from "@/components/home/home.module.css";
 
-/**
- * 데이터랩 원본 주소.
- * ⚠️ `@/lib/data/datalab` 의 DATALAB_URL 을 쓰고 싶지만, 그 모듈과 `local.ts` 가 서로를 import 해
- * (local → datalab → local) 서버 렌더에서 초기화 순서가 꼬인다(빌드 실패, 2026-09-21 실측).
- * 어댑터 쪽 순환이 풀리면 이 상수를 지우고 datalabLink() 로 되돌린다.
- */
-const DATALAB_URL = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
+/** 데이터랩 원본 주소 — 정의는 `src/lib/data/constants.ts` 한 곳(순환 import 방지용 분리, 2026-09-21). */
+import { DATALAB_URL } from "@/lib/data/constants";
 
 /** 동향 탭을 사람이 읽는 말로 바꾼다. 색만으로 구분하지 않고 글자를 함께 쓴다. */
 const TAB_LABEL = {

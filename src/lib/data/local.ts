@@ -10,7 +10,7 @@ import type {
   Quote,
 } from "./types";
 // 데이터랩 주소는 한 곳에서만 정의한다 — 시드도 같은 상수를 본다.
-import { DATALAB_URL } from "./datalab";
+import { DATALAB_URL } from "./constants";
 
 /**
  * localStorage 어댑터. Supabase 가 붙기 전까지 화면을 실제로 굴리기 위한 저장소다.

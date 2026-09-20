@@ -24,7 +24,8 @@ const BASE_PATH = "/vc-platform";
  * ⚠️ 빌드 스크립트(`scripts/build-datalab.mjs`)의 `PAGE` 도 같은 주소를 본다.
  *    그쪽은 값을 긁어 오는 대상이라 따로 두었다 — 주소를 바꾸면 두 곳을 같이 바꾼다.
  */
-export const DATALAB_URL = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
+import { DATALAB_URL } from "./constants";
+export { DATALAB_URL };
 
 /** 데이터랩 화면의 특정 view 로 바로 보내는 주소. hash 는 "#view=…" 형태로 준다. */
 export const datalabLink = (hash = "") => `${DATALAB_URL}${hash}`;
