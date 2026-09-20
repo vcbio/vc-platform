@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule: [{ cron: "30 22 * * *" }]   # 매일 07:30 KST — 데이터랩 갱신 반영
 permissions:
   contents: read
   pages: write

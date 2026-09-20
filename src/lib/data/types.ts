@@ -87,4 +87,25 @@ export type Signal = {
   observedAt: string;        // 데이터 기준일 ISO (예: 2026-09-07)
   source: string;            // 출처 표기 (예: "한국 공개자료 · 데이터랩")
   href?: string;             // 데이터랩 원료 상세 URL
+
+  /* ── 아래는 데이터랩 파생본이 채우는 선택 필드다. 로컬 시드에는 없어도 화면이 돈다. ── */
+
+  /** 변화율을 실제로 관측했는지. 기준값이 0·결측이면 "미제공" 이고 changePct 를 읽지 않는다. */
+  changeStatus?: "관측" | "미제공";
+  /** 인정 지위 — 고시형 / 개별인정 / 비인정 / 의약품. 기능성 표시 가능 여부의 근거다. */
+  grade?: string;
+  /** 유통 형태 (예: 일반식품(마그네슘 제형)). */
+  distribution?: string;
+  /** 데이터랩의 장기 추세 판정 (예: 신규 상승 / 고점 지남). */
+  verdict?: string;
+  /** 계절성 판정 (예: 계절반복). */
+  season?: string;
+  /** 계절 고점 월 ("9" 등). season 이 계절반복일 때만 값이 있다. */
+  seasonMonth?: string;
+  /** 최근 8주 일평균(검색 상대지수). 미니바가 이 값을 그린다. */
+  weeks8?: number[];
+  /** 최근 8주 중 직전 주보다 오른 횟수(0~8). 데이터랩의 지속성 지표다. */
+  riseWeeks?: number | null;
+  /** 이 줄을 어느 탭에서 보여 줄지. */
+  tabs?: InsightTab[];
 };

@@ -1,4 +1,5 @@
 import { localData } from "./local";
+import { datalabData } from "./datalab";
 import type {
   Ingredient,
   Manufacturer,
@@ -43,10 +44,16 @@ export type DataAdapter = {
   matchManufacturers(criteria: MatchCriteria): Promise<MatchResult[]>;
 };
 
-/** `NEXT_PUBLIC_DATA_ADAPTER=supabase` 가 아니면 언제나 local 이다. */
+/**
+ * 기본값은 데이터랩 합성 어댑터다 — 시장 신호·인사이트만 데이터랩 파생본을 읽고
+ * 나머지는 local 에 그대로 넘긴다. 파생본이 없으면 그 두 가지도 local 시드로 떨어진다.
+ *
+ * `NEXT_PUBLIC_DATA_ADAPTER=local` 이면 데이터랩을 아예 읽지 않는다(폴백 확인·오프라인 작업용).
+ */
 export function getData(): DataAdapter {
   if (process.env.NEXT_PUBLIC_DATA_ADAPTER === "supabase") {
     throw new Error("supabase 어댑터는 아직 없습니다. NEXT_PUBLIC_DATA_ADAPTER 를 비우고 쓰십시오.");
   }
-  return localData;
+  if (process.env.NEXT_PUBLIC_DATA_ADAPTER === "local") return localData;
+  return datalabData;
 }
