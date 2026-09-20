@@ -152,6 +152,9 @@
 .opt:has(input:checked) .optTitle {
   color: var(--pf-accent-deep);
 }
+.opt:has(input:checked) .optSub {
+  color: var(--pf-accent-deep); /* soft 배경 위 9.82:1 — ink-3는 4.37:1로 AA 미달(검증 2026-09-20) */
+}
 .opt:has(input:focus-visible) {
   outline: 3px solid var(--pf-ink);
   outline-offset: 2px;
