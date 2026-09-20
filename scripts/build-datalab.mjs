@@ -427,19 +427,24 @@ async function main() {
      "7일 이상 이전" 비교가 정확해진다. 같은 주면 같은 파일을 덮어쓴다. */
   await mkdir(HISTORY_DIR, { recursive: true });
   const snapFile = path.join(HISTORY_DIR, `signals-${asOf}.json`);
+  // ⚠️ 실행 시각을 넣지 않는다. 내용이 같으면 바이트도 같아야 워크플로가 헛커밋을 하지 않는다.
+  //    키 순서도 고정하고 2칸 들여쓰기로 박아 둔다(diff 를 사람이 읽을 수 있게).
   await writeFile(
     snapFile,
-    JSON.stringify({
-      observedAt: asOf,
-      generatedAt: meta.generatedAt,
-      source: SOURCE,
-      rows: signals.map((r) => ({
-        id: r.id,
-        name: r.name,
-        monthlyVolume: r.monthlyVolume,
-        changePct: r.changePct,
-      })),
-    }),
+    JSON.stringify(
+      {
+        observedAt: asOf,
+        source: SOURCE,
+        rows: signals.map((r) => ({
+          id: r.id,
+          name: r.name,
+          monthlyVolume: r.monthlyVolume,
+          changePct: r.changePct,
+        })),
+      },
+      null,
+      2,
+    ) + "\n",
   );
   log(`스냅샷 history/signals-${asOf}.json — ${signals.length}행 · ${((await stat(snapFile)).size / 1024).toFixed(1)}KB`);
 
