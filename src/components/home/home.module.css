@@ -45,8 +45,18 @@
 .heroGrid {
   display: grid;
   grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
-  gap: 48px;
+  grid-template-areas:
+    "copy board"
+    "band board";
+  grid-template-rows: auto 1fr;
+  gap: 24px 48px;
   align-items: start;
+}
+.heroCopy {
+  grid-area: copy;
+}
+.board {
+  grid-area: board;
 }
 .heroCopy {
   min-width: 0;
@@ -370,6 +380,10 @@
   color: var(--pf-accent-deep);
   font-weight: 700;
 }
+/* 고른 행은 바탕이 딥그린 소프트라 muted 가 4.37:1 로 떨어진다 — ink-2 로 올린다 */
+.rowOn .deltaFlat {
+  color: var(--pf-ink-2);
+}
 .boardRowRank {
   font-size: 13px;
   font-weight: 700;
@@ -495,6 +509,35 @@
   color: var(--pf-ink-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* 히어로 좌측 아래 — 같은 「오늘의 신호」 마크업을 세로 세 줄로만 다시 앉힌다.
+   1100px 아래에서는 원래의 가로 한 줄로 돌아간다(보드 아래에 붙는다). */
+@media (min-width: 1101px) {
+  .signalHero {
+    grid-area: band;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+  .signalHero .signalLabel {
+    padding-bottom: 8px;
+  }
+  .signalHero .signalItem {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--pf-rule);
+  }
+  .signalHero .signalTail {
+    margin-left: 0;
+    padding-top: 9px;
+    border-top: 1px solid var(--pf-rule);
+  }
 }
 
 /* ---------------- 지표 띠 ---------------- */
@@ -720,7 +763,15 @@
 @media (max-width: 1100px) {
   .heroGrid {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "copy"
+      "board"
+      "band";
+    grid-template-rows: auto;
     gap: 32px;
+  }
+  .signalHero {
+    grid-area: band;
   }
   .grid21 {
     grid-template-columns: minmax(0, 1fr);

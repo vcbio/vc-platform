@@ -10,7 +10,14 @@ import s from "./home.module.css";
  *
  * 히어로 보드와 마찬가지로 빌드 값으로 먼저 그리고 브라우저에서 어댑터로 다시 읽는다.
  */
-export default function SignalBand({ initial }: { initial: Signal[] }) {
+export default function SignalBand({
+  initial,
+  hero = false,
+}: {
+  initial: Signal[];
+  /** 히어로 좌측 아래에 세로로 앉힐 때. 마크업은 같고 자리만 바뀐다. */
+  hero?: boolean;
+}) {
   const [signals, setSignals] = useState(initial);
 
   useEffect(() => {
@@ -28,7 +35,7 @@ export default function SignalBand({ initial }: { initial: Signal[] }) {
   if (signals.length === 0) return null;
 
   return (
-    <div className={s.signal}>
+    <div className={hero ? `${s.signal} ${s.signalHero}` : s.signal}>
       <span className={s.signalLabel}>오늘의 신호</span>
       {signals.map((sig) => (
         <span key={sig.id} className={s.signalItem}>

@@ -6,8 +6,15 @@ import SignalBoard from "@/components/home/SignalBoard";
 import SignalBand from "@/components/home/SignalBand";
 import { homeStats } from "@/components/home/stats";
 import { getData, type Insight } from "@/lib/data";
-import { datalabLink } from "@/lib/data/datalab";
 import s from "@/components/home/home.module.css";
+
+/**
+ * 데이터랩 원본 주소.
+ * ⚠️ `@/lib/data/datalab` 의 DATALAB_URL 을 쓰고 싶지만, 그 모듈과 `local.ts` 가 서로를 import 해
+ * (local → datalab → local) 서버 렌더에서 초기화 순서가 꼬인다(빌드 실패, 2026-09-21 실측).
+ * 어댑터 쪽 순환이 풀리면 이 상수를 지우고 datalabLink() 로 되돌린다.
+ */
+const DATALAB_URL = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
 
 /** 동향 탭을 사람이 읽는 말로 바꾼다. 색만으로 구분하지 않고 글자를 함께 쓴다. */
 const TAB_LABEL = {
@@ -94,14 +101,12 @@ export default async function Home() {
             </div>
 
             <SignalBoard initial={signals} />
+
+            {/* 오늘의 신호 — 넓은 화면에선 카피 아래 세로 세 줄, 좁은 화면에선 보드 아래 한 줄 */}
+            <SignalBand initial={signals.slice(0, 3)} hero />
           </div>
         </Container>
       </section>
-
-      {/* ── 오늘의 신호 ── 지금 뜨는 원료 세 건을 데이터랩 문법 한 줄로 ── */}
-      <Container>
-        <SignalBand initial={signals.slice(0, 3)} />
-      </Container>
 
       {/* ── 어떻게 되나 ── 세 단계로 끝난다 ── */}
       <section className={s.howSec}>
@@ -152,7 +157,7 @@ export default async function Home() {
               </ul>
               <div className={s.feedFoot}>
                 <a
-                  href={datalabLink()}
+                  href={DATALAB_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="pf-btn pf-btn-secondary pf-btn-sm"

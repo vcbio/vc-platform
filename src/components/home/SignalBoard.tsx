@@ -151,6 +151,9 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
   /** 마우스를 올려서 펼쳐진 상태인지 — 그 직후의 첫 클릭은 도로 접지 않는다. */
   const hoverOpened = useRef(false);
   const tickerRef = useRef<HTMLButtonElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  /** 방금 닫았다 — 닫으면서 티커로 돌아간 포커스가 곧장 다시 펼치는 것을 막는다(300ms). */
+  const suppress = useRef(0);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -247,11 +250,27 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
     release();
   }
 
+  /**
+   * 닫으면서 300ms 동안 「다시 펼치기」를 막는다.
+   * Escape 로 닫은 뒤 티커로 포커스를 돌려주면 그 포커스가 곧장 재펼침을 부른다 — 그걸 끊는다.
+   */
+  function collapseGuarded() {
+    suppress.current = Date.now() + 300;
+    collapse();
+  }
+
+  /** 마우스가 보드를 벗어났을 때. 포커스가 목록 안에 있었으면 티커로 돌려준다(포커스 유실 방지). */
+  function collapseByMouse() {
+    const inside = wrapRef.current?.contains(document.activeElement);
+    collapseGuarded();
+    if (inside) tickerRef.current?.focus();
+  }
+
   function onListKeyDown(e: React.KeyboardEvent<HTMLOListElement>) {
     const last = signals.length - 1;
     if (e.key === "Escape") {
       e.preventDefault();
-      collapse();
+      collapseGuarded();
       tickerRef.current?.focus();
       return;
     }
@@ -268,11 +287,22 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
 
   /** 포커스가 티커 묶음 안에서 오갈 때는 접지 않는다. 밖으로 나갈 때만 접는다. */
   function onWrapFocus() {
+    if (Date.now() < suppress.current) return; // 방금 닫았다 — 다시 펼치지 않는다
     if (byPointer.current) {
       byPointer.current = false;
       return; // 클릭이 토글한다
     }
     expand();
+  }
+
+  /**
+   * 보드 안 어디든 포커스가 있으면 롤링을 멈춘다(위의 onFocus).
+   * 포커스가 보드 **밖으로** 나갈 때만 풀어 준다 — 안 그러면 CTA 에 포커스를 둔 채로
+   * 대표 카드가 바뀌어, 누르려던 「이 원료로 견적요청」이 다른 원료가 된다.
+   */
+  function onBoardBlur(e: React.FocusEvent<HTMLElement>) {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    release();
   }
 
   function onWrapBlur(e: React.FocusEvent<HTMLDivElement>) {
@@ -295,6 +325,8 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
       aria-label="지금 뜨는 원료 실시간 순위"
       onMouseEnter={hold}
       onMouseLeave={release}
+      onFocus={hold}
+      onBlur={onBoardBlur}
     >
       <div className={s.boardHead}>
         <b>지금 뜨는 원료 · 실시간 순위</b>
@@ -348,8 +380,9 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
       {/* ── 한 줄 티커 ── 누르거나 마우스를 올리면 1~10 이 펼쳐진다 ── */}
       <div
         className={s.tickerWrap}
+        ref={wrapRef}
         onMouseEnter={onWrapEnter}
-        onMouseLeave={collapse}
+        onMouseLeave={collapseByMouse}
         onFocus={onWrapFocus}
         onBlur={onWrapBlur}
       >
