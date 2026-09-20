@@ -5,6 +5,8 @@ export type HomeStats = {
   ingredients: number;
   quotes: number;
   avgLeadTimeWeeks: number;
+  /** 등록 제조사가 실제로 가진 인증을 많이 가진 순으로. 화면에 인증명을 손으로 적지 않는다. */
+  certifications: string[];
 };
 
 /**
@@ -24,8 +26,18 @@ export async function homeStats(): Promise<HomeStats> {
     ? active.reduce((sum, m) => sum + m.leadTimeWeeks, 0) / active.length
     : 0;
 
+  // 인증은 세어서 많은 순으로 낸다 — "GMP 보유"라고 단정하지 않고 가진 것만 적기 위해서다.
+  const tally = new Map<string, number>();
+  for (const m of active) {
+    for (const c of m.certifications) tally.set(c, (tally.get(c) ?? 0) + 1);
+  }
+  const certifications = [...tally.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name]) => name);
+
   return {
     manufacturers: active.length,
+    certifications,
     ingredients: ingredients.filter((i) => i.isActive).length,
     quotes: quotes.length,
     avgLeadTimeWeeks: Math.round(avg * 10) / 10,
