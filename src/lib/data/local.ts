@@ -138,9 +138,9 @@ export const localData: DataAdapter = {
   async listSignals(limit = 3): Promise<Signal[]> {
     // 데이터랩 연결 전 임시 스텁 — 값은 2026-09-20 데이터랩 공개 화면 실측(젖산마그네슘 137,200 등)과 같게 둔다.
     const rows: Signal[] = [
-      { id: "sig-1", name: "젖산마그네슘", category: "건강기능식품 원료", monthlyVolume: 137200, changePct: 26.1, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-07", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
-      { id: "sig-2", name: "마그네슘", category: "건강기능식품 원료", monthlyVolume: 124700, changePct: 7.6, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-07", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
-      { id: "sig-3", name: "유산균", category: "건기식 관련 검색어", monthlyVolume: 116800, changePct: 4.6, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-07", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
+      { id: "sig-1", name: "젖산마그네슘", category: "건강기능식품 원료", monthlyVolume: 137200, changePct: 26.1, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-06", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
+      { id: "sig-2", name: "마그네슘", category: "건강기능식품 원료", monthlyVolume: 124700, changePct: 7.6, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-06", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
+      { id: "sig-3", name: "유산균", category: "건기식 관련 검색어", monthlyVolume: 116800, changePct: 4.6, periodLabel: "주간 08-31~09-06", observedAt: "2026-09-06", source: "한국 공개자료 · 데이터랩", href: "https://vcbio.github.io/shelf/d/vcbio-market-fable.html" },
     ];
     return rows.slice(0, limit);
   },

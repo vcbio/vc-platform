@@ -33,6 +33,17 @@ const SIGNAL_MIN_VOLUME = 10000;
 
 const log = (...a) => console.log("[build-datalab]", ...a);
 
+/**
+ * 30초 워치독. 파싱이 어디선가 돌아버려도 빌드를 세우지 않는다 —
+ * 그냥 빠져나가고 기존 public/data 파일이 그대로 쓰인다.
+ * unref 라서 정상 종료를 붙잡지 않는다.
+ */
+const watchdog = setTimeout(() => {
+  log("30초를 넘겨 중단합니다. 기존 public/data 파일을 그대로 둡니다.");
+  process.exit(0);
+}, 30_000);
+watchdog.unref();
+
 /* ── 인라인 리터럴 한 덩어리 떼어내기 ──────────────────────────────────────────
    괄호 깊이를 세되 문자열 안의 괄호는 건너뛴다. 정규식으로 자르면 데이터 안의
    대괄호에 걸려 조용히 잘린 JSON 을 얻는다.                                     */
@@ -48,10 +59,12 @@ function carve(src, key, open, close) {
       if (--depth === 0) return JSON.parse(src.slice(start, p + 1));
     } else if (c === '"') {
       p++;
-      while (src[p] !== '"') {
+      // 경계를 반드시 함께 본다 — 닫히지 않은 따옴표를 만나면 여기서 영원히 돈다.
+      while (p < src.length && src[p] !== '"') {
         if (src[p] === "\\") p++;
         p++;
       }
+      if (p >= src.length) throw new Error(`${key} 안에 닫히지 않은 문자열이 있습니다`);
     }
   }
   throw new Error(`${key} 의 끝을 찾지 못했습니다`);
@@ -86,6 +99,23 @@ async function main() {
   log(`DATA ${DATA.length}건 · OBS ${OBS.items.length}건 · 마지막 완전주 ${OBS.completeWeekEnd}`);
 
   const obsById = new Map(OBS.items.map((o) => [o.id, o]));
+
+  /* ── 월 검색량 ── 데이터랩 화면의 volumeValue() 와 같은 값을 쓴다.
+     DATA.search 는 갱신 전 원값(originalTotal)이라 화면 숫자와 어긋난다.
+     화면은 RANKING 의 volume.lower 를 「정확일치 + exact」일 때만 숫자로 찍으므로 그 조건을 그대로 따르고,
+     아니면 예전 추정값으로 물러선다(비워 두면 정렬이 무너진다). */
+  let RANKING = { items: [] };
+  try {
+    RANKING = carve(html, "RANKING={", "{", "}");
+  } catch {
+    log("주의 — RANKING 을 못 읽었습니다. DATA.search(월간 추정값)로 표시합니다.");
+  }
+  const rankById = new Map((RANKING.items ?? []).map((x) => [x.id, x]));
+  function volumeOf(row) {
+    const v = rankById.get(row.id)?.volume;
+    if (v && v.lower != null && v.status === "정확일치" && v.exact) return v.lower;
+    return row.search ?? 0;
+  }
 
   /* ── 주간 변화율 ──────────────────────────────────────────────────────────
      데이터랩과 같은 산식이다 — 마지막 완전주 일평균 ÷ 직전 주 일평균 − 1.
@@ -135,7 +165,7 @@ async function main() {
       name: row.name,
       category: classLabel(row),
       functionCategory: row.cat && row.cat !== "기타" ? row.cat : "",
-      monthlyVolume: row.search ?? 0,
+      monthlyVolume: volumeOf(row),
       changePct: w ? w.changePct : 0,
       changeStatus: w ? "관측" : "미제공",
       periodLabel: w ? w.periodLabel : "주간 비교 미제공",
@@ -160,15 +190,15 @@ async function main() {
   /* ── ① 오늘의 신호 (signals.json) ── 오른 원료 중 월 검색량이 큰 순서.
      퍼센트로 줄을 세우면 월 1,150회짜리가 1위로 올라온다 — 절대량이 먼저다. */
   const signals = usable
-    .filter((d) => (d.search ?? 0) >= SIGNAL_MIN_VOLUME && (weekly(d)?.changePct ?? 0) > 0)
-    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0) || weekly(b).changePct - weekly(a).changePct)
+    .filter((d) => volumeOf(d) >= SIGNAL_MIN_VOLUME && (weekly(d)?.changePct ?? 0) > 0)
+    .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
 
   /* ── ② 주간 급상승 탭 ── 여기는 변화율 순으로 둔다(무엇이 움직였나를 보는 자리).
      기저가 낮아 퍼센트가 튄 줄에는 lowBase 표시가 붙는다. */
   const risers = usable
-    .filter((d) => (d.search ?? 0) >= MIN_VOLUME && weekly(d))
+    .filter((d) => volumeOf(d) >= MIN_VOLUME && weekly(d))
     .sort((a, b) => weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, ["weekly"]));
@@ -177,18 +207,18 @@ async function main() {
   const seasonal = usable.filter((d) => d.season === "계절반복");
   const forecastable = usable.filter((d) => d.forecastV4?.status === "eligible");
   const trendRows = [...new Set([...seasonal, ...forecastable])]
-    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
+    .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 16)
     .map((d) => toSignal(d, ["trend"]));
 
   /* ── ④ 표시·안전 ── 기능성 표시가 제한되는 지위인데 검색은 많은 원료 + 의약품 성분. */
   // 지위는 CLASSIFICATION 이 덮어쓴 값(classGrade)으로 본다 — 화면에 찍히는 값과 같아야 한다.
   const unapproved = usable
-    .filter((d) => classGrade(d) === "비인정" && (d.search ?? 0) >= MIN_VOLUME)
-    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
+    .filter((d) => classGrade(d) === "비인정" && volumeOf(d) >= MIN_VOLUME)
+    .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 12);
   const medicinal = DATA.filter((d) => classGrade(d) === "의약품")
-    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
+    .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 6);
   const safetyRows = [...unapproved, ...medicinal].map((d) => toSignal(d, ["safety"]));
 
@@ -200,7 +230,7 @@ async function main() {
     else tagged.set(s.id, s);
   }
   const top100 = ingredients
-    .sort((a, b) => (b.search ?? 0) - (a.search ?? 0))
+    .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 100)
     .map((d) => tagged.get(d.id) ?? toSignal(d, []));
   // 상위 100 밖이지만 탭에 걸린 줄은 뒤에 붙인다 — 화면이 두 파일을 합치지 않아도 되게.
@@ -214,7 +244,6 @@ async function main() {
   const names = (arr, n = 3) => arr.slice(0, n).map((x) => x.name).join(" · ");
 
   const persistent = [...risers].sort((a, b) => (b.riseWeeks ?? 0) - (a.riseWeeks ?? 0));
-  const bigVolume = [...risers].sort((a, b) => b.monthlyVolume - a.monthlyVolume);
   const septemberSeason = trendRows.filter((r) => r.seasonMonth === "9");
   // 기능성 분류는 데이터랩 원본의 cat 값으로 센다. "기타"는 분류가 아니라 미지정이라 빼고 센다.
   const catById = new Map(DATA.map((d) => [d.id, d.cat]));
@@ -230,9 +259,10 @@ async function main() {
     {
       id: "dl-weekly-top",
       tab: "weekly",
-      title: `이번 주 가장 크게 오른 원료는 ${risers[0].name}입니다`,
-      summary: `${weekLabel} 기준 ${risers[0].name}의 검색이 직전 주보다 ${pct(risers[0].changePct)} 움직였습니다. 월 검색량은 ${num(risers[0].monthlyVolume)}회입니다.`,
-      body: `상위 5종은 ${names(risers, 5)}입니다. 변화율은 마지막 완전주의 일평균을 직전 주와 견준 값이고, 월 검색량은 원 제공자의 최근 월간 추정값이라 산정 기간이 서로 다릅니다. 표의 8주 막대로 한 주만 튄 것인지 흐름이 이어지는 것인지 먼저 보시기 바랍니다.`,
+      // 대표 카드는 절대량 1위다 — 퍼센트가 아니라 사람이 실제로 많이 찾는 원료를 먼저 본다.
+      title: `지금 가장 많이 찾는 상승 원료는 ${signals[0].name}입니다`,
+      summary: `${weekLabel} 기준 ${signals[0].name}의 월 검색량은 ${num(signals[0].monthlyVolume)}회이고, 직전 주보다 ${pct(signals[0].changePct)} 움직였습니다.`,
+      body: `오른 원료 중 검색 규모가 큰 순서로 ${names(signals, 3)}입니다. 상승률만으로 줄을 세우면 월 몇천 회짜리 원료가 앞자리를 차지해 기획에 쓰기 어렵습니다. 그래서 이 카드는 월 ${num(SIGNAL_MIN_VOLUME)}회 이상인 원료를 검색량 순으로 봅니다. 아래 표는 반대로 변화율 순이라 무엇이 움직였는지를 봅니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -246,11 +276,11 @@ async function main() {
       publishedAt: asOf,
     },
     {
-      id: "dl-weekly-volume",
+      id: "dl-weekly-spike",
       tab: "weekly",
-      title: `검색 규모까지 큰 상승 원료 — ${bigVolume[0].name}`,
-      summary: `상승 원료 중 월 검색량이 가장 큰 쪽은 ${names(bigVolume, 3)}입니다. ${bigVolume[0].name}은 월 ${num(bigVolume[0].monthlyVolume)}회입니다.`,
-      body: `상승률만 보면 검색량이 작은 원료가 앞자리를 차지합니다. 이 목록은 월 ${num(MIN_VOLUME)}회 이상인 원료만 담았고, 그중에서도 규모가 큰 순서로 다시 세운 것입니다. 검색량은 원료 간 시장 규모를 뜻하지 않습니다.`,
+      title: `변화율 1위는 ${risers[0].name}입니다${risers[0].lowBase ? " — 기저가 낮습니다" : ""}`,
+      summary: `${risers[0].name}의 검색이 직전 주보다 ${pct(risers[0].changePct)} 움직였습니다. 월 검색량은 ${num(risers[0].monthlyVolume)}회입니다.${risers[0].lowBase ? " 직전 주 값이 매우 낮아 퍼센트가 크게 튄 경우라 참고값으로만 보십시오." : ""}`,
+      body: `변화율 상위 5종은 ${names(risers, 5)}입니다. 직전 주가 8주 최고의 20%에도 못 미치는 줄에는 표에서 「직전 주 기저 매우 낮음」이 붙습니다. 그런 줄은 다음 주에 되돌아오는 경우가 많으니, 8주 막대로 흐름이 이어지는지 먼저 보시기 바랍니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -339,9 +369,13 @@ async function main() {
   const check = ingredients.find((d) => d.name === "젖산마그네슘");
   if (check) {
     const w = weekly(check);
-    log(`검산 젖산마그네슘 — 월 검색량 ${num(check.search)}회 · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "주간 미제공"}`);
+    log(`검산 젖산마그네슘 — 월 검색량 ${num(volumeOf(check))}회 · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "주간 미제공"}`);
   }
   log(`검산 오늘의 신호 상위 3 — ${signals.slice(0, 3).map((r, i) => `${i + 1}위 ${r.name} ${num(r.monthlyVolume)}회 ${pct(r.changePct)}`).join(" · ")}`);
+  for (const nm of ["글루타치온", "병아리콩", "모링가"]) {
+    const d = ingredients.find((x) => x.name === nm);
+    if (d) log(`검산 ${nm} — 화면값 ${num(volumeOf(d))}회 (갱신 전 DATA.search ${num(d.search ?? 0)}회)`);
+  }
   log(`검산 급상승 탭 1위 — ${risers[0].name} ${num(risers[0].monthlyVolume)}회 ${pct(risers[0].changePct)}${risers[0].lowBase ? " (기저 낮음 표시)" : ""}`);
 }
 
