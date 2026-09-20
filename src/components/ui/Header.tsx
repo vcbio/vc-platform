@@ -64,7 +64,7 @@ export default function Header() {
             <span className="mark" aria-hidden="true">
               VC
             </span>
-            VCBio
+            VC 플랫폼
           </Link>
 
           <nav className="pf-gnb-nav" aria-label="주요 메뉴">

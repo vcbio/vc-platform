@@ -54,7 +54,7 @@ const DOCS = [
   { name: "견적 회신서", owner: "제조사" },
   { name: "품목제조보고서", owner: "제조사" },
   { name: "시험성적서 (COA)", owner: "제조사" },
-  { name: "표시사항 검토서", owner: "브이씨바이오" },
+  { name: "표시사항 검토서", owner: "VC 플랫폼" },
   { name: "거래 조건 합의서", owner: "양측" },
 ];
 

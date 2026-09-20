@@ -7,12 +7,10 @@ export default function Footer() {
       <Container>
         <div className="pf-foot-in">
           <div>
-            <b>VCBio</b>
-            <p>건강기능식품 B2B OEM/ODM 매칭 플랫폼</p>
+            <b>VC 플랫폼</b>
+            <p>Value Chain Platform · 건강기능식품 B2B OEM/ODM 매칭</p>
           </div>
           <p>
-            주식회사 브이씨바이오
-            <br />
             시연용 화면입니다. 표시된 제조사·원료·견적은 실제 자료가 아닙니다.
           </p>
         </div>
