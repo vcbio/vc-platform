@@ -1,121 +1,100 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { toKorean } from "@/lib/authError";
+import { signUp } from "@/lib/auth";
+import { Button, Container, Input } from "@/components/ui";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [done, setDone] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { company_name: companyName },
-        // 인증 메일의 링크가 돌아올 곳. 정적 배포 경로를 그대로 쓴다.
-        emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/vc-platform/login/`
-            : undefined,
-      },
-    });
+    const { error } = await signUp(email, password, companyName || undefined);
     setBusy(false);
     if (error) {
-      setError(toKorean(error.message));
+      setError(error);
       return;
     }
-    setSent(true);
+    setDone(true);
   }
 
-  if (sent) {
+  if (done) {
     return (
-      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 px-6 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          인증 메일을 보냈습니다
-        </h1>
-        <p className="text-sm leading-6 text-slate-700">
-          {email} 으로 인증 메일을 보냈습니다. 메일 속 링크를 누르면 가입이 끝납니다.
-          메일이 안 보이면 스팸함도 확인해 주세요.
-        </p>
-        <Link href="/login/" className="text-sm font-medium text-slate-900 underline">
-          로그인으로 가기
-        </Link>
-      </main>
+      <Container>
+        <div className="mx-auto w-full max-w-sm py-20">
+          <h1>인증 메일을 확인하세요</h1>
+          <p className="pf-help mt-4">
+            {email} 으로 인증 메일을 보냈습니다. 메일 속 링크를 누르면 가입이 끝납니다. 메일이 안
+            보이면 스팸함도 확인해 주세요.
+          </p>
+          <p className="pf-help mt-3">
+            지금은 시연 화면이라 메일 인증 없이 바로 로그인된 상태입니다.
+          </p>
+          <div className="mt-8 flex gap-3">
+            <Button onClick={() => router.push("/deal/")}>견적 요청으로 가기</Button>
+          </div>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">가입하기</h1>
+    <Container>
+      <div className="mx-auto w-full max-w-sm py-20">
+        <h1>가입하기</h1>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm text-slate-700">이메일</span>
-          <input
+        <form onSubmit={onSubmit} className="mt-8" noValidate>
+          <Input
+            label="이메일"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
           />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm text-slate-700">비밀번호</span>
-          <input
+          <Input
+            label="비밀번호"
             type="password"
             required
             minLength={8}
             autoComplete="new-password"
+            help="8자 이상"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
           />
-          <span className="text-xs text-slate-500">8자 이상</span>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm text-slate-700">회사명 (선택)</span>
-          <input
+          <Input
+            label="회사명 (선택)"
             type="text"
+            autoComplete="organization"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
           />
-        </label>
 
-        {error && (
-          <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p role="alert" className="pf-alert mb-5">
+              {error}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {busy ? "가입 중…" : "가입하기"}
-        </button>
-      </form>
+          <Button type="submit" block disabled={busy}>
+            {busy ? "가입 중" : "가입하기"}
+          </Button>
+        </form>
 
-      <p className="text-sm text-slate-600">
-        이미 계정이 있으신가요?{" "}
-        <Link href="/login/" className="font-medium text-slate-900 underline">
-          로그인
-        </Link>
-      </p>
-    </main>
+        <p className="pf-help mt-6">
+          이미 계정이 있으신가요? <Link href="/login/">로그인</Link>
+        </p>
+      </div>
+    </Container>
   );
 }

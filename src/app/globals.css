@@ -1,26 +1,472 @@
 @import "tailwindcss";
 
+/* =============================================================================
+   VC Platform — 디자인 토큰
+   정본 = design-refs/DESIGN-PLATFORM.md (공공서비스 블루 + 소프트 UI 진화)
+   원본 = design-refs/deck-src/vcbio-platform-proto-260819.html (대표 승인본)
+   ⚠️ 색값·대비 주석은 프로토타입 실측값이다. "정리"하지 말 것 — 특히 상태색의
+      -ink 변형을 걷어내면 danger(3.95:1)부터 WCAG AA 미달로 무너진다.
+   ============================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── 잉크 ── */
+  --pf-ink: #0f172a;            /* 제목·본문 강조     on #FFF 17.85:1 */
+  --pf-ink-2: #334155;          /* 본문 보조          10.35:1 */
+  --pf-ink-3: #475569;          /* 캡션·라벨          7.58:1 */
+  --pf-muted: #64748b;          /* 비활성·placeholder 4.76:1 — 흰 배경 전용 */
+
+  /* ── 블루 ── */
+  --pf-blue: #0369a1;           /* 링크·활성 탭       5.93:1 */
+  --pf-blue-strong: #0066cc;    /* 주요 CTA           5.57:1 */
+  --pf-blue-deep: #0c4a6e;      /* 연블루 위 텍스트   on #E0F2FE 8.24:1 */
+  --pf-blue-soft: #e0f2fe;      /* 선택 상태·정보 배경 */
+
+  /* ── 표면 ── */
+  --pf-bg: #f8fafc;
+  --pf-bg-2: #f1f5f9;           /* 표 머리·보조 패널 */
+  --pf-card: #ffffff;
+  --pf-border: #e2e8f0;         /* 구분선(비조작 요소) */
+  --pf-border-strong: #78889c;  /* 폼·버튼 경계 3.62:1 — WCAG 1.4.11 충족 */
+
+  /* ── 상태 ── soft 배경 위 '글자'는 반드시 -ink 변형을 쓴다 ── */
+  --pf-ok: #0f766e;      --pf-ok-ink: #115e59;     --pf-ok-soft: #ccfbf1;     /* 글자 6.73:1 */
+  --pf-warn: #b45309;    --pf-warn-ink: #92400e;   --pf-warn-soft: #fef3c7;   /* 글자 6.37:1 */
+  --pf-danger: #dc2626;  --pf-danger-ink: #b91c1c; --pf-danger-soft: #fee2e2; /* 글자 5.30:1 */
+
+  --pf-brand: #1e3932;          /* 브랜드 연속성 — 로고·푸터 한정 */
+
+  /* ── 형태·깊이·모션 ── */
+  --pf-radius-sm: 8px;
+  --pf-radius: 10px;
+  --pf-radius-lg: 16px;
+  --pf-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --pf-shadow-lift: 0 2px 4px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.08);
+  --pf-motion: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --pf-motion-fast: 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --gnb-h: 64px;
+  --pf-page: 1280px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ---------------- base ---------------- */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  background: var(--pf-bg);
+  color: var(--pf-ink);
+  font-size: 15px;      /* 본문 하한 — 더 줄이지 말 것 */
+  line-height: 1.6;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "kern" 1;
+  word-break: keep-all; /* 한국어 어절 단위 줄바꿈 */
+}
+
+p { text-wrap: pretty; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* 타이포 위계 — tracking·leading 을 크기별로 다르게 준다(고정값 통일 금지) */
+h1 { font-size: 32px; font-weight: 700; line-height: 1.2;  letter-spacing: -0.02em; }
+h2 { font-size: 20px; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+h3 { font-size: 17px; font-weight: 600; line-height: 1.4;  letter-spacing: -0.005em; }
+
+small, .pf-caption {
+  font-size: 13px;      /* 12px 이하 금지 */
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.55;
+}
+
+a { color: var(--pf-blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button { background: none; border: 0; cursor: pointer; font: inherit; color: inherit; }
+input, select, textarea { font: inherit; color: inherit; }
+
+/* 포커스 링은 2톤(잉크 링 + 흰 헤일로) — 단색이면 같은 블루 CTA 위에서 사라진다.
+   outline:none 을 어디에도 두지 않는다. */
+:focus-visible {
+  outline: 3px solid var(--pf-ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.95);
+}
+
+.pf-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 300;
+  background: var(--pf-ink);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: var(--pf-radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+}
+.pf-skip:focus { left: 12px; top: 12px; }
+
+/* ---------------- container ---------------- */
+
+.pf-container {
+  width: 100%;
+  max-width: var(--pf-page);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+@media (max-width: 640px) {
+  .pf-container { padding-inline: 16px; }
+}
+
+/* ---------------- GNB (반투명 레이어 + 스크롤 엣지 마스크) ---------------- */
+
+.pf-gnb {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  color: var(--pf-ink);
+}
+.pf-gnb::after {
+  /* 하드 1px 보더 대신 스크롤 엣지 마스크 */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -14px;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(rgba(15, 23, 42, 0.055), rgba(15, 23, 42, 0));
+}
+.pf-gnb-in {
+  height: var(--gnb-h);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.pf-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--pf-ink);
+}
+.pf-brand:hover { text-decoration: none; }
+.pf-brand .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--pf-brand); /* 브랜드 연속성 — 로고 한정 */
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0;
+}
+.pf-gnb-nav { display: flex; gap: 4px; flex: 1; }
+.pf-gnb-nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: var(--pf-radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pf-ink-2);
+  transition: color var(--pf-motion-fast), background var(--pf-motion-fast);
+}
+.pf-gnb-nav a:hover {
+  color: var(--pf-ink);
+  background: rgba(15, 23, 42, 0.05);
+  text-decoration: none;
+}
+.pf-gnb-nav a[aria-current="page"] { color: var(--pf-blue-deep); font-weight: 600; }
+.pf-gnb-nav a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -10px;
+  height: 2px;
+  background: var(--pf-blue-strong);
+  border-radius: 2px;
+}
+.pf-gnb-right { display: flex; align-items: center; gap: 12px; }
+.pf-gnb-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 14px;
+  border-left: 1px solid var(--pf-border);
+  font-size: 14px;
+  color: var(--pf-ink-2);
+}
+.pf-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pf-blue-soft);
+  color: var(--pf-blue-deep);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pf-burger {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--pf-radius-sm);
+  display: none;
+  place-items: center;
+  color: var(--pf-ink-2);
+  transition: background var(--pf-motion-fast);
+}
+.pf-burger:hover { background: rgba(15, 23, 42, 0.05); color: var(--pf-ink); }
+
+.pf-gnb-mobile {
+  border-top: 1px solid var(--pf-border);
+  background: var(--pf-card);
+  padding: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pf-gnb-mobile a {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--pf-ink-2);
+  border-radius: var(--pf-radius-sm);
+}
+.pf-gnb-mobile a[aria-current="page"] { color: var(--pf-blue-deep); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .pf-gnb-nav { display: none; }
+  .pf-burger { display: grid; }
+  .pf-gnb-in { gap: 16px; justify-content: space-between; }
+  .pf-gnb-right { gap: 8px; }
+}
+
+/* ---------------- footer ---------------- */
+
+.pf-foot {
+  border-top: 1px solid var(--pf-border);
+  margin-top: 56px;
+  padding: 28px 0 40px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--pf-ink-3);
+}
+.pf-foot-in {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.pf-foot b {
+  color: var(--pf-brand); /* 딥그린은 로고·푸터 한정 — 11.90:1 */
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+/* ---------------- card ---------------- */
+
+.pf-card {
+  background: var(--pf-card);
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
+}
+.pf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--pf-border);
+}
+.pf-card-head h2,
+.pf-card-head h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.pf-card-head .hint { font-size: 13px; color: var(--pf-ink-3); }
+.pf-card-body { padding: 24px; }   /* 동심 반경: 카드 10px + 패딩 → 내부 요소 8px */
+
+/* ---------------- buttons — 선택보드 C형(토스식) ----------------
+   규격 = radius 16px · weight 600 · 17px · height 56px · shadow none
+   .pf-btn-sm 은 표·카드 안 축소 단계(44px/15px)로만 쓴다. */
+
+.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 24px;
+  border-radius: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  box-shadow: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: background var(--pf-motion-fast), border-color var(--pf-motion-fast),
+    color var(--pf-motion-fast), transform 100ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pf-btn:hover { text-decoration: none; }
+.pf-btn:active { transform: scale(0.96); }   /* pointer-down 즉시 피드백 */
+.pf-btn:focus-visible { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.95); }
+.pf-btn[disabled], .pf-btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+
+.pf-btn-primary { background: var(--pf-blue-strong); color: #ffffff; }           /* 5.57:1 */
+.pf-btn-primary:hover:not([disabled]) { background: #0055aa; }                   /* 7.29:1 */
+.pf-btn-secondary {
+  background: var(--pf-card);
+  border-color: var(--pf-border-strong);
+  color: var(--pf-ink);
+}
+.pf-btn-secondary:hover:not([disabled]) { background: var(--pf-bg-2); }
+.pf-btn-ghost { color: var(--pf-ink-2); padding: 0 14px; }
+.pf-btn-ghost:hover:not([disabled]) { color: var(--pf-blue); background: rgba(15, 23, 42, 0.05); }
+.pf-btn-sm { height: 44px; padding: 0 18px; border-radius: var(--pf-radius); font-size: 15px; }
+.pf-btn-block { width: 100%; }
+
+/* ---------------- badges / chips ----------------
+   상태는 색만으로 구분하지 않는다 — 색 + 텍스트를 항상 함께 쓴다(CVD 대응) */
+
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+.pf-badge-ok     { background: var(--pf-ok-soft);     color: var(--pf-ok-ink);     border-color: #99f6e4; } /* 6.73:1 */
+.pf-badge-warn   { background: var(--pf-warn-soft);   color: var(--pf-warn-ink);   border-color: #fde68a; } /* 6.37:1 */
+.pf-badge-danger { background: var(--pf-danger-soft); color: var(--pf-danger-ink); border-color: #fecaca; } /* 5.30:1 */
+.pf-badge-info   { background: var(--pf-blue-soft);   color: var(--pf-blue-deep);  border-color: #bae6fd; } /* 8.24:1 */
+.pf-badge-neutral{ background: var(--pf-bg-2);        color: var(--pf-ink-3);      border-color: var(--pf-border); } /* 6.92:1 */
+
+.pf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--pf-bg-2);
+  border: 1px solid var(--pf-border);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pf-ink-2);
+}
+.pf-chip b { font-weight: 700; color: var(--pf-ink); }
+.pf-chip-selected {
+  background: var(--pf-blue-soft);
+  border-color: #bae6fd;
+  color: var(--pf-blue-deep);
+}
+.pf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------------- forms ---------------- */
+
+.pf-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+.pf-label { font-size: 15px; font-weight: 600; color: var(--pf-ink); }
+.pf-label .req { color: var(--pf-danger); margin-left: 3px; }
+.pf-help { font-size: 13px; color: var(--pf-ink-3); line-height: 1.55; }
+.pf-error { font-size: 13px; font-weight: 600; color: var(--pf-danger-ink); }
+
+.pf-input, .pf-select, .pf-textarea {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--pf-border-strong);
+  border-radius: var(--pf-radius);
+  background: var(--pf-card);
+  font-size: 15px;
+  color: var(--pf-ink);
+  transition: border-color var(--pf-motion-fast), box-shadow var(--pf-motion-fast);
+}
+.pf-textarea { height: auto; min-height: 92px; padding: 13px 14px; resize: vertical; line-height: 1.6; }
+.pf-input:focus, .pf-select:focus, .pf-textarea:focus {
+  border-color: var(--pf-blue-strong);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.22);
+}
+.pf-input[aria-invalid="true"], .pf-select[aria-invalid="true"], .pf-textarea[aria-invalid="true"] {
+  border-color: var(--pf-danger);
+}
+.pf-input::placeholder, .pf-textarea::placeholder { color: var(--pf-muted); } /* 4.76:1 */
+
+.pf-alert {
+  border-radius: var(--pf-radius);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--pf-danger-soft);
+  color: var(--pf-danger-ink);
+  border: 1px solid #fecaca;
+}
+
+/* =============================================================================
+   접근성 3종 — 모션 / 투명도 / 대비
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+  .pf-btn:active { transform: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pf-gnb {
+    background: var(--pf-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--pf-border);
+  }
+  .pf-gnb::after { display: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --pf-border: #94a3b8;
+    --pf-border-strong: #334155;
+    --pf-ink-3: #334155;
+    --pf-muted: #334155;
+  }
+  .pf-gnb {
+    background: var(--pf-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--pf-border-strong);
+  }
+  .pf-gnb::after { display: none; }
+  .pf-badge { border-color: currentColor; }
 }
