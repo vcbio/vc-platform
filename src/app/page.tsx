@@ -3,6 +3,8 @@ import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import TrustBar from "@/components/home/TrustBar";
 import MatchPreview from "@/components/home/MatchPreview";
 import HeroPanel from "@/components/home/HeroPanel";
+import SignalBoard from "@/components/home/SignalBoard";
+import SignalBand from "@/components/home/SignalBand";
 import { previewResults } from "@/components/home/preview";
 import { homeStats } from "@/components/home/stats";
 import { getData, type Insight } from "@/lib/data";
@@ -43,14 +45,13 @@ function FeedItem({ insight }: { insight: Insight }) {
 
 export default async function Home() {
   // 빌드 시점에는 시드로, 브라우저에서는 저장분으로 같은 어댑터가 다시 읽는다.
-  const [stats, preview, insights] = await Promise.all([
+  const [stats, preview, insights, signals] = await Promise.all([
     homeStats(),
     previewResults(),
     getData().listInsights(),
+    getData().listSignals(3),
   ]);
 
-  const signals = insights.slice(0, 3);
-  const latest = signals.map((i) => i.publishedAt).sort().at(-1);
 
   return (
     <>
@@ -85,23 +86,14 @@ export default async function Home() {
               </p>
             </div>
 
-            <HeroPanel initial={preview} />
+            <SignalBoard initial={signals} />
           </div>
         </Container>
       </section>
 
-      {/* ── 오늘의 신호 ── 동향 어댑터의 최신 세 건을 한 줄로 ── */}
+      {/* ── 오늘의 신호 ── 지금 뜨는 원료 세 건을 데이터랩 문법 한 줄로 ── */}
       <Container>
-        <div className={s.signal}>
-          <span className={s.signalLabel}>오늘의 신호</span>
-          {signals.map((i) => (
-            <span key={i.id} className={s.signalItem}>
-              <em>{TAB_LABEL[i.tab].text}</em>
-              <Link href="/insight/">{i.title}</Link>
-            </span>
-          ))}
-          {latest && <span className={s.signalTail}>최신 {latest}</span>}
-        </div>
+        <SignalBand initial={signals} />
       </Container>
 
       {/* ── 지표 ── 숫자는 크게, 라벨은 작게 ── */}
@@ -118,14 +110,17 @@ export default async function Home() {
         <Container>
           <div className={s.secHead}>
             <div>
-              <h2>제조사 추천 미리보기</h2>
+              <h2>조건 매칭 미리보기</h2>
               <p>GMP 보유 · 리드타임 6주 이내 조건으로 지금 추천되는 제조사입니다.</p>
             </div>
             <ButtonLink href="/match/" variant="secondary" size="sm">
               내 조건으로 찾아보기
             </ButtonLink>
           </div>
-          <MatchPreview initial={preview} />
+          <div className={s.previewGrid}>
+            <HeroPanel initial={preview} />
+            <MatchPreview initial={preview} />
+          </div>
         </Container>
       </section>
 

@@ -10,6 +10,7 @@ import {
   type Manufacturer,
   type MatchCriteria,
   type MatchResult,
+  type Signal,
 } from "@/lib/data";
 import s from "./match.module.css";
 
@@ -33,6 +34,7 @@ export default function MatchClient() {
   const [criteria, setCriteria] = useState<MatchCriteria>({});
   const [results, setResults] = useState<MatchResult[]>([]);
   const [ready, setReady] = useState(false);
+  const [signals, setSignals] = useState<Signal[]>([]);
 
   // 선택지는 등록된 제조사에서 뽑는다 — 화면에 목록을 손으로 적지 않는다.
   const forms = useMemo(
@@ -61,6 +63,11 @@ export default function MatchClient() {
       });
     // 쿼리 프리필은 첫 진입에서 한 번만 한다. 이후에는 사용자가 고른 조건이 이긴다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 「지금 뜨는 원료」 — 홈과 같은 어댑터·같은 문법이다. 여기서는 링크만 건다.
+  useEffect(() => {
+    getData().listSignals(3).then(setSignals);
   }, []);
 
   useEffect(() => {
@@ -95,6 +102,30 @@ export default function MatchClient() {
             견적으로 요청하기
           </ButtonLink>
         </div>
+
+        {signals.length > 0 && (
+          <div className={s.signal}>
+            <span className={s.signalLabel}>지금 뜨는 원료로 조건 잡기</span>
+            {signals.map((sig) => (
+              <span key={sig.id} className={s.signalItem}>
+                {sig.href ? (
+                  <a href={sig.href} target="_blank" rel="noopener noreferrer">
+                    {sig.name}
+                  </a>
+                ) : (
+                  <span className={s.signalPlain}>{sig.name}</span>
+                )}
+                <em>월 {sig.monthlyVolume.toLocaleString("ko-KR")}회</em>
+                <b>
+                  {sig.periodLabel.split(" ")[0]}{" "}
+                  {sig.changePct > 0 ? "+" : ""}
+                  {sig.changePct.toFixed(1)}%
+                </b>
+              </span>
+            ))}
+            <span className={s.signalTail}>기준일 {signals[0].observedAt}</span>
+          </div>
+        )}
 
         <Card>
           <div className={s.criteria}>

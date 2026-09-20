@@ -189,6 +189,30 @@
   color: var(--pf-danger);
   margin-left: 3px;
 }
+/* 페이지 머리 오른쪽 표식 — 가져온 원료·임시저장 두 줄이 겹치지 않게 감싼다 */
+.headTags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* 데이터랩에서 실려 온 원료 — 등록 원료 고르기 위에 따로 세운다 */
+.picked {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pf-rule);
+}
+.pickedLabel {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pf-ink-3);
+  margin-bottom: 9px;
+}
+
 .help {
   font-size: 13px;
   color: var(--pf-ink-3);

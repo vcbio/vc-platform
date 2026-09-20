@@ -163,6 +163,19 @@ input, select, textarea { font: inherit; color: inherit; }
   box-shadow: 0 0 0 5px var(--pf-paper);
 }
 
+/* 스크린리더 전용 문구 — 새 탭 안내처럼 눈으로는 이미 아는 정보를 소리로 채운다 */
+.pf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .pf-skip {
   position: absolute;
   left: -9999px;
@@ -496,6 +509,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .pf-badge-danger  { background: var(--pf-up-soft);   color: var(--pf-up-ink);   } /* 5.27:1 */
 .pf-badge-info    { background: var(--pf-accent-soft); color: var(--pf-accent-deep); } /* 9.82:1 */
 .pf-badge-neutral { background: var(--pf-paper-2);   color: var(--pf-ink-2);    } /* 7.52:1 */
+/* 급등·1순위·마감 임박 — 「신호」 전용 톤. 위험(danger)과 값은 같고 쓰임이 다르다. */
+.pf-badge-signal  { background: var(--pf-up-soft);   color: var(--pf-up-ink);   } /* 5.27:1 */
 
 .pf-chip {
   display: inline-flex;

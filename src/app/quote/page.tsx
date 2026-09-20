@@ -67,6 +67,8 @@ export default function QuotePage() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [busy, setBusy] = useState(false);
+  /** 데이터랩(「지금 뜨는 원료」)에서 넘어온 원료명. 등록 원료가 아니어도 그대로 싣는다. */
+  const [fromSignal, setFromSignal] = useState("");
   const [done, setDone] = useState<Quote | null>(null);
   const restored = useRef(false);
 
@@ -85,6 +87,16 @@ export default function QuotePage() {
       if (saved) {
         setDraft(saved.draft);
         setSavedAt(saved.savedAt);
+      }
+
+      // useSearchParams 대신 주소를 직접 읽는다 — 이 화면은 정적 내보내기라
+      // Suspense 경계를 새로 두지 않으려는 것이다(동작은 같다).
+      const picked = new URLSearchParams(window.location.search).get("ingredient")?.trim();
+      if (picked) {
+        setFromSignal(picked);
+        setDraft((d) => (d.ingredients.includes(picked)
+          ? d
+          : { ...d, ingredients: [...d.ingredients, picked] }));
       }
       setSessionEmail(sess?.email ?? null);
       setIngredients(rows.filter((i) => i.isActive));
@@ -121,11 +133,19 @@ export default function QuotePage() {
       ...d,
       dosageForm: value,
       unit: spec?.unit ?? d.unit,
-      ingredients: d.ingredients.filter((name) =>
-        ingredients.find((i) => i.name === name)?.dosageForms.includes(value),
-      ),
+      // 등록 원료는 제형에 맞는 것만 남기고, 데이터랩에서 가져온 이름은 그대로 둔다.
+      ingredients: d.ingredients.filter((name) => {
+        const known = ingredients.find((i) => i.name === name);
+        return known ? known.dosageForms.includes(value) : true;
+      }),
     }));
   }
+
+  /** 등록 원료 목록에 없는데 담겨 있는 이름 = 데이터랩에서 가져온 것 */
+  const extraIngredients = useMemo(
+    () => draft.ingredients.filter((name) => !ingredients.some((i) => i.name === name)),
+    [draft.ingredients, ingredients],
+  );
 
   const ingredientOptions = useMemo(
     () => ingredients.filter((i) => i.dosageForms.includes(draft.dosageForm)),
@@ -222,7 +242,10 @@ export default function QuotePage() {
               거래관리로 그대로 이어집니다.
             </p>
           </div>
-          {ago && <Badge tone="neutral">임시저장됨 · {ago}</Badge>}
+          <div className={s.headTags}>
+            {fromSignal && <Badge tone="signal">데이터랩에서 가져온 원료 · {fromSignal}</Badge>}
+            {ago && <Badge tone="neutral">임시저장됨 · {ago}</Badge>}
+          </div>
         </div>
 
         <div className={s.layout}>
@@ -300,6 +323,35 @@ export default function QuotePage() {
 
               {step === 3 && (
                 <>
+                  {extraIngredients.length > 0 && (
+                    <div className={s.picked}>
+                      <p className={s.pickedLabel}>데이터랩에서 가져온 원료</p>
+                      <div className="pf-chips">
+                        {extraIngredients.map((name) => (
+                          <button
+                            key={name}
+                            type="button"
+                            className="pf-chip pf-chip-selected"
+                            aria-pressed="true"
+                            onClick={() =>
+                              set(
+                                "ingredients",
+                                draft.ingredients.filter((v) => v !== name),
+                              )
+                            }
+                          >
+                            <b>{name}</b>
+                            <span aria-hidden="true">×</span>
+                            <span className="pf-sr-only">빼기</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className={s.help}>
+                        등록 원료 목록에 없는 이름입니다. 이대로 요청에 실어 제조사에 전달합니다.
+                      </p>
+                    </div>
+                  )}
+
                   {ingredientOptions.length > 0 ? (
                     <OptionGrid
                       name="ingredients"

@@ -37,8 +37,13 @@ export default function MakerCard({
     return () => cancelAnimationFrame(id);
   }, [score, scored]);
 
+  // 1순위 주황 표식은 매칭 결과 카드에서만 쓴다. 홈 미리보기까지 주황을 쓰면
+  // 한 화면에 신호색이 세 곳이 돼 「이것 하나가 1순위」라는 뜻이 묽어진다
+  // (홈에서는 왼쪽 순위 패널 01·02·03 이 같은 정보를 이미 준다).
+  const top = scored && rank === 0 && showDetail;
+
   return (
-    <article className={s.maker}>
+    <article className={`${s.maker}${top ? " " + s.rank1 : ""}`}>
       <div className={s.makerTop}>
         <div className={s.makerId}>
           <span className={s.makerLogo} aria-hidden="true">
@@ -71,7 +76,7 @@ export default function MakerCard({
             {c}
           </Badge>
         ))}
-        {scored && rank === 0 && <Badge tone="warn">조건 적합 1순위</Badge>}
+        {top && <Badge tone="signal">조건 적합 1순위</Badge>}
       </div>
 
       {showDetail && (

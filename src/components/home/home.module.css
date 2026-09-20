@@ -213,13 +213,204 @@
   color: var(--pf-ink-3);
 }
 
+
+/* ---------------- 히어로 오른쪽 — 지금 뜨는 원료 라이브 보드 ----------------
+   숫자가 주인공이다. 면을 띄우지 않고 굵은 룰선으로 지면을 자른 뒤
+   그 안에서 검색량만 크게 세운다. 주황은 변화율 한 곳에만 쓴다. */
+
+.board {
+  border: 1px solid var(--pf-rule-strong);
+  border-top: 3px solid var(--pf-ink);
+  border-radius: var(--pf-radius);
+  background: var(--pf-paper);
+  min-width: 0;
+}
+.boardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--pf-rule);
+}
+.boardHead b {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pf-ink-2);
+}
+.boardHead span {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+}
+.boardTop {
+  padding: 18px 18px 20px;
+}
+.boardRank {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.boardRank i {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--pf-accent);
+  font-variant-numeric: tabular-nums;
+}
+.boardRank span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pf-ink-3);
+  letter-spacing: 0.01em;
+}
+.boardName {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--pf-ink);
+}
+/* 원료명은 데이터랩 문법 그대로 — 밑줄 있는 이름이 곧 출처 링크다 */
+.boardName a {
+  color: var(--pf-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--pf-rule-strong);
+}
+.boardName a:hover {
+  color: var(--pf-accent);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+.boardNum {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+.boardNum b {
+  font-size: clamp(44px, 5.2vw, 64px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--pf-ink);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.boardNum small {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink-3);
+  letter-spacing: 0;
+}
+.boardMove {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+/* 화면에서 유일하게 큰 주황 — 「급등」 하나에만 쓴다 */
+.up {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: var(--pf-radius-sm);
+  background: var(--pf-up-soft);
+  color: var(--pf-up-ink);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.boardMove em {
+  font-style: normal;
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.boardCta {
+  margin-top: 16px;
+}
+.boardRows {
+  list-style: none;
+  border-top: 1px solid var(--pf-rule);
+}
+.boardRows li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--pf-rule);
+}
+.boardRows li:last-child {
+  border-bottom: 0;
+}
+.boardRowRank {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-muted);
+  font-variant-numeric: tabular-nums;
+}
+.boardRowName {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.boardRowName a {
+  color: var(--pf-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--pf-rule-strong);
+}
+.boardRowName a:hover {
+  color: var(--pf-accent);
+  text-decoration-color: currentColor;
+}
+.boardRowNum {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.boardRowPct {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: right;
+}
+.boardFoot {
+  padding: 11px 18px;
+  border-top: 1px solid var(--pf-rule);
+  background: var(--pf-paper-2);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------------- 오늘의 신호 띠 ----------------
-   데이터랩과 같은 문법 — 위는 굵은 룰, 아래는 얇은 룰, 한 줄. */
+   데이터랩 「오늘의 한 줄」 문법 그대로 — 위는 굵은 룰, 아래는 얇은 룰, 한 줄.
+   원료명은 밑줄, 변화율만 주황. 이 문법을 매칭 화면도 그대로 쓴다. */
 
 .signal {
   display: flex;
   align-items: baseline;
-  gap: 8px 22px;
+  gap: 8px 24px;
   flex-wrap: wrap;
   padding: 11px 0;
   border-top: 1px solid var(--pf-rule-strong);
@@ -236,29 +427,43 @@
 .signalItem {
   display: inline-flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
-}
-.signalItem em {
-  font-style: normal;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pf-ink-3);
-  white-space: nowrap;
 }
 .signalItem a {
   color: var(--pf-ink);
-  font-weight: 500;
-  text-decoration: none;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--pf-rule-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .signalItem a:hover {
   color: var(--pf-accent);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+.signalPlain {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+}
+.signalItem em {
+  font-style: normal;
+  font-size: 14px;
+  color: var(--pf-ink-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.signalItem b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pf-up-ink);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .signalTail {
   margin-left: auto;
@@ -353,10 +558,19 @@
   min-width: 0;
 }
 
+/* 카드는 폭에 맞춰 스스로 접힌다 — 좁은 단 안에 들어가도 넘치지 않는다 */
 .grid3 {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 16px;
+}
+
+/* 히어로에서 내려온 「조건 매칭 미리보기」 — 왼쪽 순위 패널, 오른쪽 제조사 카드 */
+.previewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 .grid21 {
   display: grid;
@@ -489,11 +703,12 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
   }
-  .grid3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .grid21 {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .previewGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
   }
   .flow {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -525,9 +740,6 @@
   }
   .sec {
     padding: 32px 0;
-  }
-  .grid3 {
-    grid-template-columns: minmax(0, 1fr);
   }
   .trust {
     grid-template-columns: repeat(2, minmax(0, 1fr));

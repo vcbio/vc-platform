@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-export type BadgeTone = "ok" | "warn" | "danger" | "info" | "neutral";
+/** signal = 급등·1순위·마감 임박(주황). danger 와 값은 같지만 뜻이 다르다. */
+export type BadgeTone = "ok" | "warn" | "danger" | "info" | "neutral" | "signal";
 
 /**
  * 상태 뱃지. 색만으로 뜻을 전하지 않는다 — 항상 글자를 함께 쓴다(색각이상 대응).

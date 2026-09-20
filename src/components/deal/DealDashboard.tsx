@@ -60,6 +60,26 @@ const DOCS = [
 
 const day = (iso: string) => iso.slice(0, 10);
 
+/** 희망 납기까지 남은 날. 지났으면 음수. 자정 기준으로만 센다(시분초는 보지 않는다). */
+function daysLeft(targetDate: string): number {
+  const t = Date.parse(targetDate + "T00:00:00");
+  if (!Number.isFinite(t)) return Number.POSITIVE_INFINITY;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((t - today.getTime()) / 86400000);
+}
+
+/**
+ * 마감 임박 = 납기 14일 이내이고 아직 끝나지 않은 건.
+ * 「급등·1순위·마감 임박」 셋에만 주황을 쓴다 — 그 밖의 상태는 기존 톤 그대로다.
+ */
+function DueBadge({ targetDate, status }: { targetDate: string; status: QuoteStatus }) {
+  if (status === "종료") return null;
+  const d = daysLeft(targetDate);
+  if (d > 14) return null;
+  return <Badge tone="signal">{d < 0 ? `납기 ${-d}일 지남` : `마감 임박 D-${d}`}</Badge>;
+}
+
 export default function DealDashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
@@ -156,7 +176,12 @@ export default function DealDashboard() {
                         {q.quantity.toLocaleString("ko-KR")}
                         {q.unit}
                       </td>
-                      <td className={s.nowrap}>{q.targetDate}</td>
+                      <td>
+                        <span className={s.dueCell}>
+                          {q.targetDate}
+                          <DueBadge targetDate={q.targetDate} status={q.status} />
+                        </span>
+                      </td>
                       <td>
                         <Badge tone={TONE[q.status]}>{q.status}</Badge>
                       </td>
@@ -193,6 +218,7 @@ export default function DealDashboard() {
                       <Chip>
                         희망 납기 <b>{picked.targetDate}</b>
                       </Chip>
+                      <DueBadge targetDate={picked.targetDate} status={picked.status} />
                     </div>
                     <Badge tone={TONE[picked.status]}>
                       {picked.status} · {STEP_OF[picked.status]}단계 / 6단계

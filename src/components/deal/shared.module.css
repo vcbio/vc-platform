@@ -518,3 +518,11 @@
 .nowrap {
   white-space: nowrap;
 }
+
+/* 납기 칸 — 날짜와 마감 임박 표식을 한 줄에 붙여 둔다 */
+.dueCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}

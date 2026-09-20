@@ -23,6 +23,21 @@
   }
 }
 
+/* 1순위 — 왼쪽 4px 주황 룰. 카드 한 장에만 붙는 표식이라 면적이 작고 눈에 먼저 든다.
+   동심 반경: 바깥 4px 카드의 왼쪽 모서리를 직각으로 잘라 룰선이 끊기지 않게 한다. */
+.rank1 {
+  border-left: 4px solid var(--pf-up);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 17px;
+}
+/* hover 가 border-color 를 통째로 바꾸므로 주황 룰만 되돌려 고정한다 */
+@media (hover: hover) and (pointer: fine) {
+  .rank1:hover {
+    border-left-color: var(--pf-up);
+  }
+}
+
 .makerTop {
   display: flex;
   align-items: flex-start;
@@ -125,6 +140,76 @@
   font-weight: 600;
   color: var(--pf-ink);
   text-align: right;
+}
+
+/* ---------------- 지금 뜨는 원료 띠 ----------------
+   홈 「오늘의 신호」와 같은 문법 — 원료명 밑줄, 변화율만 주황. */
+
+.signal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  padding: 11px 0;
+  margin-bottom: 22px;
+  border-top: 1px solid var(--pf-rule-strong);
+  border-bottom: 1px solid var(--pf-rule);
+  font-size: 15px;
+}
+.signalLabel {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--pf-accent);
+  white-space: nowrap;
+}
+.signalItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+.signalItem a {
+  color: var(--pf-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--pf-rule-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.signalItem a:hover {
+  color: var(--pf-accent);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+.signalPlain {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+}
+.signalItem em {
+  font-style: normal;
+  font-size: 14px;
+  color: var(--pf-ink-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.signalItem b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pf-up-ink);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.signalTail {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ---------------- 조건 입력·결과 ---------------- */
@@ -283,5 +368,11 @@
   .tbl th,
   .tbl td {
     padding-inline: 12px;
+  }
+}
+
+@media (max-width: 680px) {
+  .signalTail {
+    margin-left: 0;
   }
 }
