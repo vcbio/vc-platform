@@ -9,11 +9,14 @@ import Container from "./Container";
 
 const MENU = [
   { href: "/", label: "홈" },
-  { href: "/deal/", label: "견적요청" },
-  { href: "/manufacturers/", label: "제조사 찾기" },
-  { href: "/insights/", label: "동향" },
-  { href: "/dashboard/", label: "거래관리" },
+  { href: "/quote/", label: "견적요청" },
+  { href: "/match/", label: "제조사 찾기" },
+  { href: "/insight/", label: "동향" },
+  { href: "/deal/", label: "거래관리" },
 ];
+
+/** 관리자 세션에만 붙는 메뉴. */
+const ADMIN_MENU = { href: "/admin/", label: "관리자" };
 
 function isCurrent(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -35,6 +38,8 @@ export default function Header() {
     };
   }, [pathname]);
 
+  const menu = session?.isAdmin ? [...MENU, ADMIN_MENU] : MENU;
+
   async function onSignOut() {
     await signOut();
     setSession(null);
@@ -52,7 +57,7 @@ export default function Header() {
           </Link>
 
           <nav className="pf-gnb-nav" aria-label="주요 메뉴">
-            {MENU.map((m) => (
+            {menu.map((m) => (
               <Link
                 key={m.href}
                 href={m.href}
@@ -102,7 +107,7 @@ export default function Header() {
 
         {open && (
           <nav className="pf-gnb-mobile" id="pf-gnb-mobile" aria-label="주요 메뉴 (모바일)">
-            {MENU.map((m) => (
+            {menu.map((m) => (
               <Link
                 key={m.href}
                 href={m.href}

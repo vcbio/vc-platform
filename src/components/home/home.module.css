@@ -1,0 +1,335 @@
+/* 홈 — 프로토타입 #view-home 재현.
+   그라디언트는 히어로 한 곳뿐이다(정본 규칙). 나머지 면은 전부 단색이다. */
+
+.page {
+  padding: 32px 0 8px;
+}
+
+/* ---------------- 히어로 ---------------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--pf-radius-lg);
+  background: linear-gradient(135deg, #0f172a 0%, #0b3a5d 52%, #0c4a6e 100%);
+  color: #ffffff;
+  padding: 56px 56px 48px;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  bottom: -140px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  right: 30px;
+  bottom: -60px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+}
+.heroIn {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+}
+.eyebrow {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pf-blue);
+  margin-bottom: 8px;
+}
+.hero .eyebrow {
+  color: #7dd3fc; /* 다크 히어로 위 5.67:1 */
+}
+.heroTitle {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.heroTitle em {
+  font-style: normal;
+  color: #7dd3fc;
+}
+.heroLead {
+  font-size: 17px;
+  line-height: 1.65;
+  color: #cbd5e1; /* 6.37:1 */
+  margin-top: 18px;
+  max-width: 60ch;
+}
+.heroCta {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+/* 다크 면 위 보조 버튼 — 흰 테두리로 대비를 만든다(회색 테두리는 사라진다) */
+.heroCta :global(.pf-btn-secondary) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.44);
+  color: #ffffff;
+}
+.heroCta :global(.pf-btn-secondary):hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.heroNote {
+  margin-top: 22px;
+  font-size: 13px;
+  color: #aebed2; /* 5.00:1 */
+}
+
+/* ---------------- 신뢰 지표 ---------------- */
+
+.trust {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--pf-border);
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  overflow: hidden;
+  margin-top: 20px;
+}
+.trust > div {
+  background: var(--pf-card);
+  padding: 22px 24px;
+}
+.trust dt {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  margin-bottom: 8px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.trust dd {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--pf-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.trust dd small {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink-3);
+  margin-left: 3px;
+}
+
+/* ---------------- 섹션 머리 ---------------- */
+
+.secHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 36px 0 16px;
+}
+.secHead h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pf-ink);
+  letter-spacing: -0.015em;
+}
+.secHead p {
+  font-size: 15px;
+  color: var(--pf-ink-3);
+  margin-top: 4px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.grid21 {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 32px;
+  align-items: start;
+}
+
+/* ---------------- 동향 피드 ---------------- */
+
+.feed li {
+  display: flex;
+  gap: 14px;
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--pf-border);
+  align-items: flex-start;
+}
+.feed li:last-child {
+  border-bottom: 0;
+}
+.feed .tag {
+  flex: none;
+  margin-top: 2px;
+}
+.feed a {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  line-height: 1.45;
+}
+.feed a:hover {
+  color: var(--pf-blue);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.feedTxt {
+  min-width: 0;
+}
+.feedMeta {
+  display: block;
+  font-size: 13px;
+  color: var(--pf-ink-3);
+}
+
+/* ---------------- 이용 안내 ---------------- */
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  padding: 9px 0;
+  border-top: 1px solid var(--pf-border);
+}
+.kv dt {
+  color: var(--pf-ink-3);
+}
+.kv dd {
+  font-weight: 600;
+  color: var(--pf-ink);
+  text-align: right;
+}
+.noteLine {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pf-border);
+  line-height: 1.6;
+}
+
+/* ---------------- 서비스 흐름 ---------------- */
+/* 01~06 번호는 장식이 아니라 실제 진행 순서다 — 순서가 정보라서 번호를 붙인다. */
+
+.flow {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  overflow: hidden;
+  background: var(--pf-card);
+}
+.flow > div {
+  flex: 1;
+  padding: 20px;
+  border-right: 1px solid var(--pf-border);
+  text-align: center;
+}
+.flow > div:last-child {
+  border-right: 0;
+}
+.flowNo {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pf-blue);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.flow b {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+}
+.flow p {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.flowSoon {
+  display: inline-block;
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .grid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid21 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trust {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .flow {
+    flex-wrap: wrap;
+  }
+  .flow > div {
+    flex: 1 1 33%;
+  }
+}
+
+@media (max-width: 680px) {
+  .page {
+    padding-top: 20px;
+  }
+  .hero {
+    padding: 36px 24px 32px;
+  }
+  .heroTitle {
+    font-size: 30px;
+    letter-spacing: -0.02em;
+  }
+  .heroLead {
+    font-size: 16px;
+  }
+  .heroCta :global(.pf-btn) {
+    width: 100%;
+  }
+  .grid3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trust {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .trust > div {
+    padding: 16px;
+  }
+  .trust dd {
+    font-size: 24px;
+  }
+  .secHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .flow > div {
+    flex: 1 1 50%;
+  }
+  .feed li {
+    padding-inline: 16px;
+  }
+}

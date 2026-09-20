@@ -1,0 +1,389 @@
+/* 견적요청 — 프로토타입 #view-quote 의 스텝퍼·옵션 그리드·요약·사이드 노트 재현. */
+
+.page {
+  padding: 32px 0 8px;
+}
+
+.pageHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.eyebrow {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pf-blue);
+  margin-bottom: 8px;
+}
+.pageSub {
+  font-size: 15px;
+  color: var(--pf-ink-2);
+  margin-top: 8px;
+  max-width: 78ch;
+  line-height: 1.6;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---------------- 스텝퍼 ---------------- */
+
+.stepper {
+  display: flex;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--pf-border);
+}
+.stepper li {
+  flex: 1;
+  min-width: 0;
+}
+.stepper button {
+  width: 100%;
+  text-align: left;
+  padding: 14px 4px 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--pf-ink-3);
+  transition:
+    color var(--pf-motion-fast),
+    border-color var(--pf-motion-fast);
+}
+.stepper button[disabled] {
+  cursor: not-allowed;
+}
+.stepNo {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pf-bg-2);
+  color: var(--pf-ink-3);
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: 9px;
+  vertical-align: middle;
+}
+.stepLabel {
+  font-size: 15px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.stepper .active {
+  color: var(--pf-ink);
+  border-color: var(--pf-blue-strong);
+}
+.stepper .active .stepNo {
+  background: var(--pf-blue-strong);
+  color: #ffffff;
+}
+.stepper .done {
+  color: var(--pf-ink-2);
+}
+.stepper .done .stepNo {
+  background: var(--pf-blue-soft);
+  color: var(--pf-blue-deep);
+}
+
+/* ---------------- 옵션 그리드 ---------------- */
+
+.optGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.optGrid.rows {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.opt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 78px;
+  padding: 12px 8px;
+  border: 1px solid var(--pf-border-strong);
+  border-radius: var(--pf-radius);
+  background: var(--pf-card);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color var(--pf-motion-fast),
+    background var(--pf-motion-fast),
+    box-shadow var(--pf-motion-fast);
+}
+@media (hover: hover) and (pointer: fine) {
+  .opt:hover {
+    border-color: var(--pf-blue);
+    background: var(--pf-bg);
+  }
+}
+.opt input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.optTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+}
+.optSub {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+}
+.opt:has(input:checked) {
+  border-color: var(--pf-blue-strong);
+  background: var(--pf-blue-soft);
+  box-shadow: 0 0 0 1px var(--pf-blue-strong) inset;
+}
+.opt:has(input:checked) .optTitle {
+  color: var(--pf-blue-deep);
+}
+.opt:has(input:focus-visible) {
+  outline: 3px solid var(--pf-ink);
+  outline-offset: 2px;
+}
+.opt.row {
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 52px;
+  gap: 10px;
+  padding: 0 14px;
+  text-align: left;
+}
+
+/* ---------------- 폼 ---------------- */
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+.fieldBlock {
+  margin-bottom: 22px;
+}
+.blockLabel {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  margin-bottom: 9px;
+}
+.req {
+  color: var(--pf-danger);
+  margin-left: 3px;
+}
+.help {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  margin-top: 7px;
+  line-height: 1.55;
+}
+.error {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-danger-ink);
+  margin-top: 7px;
+}
+
+.formNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 22px;
+  margin-top: 6px;
+  border-top: 1px solid var(--pf-border);
+}
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stepCount {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  font-weight: 500;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--pf-border);
+}
+.summaryRow:last-child {
+  border-bottom: 0;
+}
+.summaryRow dt {
+  font-size: 15px;
+  color: var(--pf-ink-3);
+}
+.summaryRow dd {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  text-align: right;
+  max-width: 60%;
+}
+
+.noteLine {
+  font-size: 13px;
+  color: var(--pf-ink-3);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pf-border);
+  line-height: 1.6;
+}
+
+/* ---------------- 사이드 노트 ---------------- */
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.asideNote {
+  background: var(--pf-bg-2);
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  padding: 22px;
+}
+.asideNote h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pf-ink);
+  margin-bottom: 12px;
+}
+.asideNote li {
+  font-size: 15px;
+  color: var(--pf-ink-2);
+  line-height: 1.65;
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 8px;
+}
+.asideNote li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pf-blue);
+}
+.asideNote li:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------------- 제출 완료 ---------------- */
+
+.done {
+  max-width: 640px;
+  margin: 56px auto 40px;
+  text-align: center;
+}
+.doneMark {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--pf-ok-soft);
+  color: var(--pf-ok-ink);
+}
+.doneId {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 12px 18px;
+  border-radius: var(--pf-radius);
+  background: var(--pf-bg-2);
+  border: 1px solid var(--pf-border);
+  font-size: 15px;
+  color: var(--pf-ink-2);
+}
+.doneId b {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--pf-ink);
+  font-variant-numeric: tabular-nums;
+}
+.doneCta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .optGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .page {
+    padding-top: 20px;
+  }
+  .pageHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .optGrid,
+  .optGrid.rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stepper {
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .stepper li {
+    flex: 0 0 auto;
+  }
+  .stepper button {
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+  .stepLabel {
+    display: none;
+  }
+  .formNav {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .right {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .stepCount {
+    text-align: center;
+  }
+  .doneCta :global(.pf-btn) {
+    width: 100%;
+  }
+}
