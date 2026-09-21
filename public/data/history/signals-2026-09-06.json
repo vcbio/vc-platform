@@ -5,43 +5,43 @@
     {
       "id": "ing_fe4ff6ec1c9f3b72",
       "name": "젖산마그네슘",
-      "monthlyVolume": 137200,
+      "monthlyVolume": 173300,
       "changePct": 26.1
     },
     {
       "id": "ing_3b43f38712ae66a4",
       "name": "마그네슘",
-      "monthlyVolume": 124700,
+      "monthlyVolume": 132300,
       "changePct": 7.6
     },
     {
       "id": "ing_b0f620eba4f03450",
       "name": "유산균",
-      "monthlyVolume": 116800,
+      "monthlyVolume": 114500,
       "changePct": 4.6
     },
     {
       "id": "ing_0cade9ccd77cc1f1",
       "name": "콘드로이친",
-      "monthlyVolume": 107000,
+      "monthlyVolume": 103000,
       "changePct": 8
-    },
-    {
-      "id": "ing_d6d9e65a201af582",
-      "name": "카무트효소",
-      "monthlyVolume": 97930,
-      "changePct": 2
     },
     {
       "id": "ing_6e8daf20893dfe9e",
       "name": "비타민C",
-      "monthlyVolume": 96100,
+      "monthlyVolume": 95600,
       "changePct": 1
+    },
+    {
+      "id": "ing_d6d9e65a201af582",
+      "name": "카무트효소",
+      "monthlyVolume": 79050,
+      "changePct": 2
     },
     {
       "id": "ing_0dc3160ca2edbe2c",
       "name": "베르베린",
-      "monthlyVolume": 79200,
+      "monthlyVolume": 77900,
       "changePct": 22.3
     },
     {
@@ -53,8 +53,14 @@
     {
       "id": "ing_84ed631f9dfe8b84",
       "name": "코엔자임Q10",
-      "monthlyVolume": 64490,
+      "monthlyVolume": 67410,
       "changePct": 35.9
+    },
+    {
+      "id": "ing_ade8b7b5790ae97a",
+      "name": "견과류",
+      "monthlyVolume": 63200,
+      "changePct": 14.3
     },
     {
       "id": "ing_f3d263dc4d03b8e2",
@@ -63,64 +69,58 @@
       "changePct": 3.5
     },
     {
-      "id": "ing_ade8b7b5790ae97a",
-      "name": "견과류",
-      "monthlyVolume": 56100,
-      "changePct": 14.3
+      "id": "ing_5a3de34d5287e327",
+      "name": "홍삼",
+      "monthlyVolume": 54300,
+      "changePct": 66.7
     },
     {
       "id": "ing_6321af524fa7087c",
       "name": "라이코펜",
-      "monthlyVolume": 42050,
+      "monthlyVolume": 46980,
       "changePct": 3084.1
+    },
+    {
+      "id": "ing_86a2c91334b2bbdd",
+      "name": "흑염소진액",
+      "monthlyVolume": 44780,
+      "changePct": 100.5
     },
     {
       "id": "ing_304fbb1a972d232d",
       "name": "프로폴리스",
-      "monthlyVolume": 40230,
+      "monthlyVolume": 42810,
       "changePct": 3.2
     },
     {
       "id": "ing_348838ae589edbdf",
       "name": "비오틴",
-      "monthlyVolume": 38840,
+      "monthlyVolume": 39200,
       "changePct": 4.1
-    },
-    {
-      "id": "ing_5a3de34d5287e327",
-      "name": "홍삼",
-      "monthlyVolume": 38800,
-      "changePct": 66.7
     },
     {
       "id": "ing_0acd2b2f2a45e603",
       "name": "루테인",
-      "monthlyVolume": 38130,
+      "monthlyVolume": 39090,
       "changePct": 6.8
-    },
-    {
-      "id": "ing_86a2c91334b2bbdd",
-      "name": "흑염소진액",
-      "monthlyVolume": 37350,
-      "changePct": 100.5
     },
     {
       "id": "ing_6fd9d3e746c0431c",
       "name": "엽산",
-      "monthlyVolume": 32830,
+      "monthlyVolume": 31500,
       "changePct": 0.8
     },
     {
       "id": "ing_06aee214244b6375",
       "name": "흑염소",
-      "monthlyVolume": 30690,
+      "monthlyVolume": 28510,
       "changePct": 18.9
     },
     {
-      "id": "ing_6563c007393064da",
-      "name": "칼마디",
-      "monthlyVolume": 25910,
-      "changePct": 2.8
+      "id": "ing_fd2eee20267315f2",
+      "name": "빌베리",
+      "monthlyVolume": 27140,
+      "changePct": 49.7
     }
   ]
 }
