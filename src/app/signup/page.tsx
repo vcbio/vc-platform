@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signUp } from "@/lib/auth";
+import { authReady, signInWithGoogle, signUp } from "@/lib/auth";
 import { Button, Container, Input } from "@/components/ui";
 
 export default function SignupPage() {
@@ -19,13 +19,24 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     setBusy(true);
-    const { error } = await signUp(email, password, companyName || undefined);
+    const { error, session } = await signUp(email, password, companyName || undefined);
     setBusy(false);
     if (error) {
       setError(error);
       return;
     }
-    setDone(true);
+    if (session) router.push("/deal/");
+    else setDone(true);
+  }
+
+  async function onGoogleSignIn() {
+    setError("");
+    setBusy(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error);
+      setBusy(false);
+    }
   }
 
   if (done) {
@@ -37,11 +48,8 @@ export default function SignupPage() {
             {email} 으로 인증 메일을 보냈습니다. 메일 속 링크를 누르면 가입이 끝납니다. 메일이 안
             보이면 스팸함도 확인해 주세요.
           </p>
-          <p className="pf-help mt-3">
-            지금은 시연 화면이라 메일 인증 없이 바로 로그인된 상태입니다.
-          </p>
           <div className="mt-8 flex gap-3">
-            <Button onClick={() => router.push("/deal/")}>견적 요청으로 가기</Button>
+            <Button onClick={() => router.push("/login/")}>로그인으로 가기</Button>
           </div>
         </div>
       </Container>
@@ -52,6 +60,13 @@ export default function SignupPage() {
     <Container>
       <div className="mx-auto w-full max-w-sm py-20">
         <h1>가입하기</h1>
+
+        <div className="mt-8">
+          <Button type="button" block disabled={busy || !authReady()} onClick={onGoogleSignIn}>
+            Google로 계속하기
+          </Button>
+          {!authReady() && <p className="pf-help mt-3">구글 로그인 설정 중입니다.</p>}
+        </div>
 
         <form onSubmit={onSubmit} className="mt-8" noValidate>
           <Input

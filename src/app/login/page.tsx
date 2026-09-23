@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth";
+import { authReady, signIn, signInWithGoogle } from "@/lib/auth";
 import { Button, Container, Input } from "@/components/ui";
 
 export default function LoginPage() {
@@ -26,10 +26,27 @@ export default function LoginPage() {
     router.push("/deal/");
   }
 
+  async function onGoogleSignIn() {
+    setError("");
+    setBusy(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error);
+      setBusy(false);
+    }
+  }
+
   return (
     <Container>
       <div className="mx-auto w-full max-w-sm py-20">
         <h1>로그인</h1>
+
+        <div className="mt-8">
+          <Button type="button" block disabled={busy || !authReady()} onClick={onGoogleSignIn}>
+            Google로 로그인
+          </Button>
+          {!authReady() && <p className="pf-help mt-3">구글 로그인 설정 중입니다.</p>}
+        </div>
 
         <form onSubmit={onSubmit} className="mt-8" noValidate>
           <Input

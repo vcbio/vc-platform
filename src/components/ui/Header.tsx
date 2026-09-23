@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { getSession, signOut, type Session } from "@/lib/auth";
 import Container from "./Container";
@@ -25,11 +25,12 @@ function isCurrent(pathname: string, href: string) {
 /** 상단 GNB. 아이보리 반투명 레이어 + 1px 룰선(데이터랩과 같은 문법). */
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [open, setOpen] = useState(false);
   const [narrow, setNarrow] = useState(false);
 
-  // 세션은 localStorage 라 브라우저에서만 읽힌다. 경로가 바뀔 때마다 다시 본다.
+  // 인증 세션은 브라우저에서 읽는다. 경로가 바뀔 때마다 다시 본다.
   // (모바일 메뉴는 링크 onClick 에서 닫는다 — 여기서 닫으면 렌더가 한 번 더 돈다.)
   useEffect(() => {
     let alive = true;
@@ -54,6 +55,7 @@ export default function Header() {
   async function onSignOut() {
     await signOut();
     setSession(null);
+    router.replace("/login/");
   }
 
   return (
