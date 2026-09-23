@@ -281,12 +281,14 @@ export default function MatchClient() {
                           <td>{m.region}</td>
                           <td>{m.certifications.join(" · ")}</td>
                           <td className={s.num}>
-                            <b>{score}%</b>
+                            <b>{chips.length === 0 ? "—" : `${score}%`}</b>
                           </td>
                           <td className={s.num}>{m.moqRange}</td>
                           <td className={s.num}>{m.leadTimeWeeks}주</td>
                           <td>
-                            {score === 100 ? (
+                            {chips.length === 0 ? (
+                              <Badge tone="neutral">조건 없음</Badge>
+                            ) : score === 100 ? (
                               <Badge tone="ok">조건 전부 충족</Badge>
                             ) : (
                               <Badge tone="warn">일부 충족</Badge>
