@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { getSession, signOut, type Session } from "@/lib/auth";
@@ -63,11 +64,13 @@ export default function Header() {
       <Container>
         <div className="pf-gnb-in">
           <Link href="/" className="pf-brand">
-            <span className="mark" aria-hidden="true">
-              VC
-            </span>
-            VC 플랫폼
-            <em>Value Chain Platform</em>
+            <Image
+              src="/vc-platform/branding/vita-core-platform-horizontal.svg"
+              width={210}
+              height={30}
+              alt="Vita Core Platform"
+              unoptimized
+            />
           </Link>
 
           <nav className="pf-gnb-nav" aria-label="주요 메뉴">

@@ -240,42 +240,11 @@ input, select, textarea { font: inherit; color: inherit; }
 .pf-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--pf-ink);
   text-decoration: none;
   flex-shrink: 0;
-  white-space: nowrap;
 }
 .pf-brand:hover { text-decoration: none; }
-/* 로고 마크 — 딥그린 사각(radius 4) 안에 Value Chain 의 꺾인 고리 */
-.pf-brand .mark {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  flex: none;
-  border-radius: var(--pf-radius);
-  background: var(--pf-accent);
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--pf-paper);
-  letter-spacing: 0.02em;
-}
-.pf-brand em {
-  font-style: normal;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--pf-accent);
-  margin-left: 2px;
-}
-@media (max-width: 1080px) {
-  .pf-brand em { display: none; }
-}
+.pf-brand img { display: block; width: 210px; height: 30px; }
 
 .pf-gnb-nav { display: flex; align-items: stretch; gap: 2px; flex: 1; min-width: 0; }
 .pf-gnb-nav a {
@@ -364,7 +333,8 @@ input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 900px) {
   .pf-gnb-nav { display: none; }
   .pf-burger { display: grid; }
-  .pf-gnb-in { gap: 16px; justify-content: space-between; }
+  .pf-gnb-in { gap: 8px; justify-content: space-between; }
+  .pf-brand img { width: 150px; height: 22px; }
 }
 
 /* ---------------- footer ---------------- */
@@ -385,19 +355,11 @@ input, select, textarea { font: inherit; color: inherit; }
   gap: 24px;
   flex-wrap: wrap;
 }
-.pf-foot b {
+.pf-foot-logo {
   display: block;
-  color: var(--pf-accent);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-}
-.pf-foot em {
-  font-style: normal;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--pf-ink-3);
+  width: 210px;
+  height: 30px;
+  margin-bottom: 8px;
 }
 
 /* ---------------- card ---------------- */

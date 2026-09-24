@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Container from "./Container";
 
 /** 푸터. 브랜드 줄 · 이름 풀이 · 시연 고지 세 덩어리로만 둔다. */
@@ -7,8 +8,14 @@ export default function Footer() {
       <Container>
         <div className="pf-foot-in">
           <div>
-            <b>VC 플랫폼</b>
-            <em>Value Chain Platform</em>
+            <Image
+              src="/vc-platform/branding/vita-core-platform-horizontal.svg"
+              width={210}
+              height={30}
+              alt="Vita Core Platform"
+              className="pf-foot-logo"
+              unoptimized
+            />
             <p>건강기능식품 제조사와 유통사를 잇는 B2B OEM/ODM 매칭</p>
           </div>
           <p>
