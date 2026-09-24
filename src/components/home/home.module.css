@@ -134,10 +134,10 @@
   font-variant-numeric: tabular-nums;
 }
 .odoBig {
-  font-size: clamp(64px, 11vw, 168px);
+  font-size: clamp(64px, 11vw, 152px);
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.055em;
+  letter-spacing: 0;
   color: var(--pf-ink);
 }
 /* 화면에서 유일하게 큰 주황 — 「급등」 하나에만 쓴다 */
@@ -512,13 +512,6 @@
   min-width: 0;
 }
 
-.grid21 {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
 /* ---------------- 동향 피드 ---------------- */
 
 .feed li {
@@ -557,38 +550,6 @@
   font-size: 13px;
   color: var(--pf-ink-3);
   font-variant-numeric: tabular-nums;
-}
-
-/* ---------------- 이용 안내 ---------------- */
-
-.kv {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 15px;
-  padding: 9px 0;
-  border-top: 1px solid var(--pf-rule);
-}
-.kv:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-.kv dt {
-  color: var(--pf-ink-3);
-}
-.kv dd {
-  font-weight: 600;
-  color: var(--pf-ink);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.noteLine {
-  font-size: 13px;
-  color: var(--pf-ink-3);
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--pf-rule);
-  line-height: 1.6;
 }
 
 /* ---------------- 어떻게 되나 — 세 단계 한 줄 ---------------- */
@@ -693,9 +654,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
   }
-  .grid21 {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .facts dd {
     font-size: 17px;
   }
@@ -712,6 +670,9 @@
   }
   .deckNum {
     gap: 10px;
+  }
+  .odoBig {
+    font-size: clamp(50px, 10vw, 64px);
   }
   .deckCta :global(.pf-btn) {
     width: 100%;

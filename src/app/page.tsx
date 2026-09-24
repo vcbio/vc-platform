@@ -105,58 +105,31 @@ export default async function Home() {
 
       <section className={`${s.sec} ${s.secBand}`}>
         <Container>
-          <div className={s.grid21}>
-            <Card
-              title="오늘의 업계 동향"
-              padded={false}
-              action={
-                <ButtonLink href="/insight/" variant="ghost" size="sm">
-                  전체 보기
-                </ButtonLink>
-              }
-            >
-              <ul className={s.feed}>
-                {insights.slice(0, 3).map((i) => (
-                  <FeedItem key={i.id} insight={i} />
-                ))}
-              </ul>
-              <div className={s.feedFoot}>
-                <a
-                  href={DATALAB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="pf-btn pf-btn-secondary pf-btn-sm"
-                >
-                  데이터랩에서 전체 보기 ↗<span className="pf-sr-only"> (새 탭에서 열림)</span>
-                </a>
-              </div>
-            </Card>
-
-            <Card title="이용 안내">
-              <dl>
-                <div className={s.kv}>
-                  <dt>플랫폼 가입</dt>
-                  <dd>무료</dd>
-                </div>
-                <div className={s.kv}>
-                  <dt>조건 매칭 · 견적 요청</dt>
-                  <dd>무료</dd>
-                </div>
-                <div className={s.kv}>
-                  <dt>원료 중개 수수료</dt>
-                  <dd>거래액의 10~15%</dd>
-                </div>
-                <div className={s.kv}>
-                  <dt>완제품 중개 수수료</dt>
-                  <dd>거래액의 5~10%</dd>
-                </div>
-              </dl>
-              <p className={s.noteLine}>
-                수수료율은 품목·물량·거래 조건에 따라 위 범위 안에서 협의로 정합니다. 견적 금액은
-                제조사 회신 단계에서 개별 안내됩니다.
-              </p>
-            </Card>
-          </div>
+          <Card
+            title="오늘의 업계 동향"
+            padded={false}
+            action={
+              <ButtonLink href="/insight/" variant="ghost" size="sm">
+                전체 보기
+              </ButtonLink>
+            }
+          >
+            <ul className={s.feed}>
+              {insights.slice(0, 3).map((i) => (
+                <FeedItem key={i.id} insight={i} />
+              ))}
+            </ul>
+            <div className={s.feedFoot}>
+              <a
+                href={DATALAB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pf-btn pf-btn-secondary pf-btn-sm"
+              >
+                데이터랩에서 전체 보기 ↗<span className="pf-sr-only"> (새 탭에서 열림)</span>
+              </a>
+            </div>
+          </Card>
         </Container>
       </section>
     </>
