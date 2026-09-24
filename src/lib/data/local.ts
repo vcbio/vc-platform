@@ -20,7 +20,7 @@ import { DATALAB_URL } from "./constants";
  */
 
 const KEY = {
-  manufacturers: "vcp.manufacturers",
+  manufacturers: "vcp.manufacturers.v2",
   ingredients: "vcp.ingredients",
   quotes: "vcp.quotes",
 } as const;
@@ -51,6 +51,22 @@ function load<T>(key: string, seed: T[]): T[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed as T[];
+    }
+    if (key === KEY.manufacturers) {
+      // 이전 시연용 6행은 버리고, 관리자가 직접 추가한 행만 옮긴다.
+      // 옛 저장값은 그대로 남겨 두어 되돌릴 수 있다.
+      const old = getRaw("vcp.manufacturers");
+      const rows = old ? JSON.parse(old) : null;
+      if (Array.isArray(rows)) {
+        const demoIds = new Set(["mfr-a", "mfr-b", "mfr-c", "mfr-d", "mfr-e", "mfr-f"]);
+        const custom = rows.filter(
+          (row): row is T => row !== null && typeof row === "object" &&
+            typeof row.id === "string" && !demoIds.has(row.id),
+        );
+        const next = [...seed, ...custom];
+        setRaw(key, JSON.stringify(next));
+        return next;
+      }
     }
   } catch {
     // 저장분이 깨졌으면 시드로 되돌린다. 화면이 멈추는 것보다 낫다.
@@ -166,7 +182,7 @@ export const localData: DataAdapter = {
     if (criteria.maxLeadTimeWeeks != null)
       checks.push({
         label: `리드타임 ${criteria.maxLeadTimeWeeks}주 이내`,
-        ok: (m) => m.leadTimeWeeks <= criteria.maxLeadTimeWeeks!,
+        ok: (m) => m.leadTimeWeeks != null && m.leadTimeWeeks <= criteria.maxLeadTimeWeeks!,
       });
 
     if (checks.length === 0) {
@@ -183,6 +199,9 @@ export const localData: DataAdapter = {
         };
       })
       .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score || a.manufacturer.leadTimeWeeks - b.manufacturer.leadTimeWeeks);
+      .sort((a, b) =>
+        b.score - a.score ||
+        (a.manufacturer.leadTimeWeeks ?? Infinity) - (b.manufacturer.leadTimeWeeks ?? Infinity),
+      );
   },
 };

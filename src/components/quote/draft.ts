@@ -2,15 +2,21 @@ import type { DosageForm } from "@/lib/data";
 
 export const DOSAGE_FORMS: { value: DosageForm; sub: string; unit: string }[] = [
   { value: "정제", sub: "Tablet", unit: "정" },
+  { value: "캡슐", sub: "Capsule", unit: "캡슐" },
   { value: "경질캡슐", sub: "Hard capsule", unit: "캡슐" },
   { value: "연질캡슐", sub: "Soft capsule", unit: "캡슐" },
+  { value: "분말", sub: "Powder", unit: "g" },
   { value: "분말스틱", sub: "Powder stick", unit: "포" },
+  { value: "과립", sub: "Granule", unit: "g" },
+  { value: "퀵멜트", sub: "Quick melt", unit: "포" },
+  { value: "액상", sub: "Liquid", unit: "병" },
   { value: "액상스틱", sub: "Liquid stick", unit: "포" },
-  { value: "젤리", sub: "Gummy", unit: "개" },
+  { value: "젤리", sub: "Jelly", unit: "개" },
   { value: "환", sub: "Pill", unit: "g" },
+  { value: "스낵", sub: "Snack", unit: "개" },
 ];
 
-export const UNITS = ["정", "캡슐", "포", "개", "병", "g"];
+export const UNITS = ["정", "캡슐", "포", "개", "병", "g", "kg"];
 
 /** 금액은 받지 않는다. 예산은 확정 단계만 고른다(어댑터 시드와 같은 표현). */
 export const BUDGET_RANGES = ["미정", "협의 예정", "상담 후 확정", "사내 확정 · 상담 시 공유"];

@@ -4,7 +4,7 @@ export type HomeStats = {
   manufacturers: number;
   ingredients: number;
   quotes: number;
-  avgLeadTimeWeeks: number;
+  avgLeadTimeWeeks: number | null;
   /** 등록 제조사가 실제로 가진 인증을 많이 가진 순으로. 화면에 인증명을 손으로 적지 않는다. */
   certifications: string[];
 };
@@ -22,9 +22,12 @@ export async function homeStats(): Promise<HomeStats> {
   ]);
 
   const active = manufacturers.filter((m) => m.isActive);
-  const avg = active.length
-    ? active.reduce((sum, m) => sum + m.leadTimeWeeks, 0) / active.length
-    : 0;
+  const knownLeadTimes = active
+    .map((m) => m.leadTimeWeeks)
+    .filter((weeks): weeks is number => typeof weeks === "number" && Number.isFinite(weeks));
+  const avg = knownLeadTimes.length
+    ? knownLeadTimes.reduce((sum, weeks) => sum + weeks, 0) / knownLeadTimes.length
+    : null;
 
   // 인증은 세어서 많은 순으로 낸다 — "GMP 보유"라고 단정하지 않고 가진 것만 적기 위해서다.
   const tally = new Map<string, number>();
@@ -40,6 +43,6 @@ export async function homeStats(): Promise<HomeStats> {
     certifications,
     ingredients: ingredients.filter((i) => i.isActive).length,
     quotes: quotes.length,
-    avgLeadTimeWeeks: Math.round(avg * 10) / 10,
+    avgLeadTimeWeeks: avg === null ? null : Math.round(avg * 10) / 10,
   };
 }

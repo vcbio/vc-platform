@@ -7,6 +7,7 @@ drop trigger if exists vcp_quotes_touch_updated_at on public.vcp_quotes;
 drop function if exists public.vcp_handle_new_user();
 drop function if exists public.vcp_touch_updated_at();
 
+drop table if exists public.vcp_manufacturer_private;
 drop table if exists public.vcp_quotes;
 drop table if exists public.vcp_ingredients;
 drop table if exists public.vcp_manufacturers;

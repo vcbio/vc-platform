@@ -214,3 +214,31 @@ grant select on public.vcp_profiles to authenticated;
 grant update (company_name) on public.vcp_profiles to authenticated;
 -- role 변경은 Supabase 대시보드/service_role 로만 한다(관리자도 웹에서 못 바꾼다).
 grant select, insert, update on public.vcp_quotes to authenticated;
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. 제조사 실명·조사 근거: 공개 시드와 분리, 관리자 JWT만 조회
+--    실명 데이터 INSERT는 이 공개 저장소에 두지 않는다.
+-- ─────────────────────────────────────────────────────────────
+
+create table if not exists public.vcp_manufacturer_private (
+  public_id text primary key,
+  real_name text not null,
+  permit_ids text[] not null default '{}',
+  forms_detail text,
+  equipment_detail text,
+  product_examples text,
+  certifications_claim text,
+  source_urls text[] not null default '{}',
+  caveat text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.vcp_manufacturer_private enable row level security;
+revoke all on public.vcp_manufacturer_private from public, anon, authenticated;
+grant select on public.vcp_manufacturer_private to authenticated;
+
+drop policy if exists vcp_manufacturer_private_admin_only on public.vcp_manufacturer_private;
+create policy vcp_manufacturer_private_admin_only
+  on public.vcp_manufacturer_private
+  for select to authenticated
+  using ((select auth.jwt() -> 'app_metadata' ->> 'vcp_role') = 'admin');

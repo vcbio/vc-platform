@@ -96,8 +96,7 @@ export default async function Home() {
         <Container>
           <TrustBar initial={stats} />
           <p className={s.bandNote}>
-            제조사 정보는 플랫폼에 등록된 시연용 데모 데이터를 그대로 센 값입니다. 표시명은 익명
-            처리한 이름입니다. 조건에 맞는 제조사는{" "}
+            제조사 정보는 조사 자료를 바탕으로 정리했습니다. 표시명은 익명이며, 실제 생산 가능 여부는 상담에서 확인합니다. 조건에 맞는 제조사는{" "}
             <Link href="/match/">제조사 찾기</Link>에서 직접 봅니다.
           </p>
         </Container>

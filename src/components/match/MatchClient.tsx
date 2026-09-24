@@ -46,6 +46,7 @@ export default function MatchClient() {
     () => [...new Set(all.flatMap((m) => m.certifications))].sort(),
     [all],
   );
+  const hasLeadTime = all.some((m) => m.leadTimeWeeks != null);
 
   useEffect(() => {
     getData()
@@ -94,8 +95,7 @@ export default function MatchClient() {
             <span className={s.eyebrow}>Condition-based Matching</span>
             <h1>제조사 찾기</h1>
             <p className={s.pageSub}>
-              제형·지역·인증·리드타임을 걸면 등록 제조사를 조건으로 걸러 냅니다. 일치율은 건 조건
-              가운데 몇 개를 만족했는지 센 값입니다.
+              제형·지역으로 제조사를 찾아보세요. 제형과 설비는 조사 자료 기준이며, 실제 생산 가능 여부는 상담 시 확인합니다.
             </p>
           </div>
           <ButtonLink href="/quote/" variant="ghost" size="sm">
@@ -157,39 +157,42 @@ export default function MatchClient() {
               ))}
             </Select>
 
-            <Select
-              label="인증"
-              value={criteria.certification ?? ""}
-              onChange={(e) => set("certification", e.target.value || undefined)}
-            >
-              <option value="">전체</option>
-              {certs.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
+            {certs.length > 0 && (
+              <Select
+                label="인증"
+                value={criteria.certification ?? ""}
+                onChange={(e) => set("certification", e.target.value || undefined)}
+              >
+                <option value="">전체</option>
+                {certs.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            )}
 
-            <Select
-              label="리드타임"
-              value={criteria.maxLeadTimeWeeks ? String(criteria.maxLeadTimeWeeks) : ""}
-              onChange={(e) =>
-                set("maxLeadTimeWeeks", e.target.value ? Number(e.target.value) : undefined)
-              }
-            >
-              <option value="">전체</option>
-              {LEAD_OPTIONS.map((w) => (
-                <option key={w} value={w}>
-                  {w}주 이내
-                </option>
-              ))}
-            </Select>
+            {hasLeadTime && (
+              <Select
+                label="리드타임"
+                value={criteria.maxLeadTimeWeeks ? String(criteria.maxLeadTimeWeeks) : ""}
+                onChange={(e) =>
+                  set("maxLeadTimeWeeks", e.target.value ? Number(e.target.value) : undefined)
+                }
+              >
+                <option value="">전체</option>
+                {LEAD_OPTIONS.map((w) => (
+                  <option key={w} value={w}>
+                    {w}주 이내
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
 
           <div className={s.criteriaFoot}>
             <p className="pf-help" style={{ margin: 0 }}>
-              최소 발주수량(MOQ)으로 거르는 조건은 <Badge tone="neutral">준비 중</Badge> 입니다.
-              지금은 결과 카드와 비교표에서 확인하십시오.
+              인증·최소수량·납기는 제조사 확인 후 안내합니다.
             </p>
             <button
               type="button"
@@ -279,12 +282,12 @@ export default function MatchClient() {
                             <b>{m.displayName.split(" (")[0]}</b>
                           </td>
                           <td>{m.region}</td>
-                          <td>{m.certifications.join(" · ")}</td>
+                          <td>{m.certifications.length ? m.certifications.join(" · ") : "확인 중"}</td>
                           <td className={s.num}>
                             <b>{chips.length === 0 ? "—" : `${score}%`}</b>
                           </td>
-                          <td className={s.num}>{m.moqRange}</td>
-                          <td className={s.num}>{m.leadTimeWeeks}주</td>
+                          <td className={s.num}>{m.moqRange || "확인 필요"}</td>
+                          <td className={s.num}>{m.leadTimeWeeks == null ? "확인 필요" : `${m.leadTimeWeeks}주`}</td>
                           <td>
                             {chips.length === 0 ? (
                               <Badge tone="neutral">조건 없음</Badge>

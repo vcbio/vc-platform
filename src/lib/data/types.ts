@@ -3,7 +3,7 @@
  * ⚠️ 가격·단가·마진 필드는 두지 않는다(대표 지시). 수수료도 필드로 만들지 않는다.
  */
 
-export type DosageForm = "정제" | "경질캡슐" | "연질캡슐" | "분말스틱" | "액상스틱" | "젤리" | "환";
+export type DosageForm = "정제" | "캡슐" | "경질캡슐" | "연질캡슐" | "분말" | "분말스틱" | "과립" | "퀵멜트" | "액상" | "액상스틱" | "젤리" | "환" | "스낵";
 
 export type Manufacturer = {
   id: string;
@@ -12,8 +12,12 @@ export type Manufacturer = {
   region: string;
   certifications: string[];
   dosageForms: DosageForm[];
+  /** 공개 가능한 공정 요약. 설비 소유·현재 가동을 뜻하지 않는다. */
+  equipmentSummary?: string;
   moqRange: string;
-  leadTimeWeeks: number;
+  /** 확인되지 않은 납기는 null. */
+  leadTimeWeeks: number | null;
+  /** 플랫폼 목록 노출 여부. 공장 영업 상태가 아니다. */
   isActive: boolean;
 };
 

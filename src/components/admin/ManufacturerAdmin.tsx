@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, Container, Input, Select } from "@/components/ui";
 import { getData, type DosageForm, type Manufacturer } from "@/lib/data";
+import { getSession } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { Empty, Note, PageHead, TableWrap, styles as s } from "@/components/deal/shared";
 import { AdminNav, CheckGroup, ConfirmDialog, useRows } from "./parts";
 
@@ -13,19 +15,46 @@ import { AdminNav, CheckGroup, ConfirmDialog, useRows } from "./parts";
 
 const FORMS: DosageForm[] = [
   "정제",
+  "캡슐",
   "경질캡슐",
   "연질캡슐",
+  "분말",
   "분말스틱",
+  "과립",
+  "퀵멜트",
+  "액상",
   "액상스틱",
   "젤리",
   "환",
+  "스낵",
 ];
+
+type PrivateManufacturer = {
+  public_id: string;
+  real_name: string;
+  permit_ids: string[];
+  forms_detail: string | null;
+  equipment_detail: string | null;
+  product_examples: string | null;
+  certifications_claim: string | null;
+  source_urls: string[];
+  caveat: string | null;
+};
+
+async function loadPrivateManufacturers(): Promise<PrivateManufacturer[] | null> {
+  if (!supabase || !(await getSession())?.isAdmin) return null;
+  const { data, error } = await supabase
+    .from("vcp_manufacturer_private")
+    .select("public_id,real_name,permit_ids,forms_detail,equipment_detail,product_examples,certifications_claim,source_urls,caveat");
+  return error ? null : (data ?? []) as PrivateManufacturer[];
+}
 
 type Draft = {
   displayName: string;
   region: string;
   certifications: string;
   dosageForms: DosageForm[];
+  equipmentSummary: string;
   moqRange: string;
   leadTimeWeeks: string;
   isActive: string;
@@ -36,9 +65,10 @@ const EMPTY: Draft = {
   region: "",
   certifications: "",
   dosageForms: [],
+  equipmentSummary: "",
   moqRange: "",
-  leadTimeWeeks: "4",
-  isActive: "가동",
+  leadTimeWeeks: "",
+  isActive: "노출",
 };
 
 const toDraft = (m: Manufacturer): Draft => ({
@@ -46,9 +76,10 @@ const toDraft = (m: Manufacturer): Draft => ({
   region: m.region,
   certifications: m.certifications.join(", "),
   dosageForms: m.dosageForms,
+  equipmentSummary: m.equipmentSummary ?? "",
   moqRange: m.moqRange,
-  leadTimeWeeks: String(m.leadTimeWeeks),
-  isActive: m.isActive ? "가동" : "중지",
+  leadTimeWeeks: m.leadTimeWeeks == null ? "" : String(m.leadTimeWeeks),
+  isActive: m.isActive ? "노출" : "숨김",
 });
 
 const fromDraft = (d: Draft): Omit<Manufacturer, "id"> => ({
@@ -59,9 +90,10 @@ const fromDraft = (d: Draft): Omit<Manufacturer, "id"> => ({
     .map((v) => v.trim())
     .filter(Boolean),
   dosageForms: d.dosageForms,
+  equipmentSummary: d.equipmentSummary.trim(),
   moqRange: d.moqRange.trim(),
-  leadTimeWeeks: Number(d.leadTimeWeeks) || 0,
-  isActive: d.isActive === "가동",
+  leadTimeWeeks: d.leadTimeWeeks.trim() === "" ? null : Number(d.leadTimeWeeks),
+  isActive: d.isActive === "노출",
 });
 
 export default function ManufacturerAdmin() {
@@ -72,6 +104,28 @@ export default function ManufacturerAdmin() {
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<Manufacturer | null>(null);
+  const [privateRows, setPrivateRows] = useState<Record<string, PrivateManufacturer>>({});
+  const [privateError, setPrivateError] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const authListener = supabase?.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        alive = false;
+        setPrivateRows({});
+        setPrivateError(true);
+      }
+    });
+    loadPrivateManufacturers().then((privateData) => {
+      if (!alive) return;
+      setPrivateRows(Object.fromEntries((privateData ?? []).map((row) => [row.public_id, row])));
+      setPrivateError(privateData === null);
+    });
+    return () => {
+      alive = false;
+      authListener?.data.subscription.unsubscribe();
+    };
+  }, []);
 
   const set = (k: keyof Draft, v: string | DosageForm[]) =>
     setDraft((d) => ({ ...d, [k]: v }) as Draft);
@@ -92,6 +146,8 @@ export default function ManufacturerAdmin() {
     e.preventDefault();
     if (!draft.displayName.trim()) return setError("표시명을 적어 주세요.");
     if (draft.dosageForms.length === 0) return setError("가능한 제형을 하나 이상 골라 주세요.");
+    if (draft.leadTimeWeeks.trim() && (!Number.isFinite(Number(draft.leadTimeWeeks)) || Number(draft.leadTimeWeeks) < 0))
+      return setError("납기는 0 이상의 숫자로 적어 주세요.");
     const input = fromDraft(draft);
     if (editing === "new") await getData().createManufacturer(input);
     else if (editing) await getData().updateManufacturer(editing, input);
@@ -112,7 +168,7 @@ export default function ManufacturerAdmin() {
         <PageHead
           eyebrow="Admin"
           title="제조사"
-          sub="매칭에 쓰는 제조사 정보를 관리합니다. 공장 실명은 넣지 않고 지역·인증이 드러나는 표시명만 씁니다."
+          sub="공개 화면은 익명입니다. 실제 업체명과 상세 근거는 관리자에게만 보입니다."
           right={
             <Button size="sm" onClick={openNew}>
               새 제조사 등록
@@ -151,6 +207,12 @@ export default function ManufacturerAdmin() {
                   onChange={(e) => set("certifications", e.target.value)}
                 />
                 <Input
+                  label="공개 공정 요약"
+                  value={draft.equipmentSummary}
+                  placeholder="예: 혼합·타정·병 포장"
+                  onChange={(e) => set("equipmentSummary", e.target.value)}
+                />
+                <Input
                   label="최소 발주 수량"
                   value={draft.moqRange}
                   placeholder="10,000 ~ 50,000정"
@@ -161,15 +223,16 @@ export default function ManufacturerAdmin() {
                   type="number"
                   min={0}
                   value={draft.leadTimeWeeks}
+                  help="확인된 경우에만 적습니다."
                   onChange={(e) => set("leadTimeWeeks", e.target.value)}
                 />
                 <Select
-                  label="가동 여부"
+                  label="목록 노출"
                   value={draft.isActive}
                   onChange={(e) => set("isActive", e.target.value)}
                 >
-                  <option value="가동">가동</option>
-                  <option value="중지">중지</option>
+                  <option value="노출">노출</option>
+                  <option value="숨김">숨김</option>
                 </Select>
               </div>
 
@@ -215,16 +278,18 @@ export default function ManufacturerAdmin() {
               <Empty title="등록된 제조사가 없습니다" />
             ) : (
               <>
+                {privateError && <p className="pf-help">실제 업체 정보는 아직 연결되지 않았습니다.</p>}
                 <TableWrap>
                   <thead>
                     <tr>
                       <th>표시명</th>
+                      <th>실제 업체 · 상세 근거</th>
                       <th>지역</th>
                       <th>인증</th>
                       <th>제형</th>
                       <th>최소 발주 수량</th>
                       <th className={s.num}>리드타임</th>
-                      <th>가동</th>
+                      <th>목록 노출</th>
                       <th aria-label="관리" />
                     </tr>
                   </thead>
@@ -234,14 +299,32 @@ export default function ManufacturerAdmin() {
                         <td>
                           <b>{m.displayName}</b>
                         </td>
+                        <td>
+                          {privateRows[m.id] ? (
+                            <details>
+                              <summary>{privateRows[m.id].real_name}</summary>
+                              <p>인허가번호: {privateRows[m.id].permit_ids.join(" · ") || "미확인"}</p>
+                              <p>제형: {privateRows[m.id].forms_detail || "미확인"}</p>
+                              <p>설비: {privateRows[m.id].equipment_detail || "미확인"}</p>
+                              <p>대표 제품: {privateRows[m.id].product_examples || "미확인"}</p>
+                              <p>인증 표기: {privateRows[m.id].certifications_claim || "미확인"}</p>
+                              <p>주의: {privateRows[m.id].caveat || "현행 생산 여부 확인 필요"}</p>
+                              {privateRows[m.id].source_urls.map((url) =>
+                                url.startsWith("https://") ? (
+                                  <a key={url} href={url} target="_blank" rel="noopener noreferrer">출처 ↗ </a>
+                                ) : null,
+                              )}
+                            </details>
+                          ) : "연결 대기"}
+                        </td>
                         <td>{m.region}</td>
-                        <td>{m.certifications.join(" · ")}</td>
+                        <td>{m.certifications.join(" · ") || "확인 중"}</td>
                         <td>{m.dosageForms.join(" · ")}</td>
-                        <td>{m.moqRange}</td>
-                        <td className={s.num}>{m.leadTimeWeeks}주</td>
+                        <td>{m.moqRange || "확인 필요"}</td>
+                        <td className={s.num}>{m.leadTimeWeeks == null ? "확인 필요" : `${m.leadTimeWeeks}주`}</td>
                         <td>
                           <Badge tone={m.isActive ? "ok" : "neutral"}>
-                            {m.isActive ? "가동" : "중지"}
+                            {m.isActive ? "노출" : "숨김"}
                           </Badge>
                         </td>
                         <td>
@@ -268,8 +351,7 @@ export default function ManufacturerAdmin() {
                 </TableWrap>
                 <div className="pf-card-body" style={{ paddingTop: 0 }}>
                   <Note>
-                    가동을 중지로 두면 매칭 결과에서 빠집니다. 거래 기록이 있는 곳은 삭제 대신
-                    중지를 권합니다.
+                    목록을 숨기면 매칭 결과에서 빠집니다. 실제 공장 가동 상태와는 다른 값입니다.
                   </Note>
                 </div>
               </>

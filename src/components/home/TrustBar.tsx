@@ -26,8 +26,8 @@ export default function TrustBar({ initial }: { initial: HomeStats }) {
 
   const cells: [string, string][] = [
     ["등록 제조사", `${stats.manufacturers.toLocaleString("ko-KR")}곳`],
-    ["보유 인증", certs.length > 0 ? `${shown}${rest}` : "등록된 인증 없음"],
-    ["평균 리드타임", `${stats.avgLeadTimeWeeks}주`],
+    ["인증 확인", certs.length > 0 ? `${shown}${rest}` : "확인 중"],
+    ["평균 리드타임", stats.avgLeadTimeWeeks === null ? "확인 필요" : `${stats.avgLeadTimeWeeks}주`],
     ["제조사 표시", "익명 표시명"],
   ];
 

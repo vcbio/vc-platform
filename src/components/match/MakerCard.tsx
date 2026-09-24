@@ -47,7 +47,7 @@ export default function MakerCard({
       <div className={s.makerTop}>
         <div className={s.makerId}>
           <span className={s.makerLogo} aria-hidden="true">
-            {m.displayName.slice(0, 1)}
+            {m.displayName.match(/\d+/)?.[0] ?? m.displayName.slice(0, 1)}
           </span>
           <span>
             <b className={s.makerName}>{m.displayName.split(" (")[0]}</b>
@@ -81,13 +81,19 @@ export default function MakerCard({
 
       {showDetail && (
         <dl className={s.kvList}>
+          {m.equipmentSummary && (
+            <div className={s.kv}>
+              <dt>주요 공정</dt>
+              <dd>{m.equipmentSummary}</dd>
+            </div>
+          )}
           <div className={s.kv}>
             <dt>최소 발주수량</dt>
-            <dd>{m.moqRange}</dd>
+            <dd>{m.moqRange || "확인 필요"}</dd>
           </div>
           <div className={s.kv}>
             <dt>예상 리드타임</dt>
-            <dd>{m.leadTimeWeeks}주</dd>
+            <dd>{m.leadTimeWeeks == null ? "확인 필요" : `${m.leadTimeWeeks}주`}</dd>
           </div>
           <div className={s.kv}>
             <dt>충족한 조건</dt>
