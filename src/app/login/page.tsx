@@ -53,7 +53,7 @@ export default function LoginPage() {
             onClick={onGoogleSignIn}
           >
             <Image src="/vc-platform/branding/google-g.png" alt="" width={200} height={204} className={s.googleMark} unoptimized />
-            <span>Google로 로그인</span>
+            <span>Google 로그인</span>
           </Button>
           {!authReady() && <p className="pf-help mt-3">구글 로그인 설정 중입니다.</p>}
         </div>
