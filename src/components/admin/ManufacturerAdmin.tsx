@@ -29,6 +29,8 @@ const FORMS: DosageForm[] = [
   "스낵",
 ];
 
+const PRIMARY_PARTNER_MARKER = "주력 거래처(대표 지정, 2026-09-25)";
+
 type PrivateManufacturer = {
   public_id: string;
   real_name: string;
@@ -302,7 +304,12 @@ export default function ManufacturerAdmin() {
                         <td>
                           {privateRows[m.id] ? (
                             <details>
-                              <summary>{privateRows[m.id].real_name}</summary>
+                              <summary>
+                                {privateRows[m.id].real_name}{" "}
+                                {privateRows[m.id].caveat?.includes(PRIMARY_PARTNER_MARKER) && (
+                                  <Badge tone="info">주력 거래처</Badge>
+                                )}
+                              </summary>
                               <p>인허가번호: {privateRows[m.id].permit_ids.join(" · ") || "미확인"}</p>
                               <p>제형: {privateRows[m.id].forms_detail || "미확인"}</p>
                               <p>설비: {privateRows[m.id].equipment_detail || "미확인"}</p>
