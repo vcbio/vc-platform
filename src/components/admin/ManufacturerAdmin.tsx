@@ -43,30 +43,6 @@ type PrivateManufacturer = {
   caveat: string | null;
 };
 
-function PrivateManufacturerDetails({ data }: { data: PrivateManufacturer }) {
-  return (
-    <details>
-      <summary>
-        {data.real_name}{" "}
-        {data.caveat?.includes(PRIMARY_PARTNER_MARKER) && (
-          <Badge tone="info">주력 거래처</Badge>
-        )}
-      </summary>
-      <p>인허가번호: {data.permit_ids.join(" · ") || "미확인"}</p>
-      <p>제형: {data.forms_detail || "미확인"}</p>
-      <p>설비: {data.equipment_detail || "미확인"}</p>
-      <p>대표 제품: {data.product_examples || "미확인"}</p>
-      <p>인증 표기: {data.certifications_claim || "미확인"}</p>
-      <p>주의: {data.caveat || "현행 생산 여부 확인 필요"}</p>
-      {data.source_urls.map((url) =>
-        url.startsWith("https://") ? (
-          <a key={url} href={url} target="_blank" rel="noopener noreferrer">출처 ↗ </a>
-        ) : null,
-      )}
-    </details>
-  );
-}
-
 async function loadPrivateManufacturers(): Promise<PrivateManufacturer[] | null> {
   if (!supabase || !(await getSession())?.isAdmin) return null;
   const { data, error } = await supabase
@@ -327,7 +303,25 @@ export default function ManufacturerAdmin() {
                         </td>
                         <td>
                           {privateRows[m.id] ? (
-                            <PrivateManufacturerDetails data={privateRows[m.id]} />
+                            <details>
+                              <summary>
+                                {privateRows[m.id].real_name}{" "}
+                                {privateRows[m.id].caveat?.includes(PRIMARY_PARTNER_MARKER) && (
+                                  <Badge tone="info">주력 거래처</Badge>
+                                )}
+                              </summary>
+                              <p>인허가번호: {privateRows[m.id].permit_ids.join(" · ") || "미확인"}</p>
+                              <p>제형: {privateRows[m.id].forms_detail || "미확인"}</p>
+                              <p>설비: {privateRows[m.id].equipment_detail || "미확인"}</p>
+                              <p>대표 제품: {privateRows[m.id].product_examples || "미확인"}</p>
+                              <p>인증 표기: {privateRows[m.id].certifications_claim || "미확인"}</p>
+                              <p>주의: {privateRows[m.id].caveat || "현행 생산 여부 확인 필요"}</p>
+                              {privateRows[m.id].source_urls.map((url) =>
+                                url.startsWith("https://") ? (
+                                  <a key={url} href={url} target="_blank" rel="noopener noreferrer">출처 ↗ </a>
+                                ) : null,
+                              )}
+                            </details>
                           ) : "연결 대기"}
                         </td>
                         <td>{m.region}</td>
@@ -369,18 +363,6 @@ export default function ManufacturerAdmin() {
                 </div>
               </>
             )}
-          </Card>
-        )}
-
-        {rows && Object.values(privateRows).some((data) =>
-          data.caveat?.includes(PRIMARY_PARTNER_MARKER) && !rows.some((m) => m.id === data.public_id)
-        ) && (
-          <Card title="공개 목록에 없는 주력 거래처">
-            <p className="pf-help">이 브라우저의 제조사 목록에 연결되지 않아 매칭에는 표시되지 않습니다.</p>
-            {Object.values(privateRows)
-              .filter((data) => data.caveat?.includes(PRIMARY_PARTNER_MARKER) &&
-                !rows.some((m) => m.id === data.public_id))
-              .map((data) => <PrivateManufacturerDetails key={data.public_id} data={data} />)}
           </Card>
         )}
 
