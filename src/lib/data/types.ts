@@ -112,6 +112,8 @@ export type Signal = {
   seasonMonth?: string;
   /** 최근 8주 일평균(검색 상대지수). 미니바가 이 값을 그린다. */
   weeks8?: number[];
+  /** weeks8 각 값의 원본 관측 주차. 없는 시드·구형 자료에서는 날짜를 추정하지 않는다. */
+  weeks8Dates?: { start: string; end: string }[];
   /** 최근 8주 중 직전 주보다 오른 횟수(0~8). 데이터랩의 지속성 지표다. */
   riseWeeks?: number | null;
   /** 이 줄을 어느 탭에서 보여 줄지. */

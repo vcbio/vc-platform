@@ -137,6 +137,7 @@ async function main() {
       periodLabel: `주간 ${mmdd(cur.start)}~${mmdd(cur.end)}`,
       observedAt: cur.end,
       weeks8: weeks.slice(-8).map((w) => round3(w.mean)),
+      weeks8Dates: weeks.slice(-8).map((w) => ({ start: w.start, end: w.end })),
       riseWeeks: o.score8 ?? null,
       // 직전 주가 8주 최고의 20% 에도 못 미치면 퍼센트가 몇 배로 튄다. 화면에 그 사실을 적는다.
       lowBase: prev.mean < Math.max(...weeks.slice(-8).map((w) => w.mean)) * 0.2,
@@ -209,6 +210,7 @@ async function main() {
       season: row.season || "",
       seasonMonth: row.seasonMonth || "",
       weeks8: w?.weeks8 ?? [],
+      weeks8Dates: w?.weeks8Dates ?? [],
       riseWeeks: w?.riseWeeks ?? null,
       lowBase: w?.lowBase ?? false,
       tabs,

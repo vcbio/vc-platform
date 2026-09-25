@@ -192,26 +192,86 @@
   line-height: 1;
 }
 
-/* ── 스파크라인 ── 축·격자 없음. 모양만 읽히면 된다 ── */
+/* ── 최근 8주 검색 관심도 ── 상대지수와 실제 관측 주차를 함께 읽는다 */
 .spark {
-  margin: 20px 0 0;
+  margin: 24px 0 0;
   max-width: 560px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pf-rule);
+}
+.sparkHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.sparkTitle {
+  display: grid;
+  gap: 3px;
+}
+.sparkTitle strong {
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--pf-ink);
+}
+.sparkTitle small,
+.sparkLatest {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--pf-ink-3);
+}
+.sparkLatest {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+  white-space: nowrap;
+}
+.sparkLatest strong {
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--pf-accent);
+  font-variant-numeric: tabular-nums;
+}
+.sparkChart {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 14px;
+}
+.sparkTicks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 148px;
+  padding: 1px 0 3px;
+  color: var(--pf-ink-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 .sparkPlot {
   position: relative;
-  height: 44px;
+  min-width: 0;
+  height: 148px;
 }
-.spark svg {
+.sparkPlot svg {
   display: block;
   width: 100%;
-  height: 44px;
-  overflow: visible;
+  height: 148px;
+}
+.sparkGrid {
+  stroke: var(--pf-rule);
+  stroke-width: 1;
+}
+.sparkArea {
+  fill: var(--pf-accent-soft);
 }
 .sparkPath,
 .sparkPathStill {
   fill: none;
   stroke: var(--pf-accent);
-  stroke-width: 1.5;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -223,31 +283,91 @@
 @keyframes pfDraw {
   to { stroke-dashoffset: 0; }
 }
-.sparkDot,
-.sparkDotStill {
+.sparkPoint,
+.sparkPointOn {
   position: absolute;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: var(--pf-up);
+  border: 2px solid var(--pf-accent);
+  background: var(--pf-paper);
 }
-.sparkDot {
-  opacity: 0;
-  animation: pfDot 200ms var(--pf-ease) 620ms forwards;
+.sparkPointOn {
+  width: 11px;
+  height: 11px;
+  background: var(--pf-accent);
 }
-@keyframes pfDot {
-  to { opacity: 1; }
-}
-.sparkCap {
+.sparkReadout {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  margin-top: 5px;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--pf-ink-2);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--pf-muted);
   font-variant-numeric: tabular-nums;
+}
+.sparkReadout strong {
+  color: var(--pf-accent);
+  font-size: 17px;
+  white-space: nowrap;
+}
+.sparkReadout small {
+  font-size: 13px;
+  font-weight: 500;
+}
+.sparkWeeks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(60px, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+.sparkWeek,
+.sparkWeekOn {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  min-height: 48px;
+  padding: 5px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--pf-radius);
+  background: transparent;
+  color: var(--pf-ink-2);
+  cursor: pointer;
+  text-align: center;
+  transition: background-color var(--pf-motion-fast), transform var(--pf-motion-fast);
+}
+.sparkWeek span,
+.sparkWeekOn span {
+  font-size: 13px;
+}
+.sparkWeek b,
+.sparkWeekOn b {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sparkWeekOn {
+  background: var(--pf-accent-soft);
+  color: var(--pf-accent-deep);
+}
+.sparkWeek:focus-visible,
+.sparkWeekOn:focus-visible {
+  outline: 2px solid var(--pf-accent);
+  outline-offset: 1px;
+}
+.sparkWeek:active,
+.sparkWeekOn:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sparkWeek:hover {
+    background: var(--pf-paper-2);
+  }
 }
 
 /* ── 검색 한 줄 ── */
@@ -346,7 +466,7 @@
 .rankList {
   list-style: none;
   border: 1px solid var(--pf-rule-strong);
-  border-top: 3px solid var(--pf-ink);
+  border-top: 1px solid var(--pf-ink);
   border-radius: var(--pf-radius);
   background: var(--pf-paper);
   min-width: 0;
@@ -660,6 +780,14 @@
 }
 
 @media (max-width: 680px) {
+  .sparkPlot,
+  .sparkPlot svg,
+  .sparkTicks {
+    height: 132px;
+  }
+  .sparkReadout {
+    flex-wrap: wrap;
+  }
   .hero {
     padding: 22px 0 26px;
   }
@@ -734,9 +862,9 @@
     animation: none !important;
     stroke-dashoffset: 0 !important;
   }
-  .sparkDot {
-    animation: none !important;
-    opacity: 1 !important;
+  .sparkWeek,
+  .sparkWeekOn {
+    transition: none !important;
   }
   .liveDot::after {
     animation: none !important;

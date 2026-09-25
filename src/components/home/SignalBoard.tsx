@@ -11,7 +11,7 @@ import s from "./home.module.css";
 /**
  * 첫 화면 시세판 — 문구 대신 숫자가 말한다.
  *
- * 움직이는 것은 넷뿐이다: ①오도미터 ②스파크라인 그리기 ③순위 롤링 ④LIVE 점.
+ * 움직이는 것은 넷뿐이다: ①오도미터 ②8주 차트 그리기 ③순위 롤링 ④LIVE 점.
  * 전부 transform·opacity 로만 움직이고, prefers-reduced-motion 이면 멈추거나 즉시 바뀐다.
  * 숫자는 전부 어댑터 listSignals() 가 준 값이다 — 화면에 손으로 적은 수치가 없다.
  *
@@ -229,8 +229,8 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
             <Sparkline
               key={top.id}
               points={top.weeks8}
+              dates={top.weeks8Dates}
               reduced={reduced}
-              endLabel={top.observedAt}
               label={`${top.name} 최근 ${top.weeks8.length}주 흐름`}
             />
           )}
