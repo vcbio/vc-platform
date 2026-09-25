@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { authReady, signInWithGoogle, signUp } from "@/lib/auth";
 import { Button, Container, Input } from "@/components/ui";
+import s from "../auth-google.module.css";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -62,8 +64,16 @@ export default function SignupPage() {
         <h1>가입하기</h1>
 
         <div className="mt-8">
-          <Button type="button" block disabled={busy || !authReady()} onClick={onGoogleSignIn}>
-            Google로 계속하기
+          <Button
+            type="button"
+            variant="secondary"
+            className={s.googleButton}
+            block
+            disabled={busy || !authReady()}
+            onClick={onGoogleSignIn}
+          >
+            <Image src="/vc-platform/branding/google-g.png" alt="" width={200} height={204} className={s.googleMark} unoptimized />
+            <span>Google로 계속하기</span>
           </Button>
           {!authReady() && <p className="pf-help mt-3">구글 로그인 설정 중입니다.</p>}
         </div>
