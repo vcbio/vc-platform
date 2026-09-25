@@ -19,19 +19,21 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setBusy(true);
-    const { error } = await signIn(email, password);
+    const { error, session } = await signIn(email, password);
     setBusy(false);
     if (error) {
       setError(error);
       return;
     }
-    router.push("/deal/");
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(session?.isAdmin ? "/admin/" : next === "quote" ? "/quote/" : "/deal/");
   }
 
   async function onGoogleSignIn() {
     setError("");
     setBusy(true);
-    const { error } = await signInWithGoogle();
+    const next = new URLSearchParams(window.location.search).get("next");
+    const { error } = await signInWithGoogle(next === "quote" ? "quote" : "deal");
     if (error) {
       setError(error);
       setBusy(false);

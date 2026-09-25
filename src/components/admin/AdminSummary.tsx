@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Badge, Card, Container, type BadgeTone } from "@/components/ui";
 import { getData, type Quote, type QuoteStatus } from "@/lib/data";
 import { Empty, PageHead, Stat, TableWrap, styles as s } from "@/components/deal/shared";
@@ -17,7 +17,11 @@ const TONE: Record<QuoteStatus, BadgeTone> = {
 
 /** 관리자 요약 — 상태별 건수와 최근 접수만 본다. 손대는 일은 하위 메뉴에서 한다. */
 export default function AdminSummary() {
-  const load = useCallback(() => getData().listQuotes(), []);
+  const [loadError, setLoadError] = useState(false);
+  const load = useCallback(async () => {
+    try { setLoadError(false); return await getData().listQuotes(); }
+    catch { setLoadError(true); return []; }
+  }, []);
   const { rows } = useRows<Quote>(load);
 
   return (
@@ -30,7 +34,9 @@ export default function AdminSummary() {
         />
         <AdminNav />
 
-        {!rows ? (
+        {loadError ? (
+          <p className="pf-alert" role="alert">서버의 견적 현황을 불러오지 못했습니다.</p>
+        ) : !rows ? (
           <p className="pf-help">불러오는 중입니다.</p>
         ) : (
           <div className={s.stack}>

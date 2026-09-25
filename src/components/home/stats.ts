@@ -3,7 +3,6 @@ import { getData } from "@/lib/data";
 export type HomeStats = {
   manufacturers: number;
   ingredients: number;
-  quotes: number;
   avgLeadTimeWeeks: number | null;
   /** 등록 제조사가 실제로 가진 인증을 많이 가진 순으로. 화면에 인증명을 손으로 적지 않는다. */
   certifications: string[];
@@ -15,10 +14,9 @@ export type HomeStats = {
  */
 export async function homeStats(): Promise<HomeStats> {
   const data = getData();
-  const [manufacturers, ingredients, quotes] = await Promise.all([
+  const [manufacturers, ingredients] = await Promise.all([
     data.listManufacturers(),
     data.listIngredients(),
-    data.listQuotes(),
   ]);
 
   const active = manufacturers.filter((m) => m.isActive);
@@ -42,7 +40,6 @@ export async function homeStats(): Promise<HomeStats> {
     manufacturers: active.length,
     certifications,
     ingredients: ingredients.filter((i) => i.isActive).length,
-    quotes: quotes.length,
     avgLeadTimeWeeks: avg === null ? null : Math.round(avg * 10) / 10,
   };
 }

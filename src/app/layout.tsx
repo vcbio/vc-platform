@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "VC 플랫폼 — Value Chain Platform · 건강기능식품 B2B OEM/ODM 매칭",
   description:
-    "건강기능식품 제조사와 유통사를 잇는 B2B OEM/ODM 매칭 플랫폼. 견적 요청, 제조사 찾기, 원료·규제 동향을 한 곳에서 봅니다.",
+    "건강기능식품 B2B OEM/ODM 견적 상담 플랫폼. 고객의 조건을 접수해 적합한 제조사를 검토하고, 원료·시장 동향을 제공합니다.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

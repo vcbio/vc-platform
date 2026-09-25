@@ -1,5 +1,6 @@
 import { localData } from "./local";
 import { datalabData } from "./datalab";
+import { remoteQuotes } from "./remoteQuotes";
 import type {
   Ingredient,
   Manufacturer,
@@ -54,6 +55,7 @@ export function getData(): DataAdapter {
   if (process.env.NEXT_PUBLIC_DATA_ADAPTER === "supabase") {
     throw new Error("supabase 어댑터는 아직 없습니다. NEXT_PUBLIC_DATA_ADAPTER 를 비우고 쓰십시오.");
   }
-  if (process.env.NEXT_PUBLIC_DATA_ADAPTER === "local") return localData;
-  return datalabData;
+  const base = process.env.NEXT_PUBLIC_DATA_ADAPTER === "local" ? localData : datalabData;
+  // 견적은 언제나 서버에만 접수한다. 설정 오류 때 로컬 저장으로 성공을 가장하지 않는다.
+  return { ...base, ...remoteQuotes };
 }

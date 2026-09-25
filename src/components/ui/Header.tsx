@@ -11,7 +11,6 @@ import Container from "./Container";
 const MENU = [
   { href: "/", label: "홈" },
   { href: "/quote/", label: "견적요청" },
-  { href: "/match/", label: "제조사 찾기" },
   { href: "/insight/", label: "동향" },
   { href: "/deal/", label: "거래관리" },
 ];
@@ -51,7 +50,9 @@ export default function Header() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const menu = session?.isAdmin ? [...MENU, ADMIN_MENU] : MENU;
+  const menu = session?.isAdmin
+    ? [...MENU.filter((item) => item.href !== "/quote/" && item.href !== "/deal/"), ADMIN_MENU]
+    : MENU;
 
   async function onSignOut() {
     await signOut();

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { getCustomerProfile } from "@/lib/customerProfile";
 
 /**
  * 로그인/관리자 화면 가드.
@@ -13,33 +14,69 @@ import { getSession } from "@/lib/auth";
 export default function AuthGuard({
   children,
   requireAdmin = false,
+  requireCustomerProfile = false,
 }: {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireCustomerProfile?: boolean;
 }) {
   const router = useRouter();
-  const [state, setState] = useState<"checking" | "ok">("checking");
+  const [state, setState] = useState<"checking" | "ok" | "error">("checking");
 
   useEffect(() => {
     let alive = true;
 
-    getSession().then((session) => {
+    (async () => {
+      const session = await getSession();
       if (!alive) return;
       if (!session) {
-        router.replace("/login/");
+        const next = window.location.pathname.includes("/quote/") ? "quote" : "deal";
+        router.replace(requireCustomerProfile ? `/login/?next=${next}` : "/login/");
         return;
       }
       if (requireAdmin && !session.isAdmin) {
         router.replace("/");
         return;
       }
+      if (requireCustomerProfile && session.isAdmin) {
+        router.replace("/admin/quotes/");
+        return;
+      }
+      if (requireCustomerProfile) {
+        try {
+          const profile = await getCustomerProfile();
+          if (!alive) return;
+          if (!profile) {
+            const pending = (() => { try { return window.sessionStorage.getItem("vcp.afterAuth"); } catch { return null; } })();
+            const next = pending === "quote" || window.location.pathname.includes("/quote/") ? "quote" : "deal";
+            router.replace(`/profile/?next=${next}`);
+            return;
+          }
+        } catch {
+          if (alive) setState("error");
+          return;
+        }
+      }
+      if (requireCustomerProfile && window.location.pathname.includes("/deal/")) {
+        try {
+          if (window.sessionStorage.getItem("vcp.afterAuth") === "quote") {
+            window.sessionStorage.removeItem("vcp.afterAuth");
+            router.replace("/quote/");
+            return;
+          }
+        } catch { /* 저장소 차단 시 현재 화면을 유지 */ }
+      }
       setState("ok");
-    });
+    })();
 
     return () => {
       alive = false;
     };
-  }, [router, requireAdmin]);
+  }, [router, requireAdmin, requireCustomerProfile]);
+
+  if (state === "error") {
+    return <p className="pf-container pf-alert" role="alert">고객 정보를 확인하지 못했습니다. 잠시 후 새로고침해 주세요.</p>;
+  }
 
   if (state === "checking") {
     return (

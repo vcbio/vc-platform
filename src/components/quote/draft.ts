@@ -30,7 +30,6 @@ export type Draft = {
   ingredients: string[];
   budgetRange: string;
   memo: string;
-  email: string;
 };
 
 export const EMPTY_DRAFT: Draft = {
@@ -42,7 +41,6 @@ export const EMPTY_DRAFT: Draft = {
   ingredients: [],
   budgetRange: "미정",
   memo: "",
-  email: "",
 };
 
 export const DRAFT_KEY = "vcp.quoteDraft";
@@ -55,7 +53,9 @@ export function loadDraft(): { draft: Draft; savedAt: number } | null {
     const parsed = JSON.parse(raw) as { draft?: Partial<Draft>; savedAt?: number };
     if (!parsed.draft) return null;
     // 저장분이 낡아 필드가 빠져 있어도 화면이 멈추지 않게 기본값 위에 덮는다.
-    return { draft: { ...EMPTY_DRAFT, ...parsed.draft }, savedAt: parsed.savedAt ?? 0 };
+    const draft = { ...EMPTY_DRAFT, ...parsed.draft } as Draft & { email?: string };
+    delete draft.email; // 이전 비회원 임시저장의 이메일은 새 견적에 옮기지 않는다.
+    return { draft, savedAt: parsed.savedAt ?? 0 };
   } catch {
     return null;
   }

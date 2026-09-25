@@ -48,6 +48,18 @@ export type Quote = {
   status: QuoteStatus;
   createdAt: string;
   updatedAt: string;
+  /** 관리자 화면에서만 읽는 고객 연락처와 수동 배분 메모. */
+  customer?: {
+    profileId: string;
+    companyName: string;
+    brandName: string;
+    contactName: string;
+    contactPhone: string;
+    withdrawnAt?: string;
+    purgeAt?: string;
+  };
+  assignedPartnerIds?: string[];
+  internalNote?: string;
 };
 
 export type InsightTab = "weekly" | "trend" | "safety";

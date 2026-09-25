@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import type { CustomerProfileInput } from "@/lib/customerProfile";
 
 export type Session = {
   email: string;
@@ -45,8 +46,9 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   return session ? { session } : { error: "로그인 상태를 확인하지 못했습니다." };
 }
 
-export async function signInWithGoogle(): Promise<{ error?: string }> {
+export async function signInWithGoogle(next: "quote" | "deal" = "deal"): Promise<{ error?: string }> {
   if (!supabase) return { error: setupError };
+  try { window.sessionStorage.setItem("vcp.afterAuth", next); } catch { /* 저장 차단 시 거래관리로 이동 */ }
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: `${window.location.origin}/vc-platform/deal/` },
@@ -57,13 +59,18 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
 export async function signUp(
   email: string,
   password: string,
-  company?: string,
+  profile: CustomerProfileInput,
 ): Promise<AuthResult> {
   if (!supabase) return { error: setupError };
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { company_name: company ?? "" } },
+    options: { data: {
+      company_name: profile.companyName.trim(),
+      brand_name: profile.brandName.trim(),
+      contact_name: profile.contactName.trim(),
+      contact_phone: profile.contactPhone.trim(),
+    } },
   });
   if (error) return { error: error.message };
   if (!data.session) return {};

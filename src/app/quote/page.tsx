@@ -27,6 +27,7 @@ import {
 } from "@/components/quote/draft";
 import { getData, type DosageForm, type Ingredient, type Quote } from "@/lib/data";
 import { getSession } from "@/lib/auth";
+import AuthGuard from "@/components/AuthGuard";
 import s from "@/components/quote/quote.module.css";
 
 const STEPS = ["제품유형 · 제형", "수량 · 목표일", "원료 · 예산 · 메모", "검토 · 제출"];
@@ -34,7 +35,7 @@ const STEPS = ["제품유형 · 제형", "수량 · 목표일", "원료 · 예�
 type Errors = Partial<Record<keyof Draft, string>>;
 
 /** 단계별 필수값. 여기 없는 항목은 비워 두고 제출해도 된다. */
-function validate(draft: Draft, step: number, needEmail: boolean): Errors {
+function validate(draft: Draft, step: number): Errors {
   const e: Errors = {};
 
   if (step === 1) {
@@ -42,21 +43,27 @@ function validate(draft: Draft, step: number, needEmail: boolean): Errors {
   }
   if (step === 2) {
     const qty = Number(draft.quantity);
-    if (!draft.quantity.trim() || !Number.isFinite(qty) || qty < 1) {
-      e.quantity = "생산 수량을 1 이상으로 적어 주세요.";
+    if (!draft.quantity.trim() || !Number.isInteger(qty) || qty < 1 || qty > 2147483647) {
+      e.quantity = "생산 수량을 1 이상의 정수로 적어 주세요.";
     }
     if (!draft.unit) e.unit = "단위를 골라 주세요.";
     if (!draft.targetDate) e.targetDate = "희망 납품일을 골라 주세요.";
+    else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (new Date(`${draft.targetDate}T00:00:00`) < today)
+        e.targetDate = "오늘 또는 이후 날짜를 골라 주세요.";
+    }
   }
-  if (step === 4 && needEmail) {
-    if (!draft.email.trim()) e.email = "회신받을 이메일을 적어 주세요.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim()))
-      e.email = "이메일 형식을 다시 확인해 주세요.";
+  if (step === 3) {
+    if (draft.ingredients.length > 20 || draft.ingredients.join(",").length > 1200)
+      e.ingredients = "원료는 20종 이하로 골라 주세요.";
+    if (draft.memo.length > 3000) e.memo = "추가 요청사항은 3,000자 이하로 적어 주세요.";
   }
   return e;
 }
 
-export default function QuotePage() {
+function QuoteForm() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [step, setStep] = useState(1);
   const [reached, setReached] = useState(1);
@@ -72,7 +79,6 @@ export default function QuotePage() {
   const [done, setDone] = useState<Quote | null>(null);
   const restored = useRef(false);
 
-  const needEmail = sessionEmail === null;
 
   // ── 최초 1회: 임시저장분 복원 · 세션 확인 · 원료 목록 ──
   useEffect(() => {
@@ -160,7 +166,7 @@ export default function QuotePage() {
   }
 
   function onNext() {
-    const e = validate(draft, step, needEmail);
+    const e = validate(draft, step);
     if (Object.keys(e).length > 0) {
       setErrors(e);
       setFormError("표시된 항목을 채우면 다음 단계로 넘어갑니다.");
@@ -172,7 +178,7 @@ export default function QuotePage() {
   async function onSubmit() {
     // 제출 직전에는 건너뛴 단계까지 전부 다시 본다.
     for (const n of [1, 2, 3, 4]) {
-      const e = validate(draft, n, needEmail);
+      const e = validate(draft, n);
       if (Object.keys(e).length > 0) {
         setErrors(e);
         setFormError(`${n}단계에 빠진 필수 항목이 있습니다. 확인하고 다시 제출해 주세요.`);
@@ -181,22 +187,28 @@ export default function QuotePage() {
       }
     }
 
+    if (!sessionEmail) return setFormError("로그인 상태를 확인한 뒤 다시 제출해 주세요.");
     setBusy(true);
-    const quote = await getData().createQuote({
-      userEmail: sessionEmail ?? draft.email.trim(),
-      productType: draft.productType.trim(),
-      dosageForm: draft.dosageForm,
-      quantity: Number(draft.quantity),
-      unit: draft.unit,
-      ingredients: draft.ingredients,
-      targetDate: draft.targetDate,
-      budgetRange: draft.budgetRange,
-      memo: draft.memo.trim(),
-    });
-    clearDraft();
-    setBusy(false);
-    setDone(quote);
-    window.scrollTo({ top: 0 });
+    try {
+      const quote = await getData().createQuote({
+        userEmail: sessionEmail,
+        productType: draft.productType.trim(),
+        dosageForm: draft.dosageForm,
+        quantity: Number(draft.quantity),
+        unit: draft.unit,
+        ingredients: draft.ingredients,
+        targetDate: draft.targetDate,
+        budgetRange: draft.budgetRange,
+        memo: draft.memo.trim(),
+      });
+      clearDraft();
+      setDone(quote);
+      window.scrollTo({ top: 0 });
+    } catch {
+      setFormError("견적을 접수하지 못했습니다. 입력값과 인터넷 연결을 확인하고 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   // ── 제출 완료 ──
@@ -211,18 +223,15 @@ export default function QuotePage() {
           </div>
           <h1>견적 요청을 접수했습니다</h1>
           <p className="pf-help" style={{ marginTop: 10, fontSize: 15 }}>
-            조건은 등록 제조사에 익명으로 전달됩니다. 회신은 {done.userEmail} 으로 받으십니다.
+            브이씨바이오 담당자가 내용을 검토한 뒤 {done.userEmail} 으로 회신드립니다. 제조사에 자동 전달되지 않습니다.
           </p>
           <p className={s.doneId}>
             견적 번호 <b>{done.id}</b>
           </p>
           <div className={s.doneCta}>
             <ButtonLink href="/deal/">거래관리에서 보기</ButtonLink>
-            <ButtonLink href={`/match/?form=${encodeURIComponent(done.dosageForm)}`} variant="secondary">
-              이 조건으로 제조사 찾기
-            </ButtonLink>
           </div>
-          <p className={s.noteLine}>견적 금액은 제조사 회신 단계에서 개별 안내됩니다.</p>
+          <p className={s.noteLine}>견적 금액은 상담 후 개별 안내됩니다.</p>
         </div>
       </Container>
     );
@@ -238,8 +247,7 @@ export default function QuotePage() {
             <span className={s.eyebrow}>Step-by-step Request</span>
             <h1>견적 요청</h1>
             <p className={s.pageSub}>
-              네 단계 조건만 넣으면 조건에 맞는 제조사를 추려 드립니다. 입력값은 매칭 결과와
-              거래관리로 그대로 이어집니다.
+              조건을 보내 주시면 브이씨바이오 담당자가 검토하고 회신드립니다. 접수 상태는 거래관리에서 확인할 수 있습니다.
             </p>
           </div>
           <div className={s.headTags}>
@@ -347,7 +355,7 @@ export default function QuotePage() {
                         ))}
                       </div>
                       <p className={s.help}>
-                        등록 원료 목록에 없는 이름입니다. 이대로 요청에 실어 제조사에 전달합니다.
+                        등록 원료 목록에 없는 이름입니다. 담당자가 확인할 수 있도록 요청에 그대로 싣습니다.
                       </p>
                     </div>
                   )}
@@ -372,7 +380,7 @@ export default function QuotePage() {
 
                   <Select
                     label="예산 범위"
-                    help="금액은 받지 않습니다. 확정 단계만 알려 주시면 제조사 선별에 씁니다."
+                    help="금액은 받지 않습니다. 상담 준비 상태만 알려 주세요."
                     value={draft.budgetRange}
                     onChange={(e) => set("budgetRange", e.target.value)}
                   >
@@ -386,7 +394,9 @@ export default function QuotePage() {
                   <Textarea
                     label="추가 요청사항"
                     placeholder="예: 무카페인, 비건 원료 우선, 기존 제품 리뉴얼 건"
+                    maxLength={3000}
                     value={draft.memo}
+                    error={errors.memo}
                     onChange={(e) => set("memo", e.target.value)}
                   />
                 </>
@@ -416,25 +426,8 @@ export default function QuotePage() {
                     ))}
                   </dl>
 
-                  {needEmail && (
-                    <div style={{ marginTop: 22 }}>
-                      <Input
-                        label="회신받을 이메일"
-                        required
-                        type="email"
-                        autoComplete="email"
-                        placeholder="name@company.co.kr"
-                        help="로그인하지 않고 제출하셔도 됩니다. 이 주소로 진행 상황을 안내합니다."
-                        value={draft.email}
-                        error={errors.email}
-                        onChange={(e) => set("email", e.target.value)}
-                      />
-                    </div>
-                  )}
-
                   <p className={s.noteLine}>
-                    제출한 조건은 등록 제조사에 익명으로 전달됩니다. 기업 정보는 상담 단계에서 직접
-                    공유하시면 됩니다.
+                    제출한 조건과 가입 정보는 요청자 본인과 브이씨바이오 관리자만 확인합니다. 제조사에는 자동 전달되지 않습니다.
                   </p>
                 </>
               )}
@@ -500,10 +493,10 @@ export default function QuotePage() {
             <div className={s.asideNote}>
               <h2>이렇게 진행됩니다</h2>
               <ul>
-                <li>조건을 제출하면 등록 제조사를 조건으로 걸러 냅니다.</li>
-                <li>일치율 상위 제조사와 대응 가능 여부를 바로 확인합니다.</li>
-                <li>제조사를 고르면 거래관리에서 진행 상황을 이어서 봅니다.</li>
-                <li>견적 금액은 제조사 회신 단계에서 개별 안내됩니다.</li>
+                <li>로그인한 고객의 조건을 접수합니다.</li>
+                <li>담당자가 원료·제형·수량을 확인합니다.</li>
+                <li>제조사 검토와 견적 회신은 담당자가 직접 진행합니다.</li>
+                <li>진행 상태는 거래관리에서 확인할 수 있습니다.</li>
               </ul>
             </div>
           </aside>
@@ -511,4 +504,8 @@ export default function QuotePage() {
       </div>
     </Container>
   );
+}
+
+export default function QuotePage() {
+  return <AuthGuard requireCustomerProfile><QuoteForm /></AuthGuard>;
 }

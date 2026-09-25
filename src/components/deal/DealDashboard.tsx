@@ -18,8 +18,7 @@ import {
 /**
  * 거래관리 대시보드 (#view-deal 재현).
  *
- * 로그인한 사람의 견적만 부른다 — listQuotes(session.email). 다른 사람 건은 목록에 들어오지 않는다.
- * ⚠️ 이건 보안 경계가 아니다. 정적 사이트라 실제 차단은 나중에 붙일 supabase RLS 가 한다.
+ * 로그인한 사람의 견적만 부른다. 다른 고객의 행은 Supabase RLS가 차단한다.
  */
 
 const STATUSES: QuoteStatus[] = ["접수", "검토중", "회신완료", "종료"];
@@ -32,20 +31,20 @@ const TONE: Record<QuoteStatus, BadgeTone> = {
   종료: "neutral",
 };
 
-const STEPS = ["기획", "소싱", "매칭", "생산", "품질", "출시"] as const;
+const STEPS = ["접수", "검토중", "회신완료", "종료"] as const;
 
-/** 상태 4종을 6단계 진행바 위치로 옮긴다. 추정이 아니라 고정 대응표다. */
+/** 실제 저장된 상태와 진행바를 같은 단계로 표시한다. */
 const STEP_OF: Record<QuoteStatus, number> = {
-  접수: 2,
-  검토중: 3,
-  회신완료: 4,
-  종료: 6,
+  접수: 1,
+  검토중: 2,
+  회신완료: 3,
+  종료: 4,
 };
 
 const NOTICE: Record<QuoteStatus, string> = {
   접수: "견적 요청이 접수되었습니다",
-  검토중: "제조사가 조건을 검토하고 있습니다",
-  회신완료: "제조사 회신이 등록되었습니다",
+  검토중: "브이씨바이오 담당자가 조건을 검토하고 있습니다",
+  회신완료: "담당자가 견적 회신을 완료했습니다",
   종료: "거래가 종료되었습니다",
 };
 
@@ -84,12 +83,21 @@ export default function DealDashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
   const [pickedId, setPickedId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [legacyCount, setLegacyCount] = useState(0);
 
   useEffect(() => {
     let alive = true;
     getSession().then((sess) => {
       if (!alive || !sess) return;
       setSession(sess);
+      try {
+        const old = JSON.parse(window.localStorage.getItem("vcp.quotes") || "[]") as Quote[];
+        if (Array.isArray(old)) setLegacyCount(old.filter((q) =>
+          q.userEmail === sess.email && !/^qt-2026-000[123]$/.test(q.id)).length);
+      } catch {
+        // 예전 저장분을 읽지 못해도 서버 견적 조회는 계속한다.
+      }
       getData()
         .listQuotes(sess.email)
         .then((rows) => {
@@ -97,13 +105,17 @@ export default function DealDashboard() {
           const sorted = [...rows].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
           setQuotes(sorted);
           setPickedId(sorted[0]?.id ?? null);
-        });
+        })
+        .catch(() => { if (alive) { setLoadError(true); setQuotes([]); } });
     });
     return () => {
       alive = false;
     };
   }, []);
 
+  if (loadError) {
+    return <Container><div className={s.page}><p className="pf-alert" role="alert">서버의 견적을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</p></div></Container>;
+  }
   if (!quotes) {
     return (
       <Container>
@@ -128,11 +140,15 @@ export default function DealDashboard() {
           title="거래관리 대시보드"
           sub={
             picked
-              ? `「${picked.productType}」 프로젝트 · ${picked.dosageForm} · 진행 단계 ${STEP_OF[picked.status]} / 6`
+              ? `「${picked.productType}」 프로젝트 · ${picked.dosageForm} · 진행 단계 ${STEP_OF[picked.status]} / 4`
               : "접수한 견적의 진행 단계와 일정을 한 화면에서 봅니다."
           }
           right={<span className="pf-help">{session?.email}</span>}
         />
+
+        {legacyCount > 0 && (
+          <Note>이 브라우저의 이전 임시 견적 {legacyCount}건은 서버에 접수된 기록이 아닙니다. 견적요청에서 다시 제출해 주세요.</Note>
+        )}
 
         {quotes.length === 0 ? (
           <Card>
@@ -221,7 +237,7 @@ export default function DealDashboard() {
                       <DueBadge targetDate={picked.targetDate} status={picked.status} />
                     </div>
                     <Badge tone={TONE[picked.status]}>
-                      {picked.status} · {STEP_OF[picked.status]}단계 / 6단계
+                      {picked.status} · {STEP_OF[picked.status]}단계 / 4단계
                     </Badge>
                   </div>
                   <div className={s.pipe}>
