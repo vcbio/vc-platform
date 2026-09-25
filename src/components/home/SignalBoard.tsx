@@ -11,20 +11,19 @@ import s from "./home.module.css";
 /**
  * 첫 화면 시세판 — 문구 대신 숫자가 말한다.
  *
- * 움직이는 것은 넷뿐이다: ①오도미터 ②8주 차트 그리기 ③순위 롤링 ④LIVE 점.
+ * 움직이는 것은 셋뿐이다: ①오도미터 ②8주 차트 그리기 ③순위 롤링.
  * 전부 transform·opacity 로만 움직이고, prefers-reduced-motion 이면 멈추거나 즉시 바뀐다.
  * 숫자는 전부 어댑터 listSignals() 가 준 값이다 — 화면에 손으로 적은 수치가 없다.
  *
- * 고르는 법 셋 — ①순위 행 클릭 ②방향키 ↑↓ ③6초마다 자동 순환.
+ * 고르는 법 셋 — ①순위 행 클릭 ②방향키 ↑↓ ③5초마다 자동 순환.
  * 마우스를 올리거나 포커스가 판 안에 있으면 멈추고, 벗어나면 10초 뒤 다시 돈다.
  */
 
 const LIMIT = 10;
-const CYCLE_MS = 6000;
+const CYCLE_MS = 5000;
 const RESUME_MS = 10000;
 
-/** 순위 변동은 데이터랩 어댑터가 채운다. 없으면 지어내지 않고 「—」로 비운다. */
-type Ranked = Signal & { rankDelta?: number; isNew?: boolean; weeks8?: number[] };
+type Ranked = Signal;
 
 const nf = new Intl.NumberFormat("ko-KR");
 const pct = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
@@ -42,47 +41,12 @@ function useReducedMotion() {
   return useSyncExternalStore(subscribeMotion, () => motionQuery().matches, () => false);
 }
 
-/**
- * 순위 변동을 그릴 수 있는 주인가.
- * 직전 주 스냅샷이 없으면 어댑터가 전부 「신규」로 계산해 내놓는다 —
- * 그건 진짜 급상승이 아니라 기저가 없다는 뜻이라, 그대로 그리면 거짓말이 된다.
- * 스냅샷이 쌓이면 이 조건이 저절로 풀리며 ▲▼NEW 가 켜진다(코드를 고칠 일이 없다).
- */
-function deltaReady(rows: Ranked[]): boolean {
-  const hasDelta = rows.some((r) => typeof r.rankDelta === "number");
-  const fresh = rows.filter((r) => r.isNew).length;
-  return hasDelta && fresh * 2 < rows.length;
-}
-
-/** 순위 변동 — 상승 ▲ 주황 · 하락 ▼ 틸 · 유지·미상 — · 신규 NEW. 색 말고 글자도 같이 쓴다. */
-function Delta({ row, ready }: { row: Ranked; ready: boolean }) {
-  if (!ready) {
-    return (
-      <span className={s.deltaFlat} aria-label="순위 변동 미표시">
-        —
-      </span>
-    );
-  }
-  if (row.isNew) {
-    return (
-      <span className={s.deltaNew}>
-        NEW<span className="pf-sr-only"> 신규 진입</span>
-      </span>
-    );
-  }
-  const d = row.rankDelta;
-  if (typeof d !== "number" || d === 0) {
-    return (
-      <span className={s.deltaFlat} aria-label="순위 변동 없음">
-        —
-      </span>
-    );
-  }
+/** 공개 자료의 실제 주간 변화만 표시한다. 순위 변동 자료가 없으면 지어내지 않는다. */
+function WeeklyChange({ row }: { row: Ranked }) {
+  if (row.changeStatus !== "관측") return <span className={s.deltaFlat}>미제공</span>;
   return (
-    <span className={d > 0 ? s.deltaUp : s.deltaDown}>
-      {d > 0 ? "▲" : "▼"}
-      {Math.abs(d)}
-      <span className="pf-sr-only">{d > 0 ? "계단 상승" : "계단 하락"}</span>
+    <span className={row.changePct > 0 ? s.deltaUp : row.changePct < 0 ? s.deltaDown : s.deltaFlat}>
+      {pct(row.changePct)}
     </span>
   );
 }
@@ -93,6 +57,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
   const [sel, setSel] = useState(0);
   /** 사용자가 손댄 동안은 롤링을 멈춘다. */
   const [held, setHeld] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   const selRef = useRef(0);
   const resume = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,12 +79,12 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
     selRef.current = sel;
   }, [sel]);
 
-  // 롤링 — 6초마다 다음 순위로. 손대는 동안·모션을 줄일 때는 돌지 않는다.
+  // 롤링 — 5초마다 다음 순위로. 손대는 동안·모션을 줄일 때는 돌지 않는다.
   useEffect(() => {
-    if (reduced || held || signals.length < 2) return;
+    if (reduced || held || paused || signals.length < 2) return;
     const id = setInterval(() => setSel((selRef.current + 1) % signals.length), CYCLE_MS);
     return () => clearInterval(id);
-  }, [reduced, held, signals.length]);
+  }, [reduced, held, paused, signals.length]);
 
   useEffect(() => {
     return () => {
@@ -137,7 +102,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
     resume.current = setTimeout(() => setHeld(false), RESUME_MS);
   }, []);
 
-  const ready = deltaReady(signals);
   const top = signals[Math.min(sel, signals.length - 1)];
 
   if (!top) return null;
@@ -180,7 +144,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
   return (
     <section
       className={s.deck}
-      aria-label="지금 뜨는 원료 실시간 순위"
+      aria-label="최근 집계 원료 순위"
       onMouseEnter={hold}
       onMouseLeave={release}
       onFocus={hold}
@@ -190,10 +154,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
         <span className={s.deckEyebrow}>
           지금 뜨는 원료 · {top.observedAt} 기준 · {top.source}
         </span>
-        <span className={s.live}>
-          <i className={reduced ? s.liveDotStill : s.liveDot} aria-hidden="true" />
-          LIVE
-        </span>
+        <span className={s.live}>최근 집계</span>
       </div>
 
       <div className={s.deckGrid}>
@@ -219,8 +180,10 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
           {/* 변화율은 숫자와 같은 줄에 두지 않는다 — 자릿수가 길면 줄이 감겨
               아래 블록이 통째로 밀린다(자동 순환마다 52px 점프, 2026-09-21 실측) */}
           <p className={s.deckMove}>
-            <span className={s.up}>
-              <Odometer text={pct(top.changePct)} reduced={reduced} duration={600} stagger={30} />
+            <span className={top.changeStatus !== "관측" ? s.changeUnknown : top.changePct < 0 ? s.down : s.up}>
+              {top.changeStatus === "관측" ? (
+                <Odometer text={pct(top.changePct)} reduced={reduced} duration={600} stagger={30} />
+              ) : "변화 미제공"}
             </span>
             <em>{top.periodLabel}</em>
           </p>
@@ -259,7 +222,25 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
         </div>
 
         <div className={s.rankWrap}>
-          <h2 className="pf-sr-only">지금 뜨는 원료 순위</h2>
+          <div className={s.rankTop}>
+            <div>
+              <h2>검색 관심 TOP 10</h2>
+              <p>월 검색량 · 직전 주 변화</p>
+            </div>
+            {!reduced && (
+              <button
+                type="button"
+                className={s.rankPause}
+                onClick={() => {
+                  setPaused((value) => !value);
+                  setHeld(false);
+                  if (resume.current) clearTimeout(resume.current);
+                }}
+              >
+                자동 전환 {paused ? "재개" : "멈춤"}
+              </button>
+            )}
+          </div>
           <ol
             className={s.rankList}
             role="listbox"
@@ -274,6 +255,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
               id={`sig-opt-${i}`}
               role="option"
               aria-selected={i === sel}
+              aria-label={`${i + 1}위 ${sig.name}, 월 검색량 ${nf.format(sig.monthlyVolume)}회, ${sig.changeStatus === "관측" ? `직전 주 변화 ${pct(sig.changePct)}` : "직전 주 변화 미제공"}`}
               className={i === sel ? s.rowOn : undefined}
               onClick={() => pick(i)}
             >
@@ -293,7 +275,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
                 )}
               </span>
               <span className={s.boardRowDelta}>
-                <Delta row={sig} ready={ready} />
+                <WeeklyChange row={sig} />
               </span>
             </li>
             ))}
@@ -303,7 +285,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
 
       <p className={s.deckFoot}>
         {top.periodLabel} · 기준일 {top.observedAt} · {top.source}
-        {!ready && <em>순위 변동은 다음 주부터 표시됩니다 (기준 주 누적 중)</em>}
       </p>
     </section>
   );
