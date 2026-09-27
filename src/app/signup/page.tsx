@@ -34,14 +34,16 @@ export default function SignupPage() {
       setError(error);
       return;
     }
-    if (session) router.push("/profile/?next=quote");
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (session) router.push(next === "quote-ai" ? "/profile/?next=quote-ai" : "/profile/?next=quote");
     else setDone(true);
   }
 
   async function onGoogleSignIn() {
     setError("");
     setBusy(true);
-    const { error } = await signInWithGoogle("quote");
+    const next = new URLSearchParams(window.location.search).get("next");
+    const { error } = await signInWithGoogle(next === "quote-ai" ? "quote-ai" : "quote");
     if (error) {
       setError(error);
       setBusy(false);
@@ -58,7 +60,7 @@ export default function SignupPage() {
             보이면 스팸함도 확인해 주세요.
           </p>
           <div className="mt-8 flex gap-3">
-            <Button onClick={() => router.push("/login/")}>로그인으로 가기</Button>
+            <Button onClick={() => router.push(new URLSearchParams(window.location.search).get("next") === "quote-ai" ? "/login/?next=quote-ai" : "/login/")}>로그인으로 가기</Button>
           </div>
         </div>
       </Container>
@@ -149,7 +151,12 @@ export default function SignupPage() {
         </form>
 
         <p className="pf-help mt-6">
-          이미 계정이 있으신가요? <Link href="/login/">로그인</Link>
+          이미 계정이 있으신가요? <Link href="/login/" onClick={(event) => {
+            if (new URLSearchParams(window.location.search).get("next") === "quote-ai") {
+              event.preventDefault();
+              router.push("/login/?next=quote-ai");
+            }
+          }}>로그인</Link>
         </p>
         <p className="pf-help mt-3">
           가입 전 <Link className="underline underline-offset-4" href="/privacy/">개인정보 처리방침</Link>을 확인해 주세요.

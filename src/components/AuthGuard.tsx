@@ -30,7 +30,8 @@ export default function AuthGuard({
       const session = await getSession();
       if (!alive) return;
       if (!session) {
-        const next = window.location.pathname.includes("/quote/") ? "quote" : "deal";
+        const next = window.location.pathname.includes("/quote/ai/") ? "quote-ai"
+          : window.location.pathname.includes("/quote/") ? "quote" : "deal";
         router.replace(requireCustomerProfile ? `/login/?next=${next}` : "/login/");
         return;
       }
@@ -48,7 +49,8 @@ export default function AuthGuard({
           if (!alive) return;
           if (!profile) {
             const pending = (() => { try { return window.sessionStorage.getItem("vcp.afterAuth"); } catch { return null; } })();
-            const next = pending === "quote" || window.location.pathname.includes("/quote/") ? "quote" : "deal";
+            const next = pending === "quote-ai" || window.location.pathname.includes("/quote/ai/") ? "quote-ai"
+              : pending === "quote" || window.location.pathname.includes("/quote/") ? "quote" : "deal";
             router.replace(`/profile/?next=${next}`);
             return;
           }
@@ -59,9 +61,10 @@ export default function AuthGuard({
       }
       if (requireCustomerProfile && window.location.pathname.includes("/deal/")) {
         try {
-          if (window.sessionStorage.getItem("vcp.afterAuth") === "quote") {
+          const pending = window.sessionStorage.getItem("vcp.afterAuth");
+          if (pending === "quote" || pending === "quote-ai") {
             window.sessionStorage.removeItem("vcp.afterAuth");
-            router.replace("/quote/");
+            router.replace(pending === "quote-ai" ? "/quote/ai/" : "/quote/");
             return;
           }
         } catch { /* 저장소 차단 시 현재 화면을 유지 */ }

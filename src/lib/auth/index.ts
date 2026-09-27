@@ -46,7 +46,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   return session ? { session } : { error: "로그인 상태를 확인하지 못했습니다." };
 }
 
-export async function signInWithGoogle(next: "quote" | "deal" = "deal"): Promise<{ error?: string }> {
+export async function signInWithGoogle(next: "quote" | "quote-ai" | "deal" = "deal"): Promise<{ error?: string }> {
   if (!supabase) return { error: setupError };
   try { window.sessionStorage.setItem("vcp.afterAuth", next); } catch { /* 저장 차단 시 거래관리로 이동 */ }
   const { error } = await supabase.auth.signInWithOAuth({

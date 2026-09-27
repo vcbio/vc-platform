@@ -26,14 +26,14 @@ export default function LoginPage() {
       return;
     }
     const next = new URLSearchParams(window.location.search).get("next");
-    router.push(session?.isAdmin ? "/admin/" : next === "quote" ? "/quote/" : "/deal/");
+    router.push(session?.isAdmin ? "/admin/" : next === "quote-ai" ? "/quote/ai/" : next === "quote" ? "/quote/" : "/deal/");
   }
 
   async function onGoogleSignIn() {
     setError("");
     setBusy(true);
     const next = new URLSearchParams(window.location.search).get("next");
-    const { error } = await signInWithGoogle(next === "quote" ? "quote" : "deal");
+    const { error } = await signInWithGoogle(next === "quote-ai" ? "quote-ai" : next === "quote" ? "quote" : "deal");
     if (error) {
       setError(error);
       setBusy(false);
@@ -90,7 +90,12 @@ export default function LoginPage() {
         </form>
 
         <p className="pf-help mt-6">
-          계정이 없으신가요? <Link href="/signup/">가입하기</Link>
+          계정이 없으신가요? <Link href="/signup/" onClick={(event) => {
+            if (new URLSearchParams(window.location.search).get("next") === "quote-ai") {
+              event.preventDefault();
+              router.push("/signup/?next=quote-ai");
+            }
+          }}>가입하기</Link>
         </p>
       </div>
     </Container>

@@ -67,7 +67,7 @@ export default function ProfilePage() {
       await saveCustomerProfile(fields);
       const next = new URLSearchParams(window.location.search).get("next");
       try { window.sessionStorage.removeItem("vcp.afterAuth"); } catch { /* 저장소 차단 무시 */ }
-      router.replace(next === "deal" ? "/deal/" : "/quote/");
+      router.replace(next === "deal" ? "/deal/" : next === "quote-ai" ? "/quote/ai/" : "/quote/");
     } catch {
       setError("저장하지 못했습니다. 입력값과 인터넷 연결을 확인해 주세요.");
       setBusy(false);
