@@ -12,6 +12,7 @@ import Container from "./Container";
 const MENU = [
   { href: "/", label: "홈" },
   { href: "/quote/", label: "견적요청" },
+  { href: "/quote/ai/", label: "AI 견적" },
   { href: "/insight/", label: "동향" },
   { href: "/deal/", label: "거래관리" },
 ];
@@ -20,6 +21,7 @@ const MENU = [
 const ADMIN_MENU = { href: "/admin/", label: "관리자" };
 
 function isCurrent(pathname: string, href: string) {
+  if (href === "/quote/") return pathname === href;
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
@@ -53,7 +55,7 @@ export default function Header() {
   }, []);
 
   const menu = session?.isAdmin
-    ? [...MENU.filter((item) => item.href !== "/quote/" && item.href !== "/deal/"), ADMIN_MENU]
+    ? [...MENU.filter((item) => item.href !== "/quote/" && item.href !== "/quote/ai/" && item.href !== "/deal/"), ADMIN_MENU]
     : MENU;
 
   async function onSignOut() {

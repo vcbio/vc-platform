@@ -35,6 +35,88 @@
   align-items: start;
 }
 
+.quoteTabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--pf-border-strong);
+  margin-bottom: 28px;
+}
+.quoteTabs a {
+  display: inline-block;
+  padding: 14px 2px;
+  color: var(--pf-ink-2);
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+.quoteTabs a[aria-current="page"] {
+  color: var(--pf-accent);
+  border-bottom-color: var(--pf-accent);
+}
+.quoteTabs a:focus-visible,
+.aiPanel button:focus-visible,
+.aiPanel textarea:focus-visible,
+.aiPanel a:focus-visible {
+  outline: 3px solid var(--pf-ink);
+  outline-offset: 3px;
+}
+
+.aiPanel {
+  max-width: 960px;
+  margin: 0 auto 48px;
+  border: 1px solid var(--pf-border-strong);
+  background: var(--pf-card);
+}
+.aiHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px 30px;
+  border-bottom: 1px solid var(--pf-border);
+}
+.aiEyebrow {
+  color: var(--pf-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+.aiHeading h2 { font-size: 25px; line-height: 1.25; }
+.aiHeading p:last-child { color: var(--pf-ink-2); margin-top: 9px; line-height: 1.6; }
+.aiStatusReady, .aiStatusWaiting {
+  flex: none;
+  padding: 7px 10px;
+  border: 1px solid var(--pf-border-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.aiStatusReady { color: var(--pf-accent); background: var(--pf-accent-soft); }
+.aiStatusWaiting { color: var(--pf-ink-2); background: var(--pf-paper-2); }
+.aiConversation { min-height: 270px; padding: 32px 30px; }
+.aiEmpty { max-width: 540px; margin: 54px auto; text-align: center; color: var(--pf-ink-2); line-height: 1.6; }
+.aiEmptyTitle { color: var(--pf-ink); font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+.aiUserMessage, .aiAssistantMessage { max-width: 72ch; padding: 16px 18px; margin-bottom: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.aiUserMessage { margin-left: auto; background: var(--pf-accent-soft); }
+.aiAssistantMessage { border: 1px solid var(--pf-border); }
+.aiUserMessage strong, .aiAssistantMessage strong { display: block; font-size: 12px; margin-bottom: 6px; }
+.aiAssistantMessage a, .aiEvidence a { display: inline-block; color: var(--pf-accent); text-decoration: underline; margin-top: 8px; }
+.aiEvidence { display: grid; gap: 2px; border-top: 1px solid var(--pf-border); margin-top: 14px; padding-top: 10px; font-size: 13px; }
+.aiEvidence span { color: var(--pf-ink-2); }
+.aiWaiting { color: var(--pf-ink-2); }
+.aiExamples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 30px 20px; }
+.aiExamples span { width: 100%; font-size: 13px; color: var(--pf-ink-2); }
+.aiExamples button { padding: 9px 12px; border: 1px solid var(--pf-border-strong); color: var(--pf-ink-2); text-align: left; }
+.aiExamples button:disabled { opacity: .65; cursor: not-allowed; }
+.aiComposer { border-top: 1px solid var(--pf-border); padding: 24px 30px; }
+.aiComposer label { display: block; font-size: 15px; font-weight: 700; margin-bottom: 9px; }
+.aiComposer textarea { width: 100%; padding: 14px; resize: vertical; border: 1px solid var(--pf-border-strong); background: var(--pf-paper); color: var(--pf-ink); font: inherit; line-height: 1.5; }
+.aiComposer textarea:disabled { background: var(--pf-paper-2); cursor: not-allowed; }
+.aiActions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; }
+.aiActions p { color: var(--pf-ink-2); font-size: 13px; line-height: 1.5; }
+.aiToForm { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 30px; border-top: 1px solid var(--pf-border); background: var(--pf-paper-2); }
+.aiToForm span { font-size: 14px; color: var(--pf-ink-2); }
+
 /* ---------------- 스텝퍼 ---------------- */
 
 .stepper {
@@ -370,6 +452,12 @@
 }
 
 @media (max-width: 680px) {
+  .quoteTabs { gap: 18px; }
+  .quoteTabs a { font-size: 14px; }
+  .aiHeading, .aiActions, .aiToForm { flex-direction: column; align-items: stretch; }
+  .aiHeading, .aiConversation, .aiComposer, .aiToForm { padding-inline: 18px; }
+  .aiExamples { padding-inline: 18px; }
+  .aiStatusReady, .aiStatusWaiting { align-self: flex-start; }
   .page {
     padding-top: 20px;
   }

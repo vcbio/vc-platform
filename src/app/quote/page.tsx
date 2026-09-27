@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Badge,
   Button,
@@ -224,6 +225,11 @@ function QuoteForm() {
             {fromSignal && <Badge tone="signal">데이터랩에서 가져온 원료 · {fromSignal}</Badge>}
           </div>
         </div>
+
+        <nav className={s.quoteTabs} aria-label="견적 작성 방식">
+          <Link href="/quote/" aria-current="page">직접 견적 요청</Link>
+          <Link href="/quote/ai/">AI 견적 상담</Link>
+        </nav>
 
         <div className={s.layout}>
           <Card>
