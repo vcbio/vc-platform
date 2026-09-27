@@ -139,7 +139,7 @@ export default function AiQuotePanel({ onUseForm, mode }: {
         <label htmlFor="aiQuoteQuestion">상담 질문</label>
         <textarea id="aiQuoteQuestion" value={input} onChange={(event) => setInput(event.target.value)}
           maxLength={500} rows={3} disabled={!ready || busy}
-          placeholder={ready ? "예: 일반식품 분말스틱 1만 포를 기획하고 있어요." : "AI 연결 후 질문을 입력할 수 있습니다."} />
+          placeholder={ready ? "예: 가상 분말스틱 제품은 무엇부터 확인해야 하나요?" : "AI 연결 후 질문을 입력할 수 있습니다."} />
         <div className={s.aiActions}>
           <p>{mode === "admin"
             ? "실제 견적·연락처는 쓰지 마세요. 공개 정보로 바꾼 질문만 전송되며 OpenAI에 운영 로그가 남을 수 있습니다."
