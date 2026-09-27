@@ -29,6 +29,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.VC_PLATFORM_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.VC_PLATFORM_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_VC_AI_ENDPOINT: ${{ vars.VC_PLATFORM_AI_ENDPOINT }}
       # prebuild 가 만든 이번 주 스냅샷을 저장소에 남긴다.
       # 다음 회차가 이 파일을 읽어 순위 변동(▲▼)을 낸다.
       - name: Commit weekly snapshot

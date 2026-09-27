@@ -1,9 +1,12 @@
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { dirname, isAbsolute } from "node:path";
 
 const host = process.env.VC_AI_HOST || "127.0.0.1";
 const port = Number(process.env.VC_AI_PORT || 4317);
-const model = process.env.VC_AI_MODEL || "qwen3:14b";
+const model = "gpt-6-luna";
+const openaiKey = process.env.OPENAI_API_KEY;
+const rateStatePath = process.env.VC_AI_RATE_STATE_PATH;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const allowedOrigins = new Set(
@@ -21,8 +24,26 @@ const market = (() => {
   }
 })();
 
-if (!supabaseUrl?.startsWith("https://") || !publishableKey || !Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error("Supabase 공개 설정 또는 VC_AI_PORT가 올바르지 않습니다.");
+if (!supabaseUrl?.startsWith("https://") || !publishableKey || !openaiKey || !isAbsolute(rateStatePath || "") || !Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error("Supabase 공개 설정, OPENAI_API_KEY, VC_AI_RATE_STATE_PATH 또는 VC_AI_PORT가 올바르지 않습니다.");
+}
+
+function saveDailyCount(value) {
+  mkdirSync(dirname(rateStatePath), { recursive: true, mode: 0o700 });
+  const temporary = `${rateStatePath}.${process.pid}.tmp`;
+  writeFileSync(temporary, JSON.stringify(value), { mode: 0o600 });
+  renameSync(temporary, rateStatePath);
+}
+
+let dailyCount;
+try {
+  dailyCount = JSON.parse(readFileSync(rateStatePath, "utf8"));
+  if (typeof dailyCount?.day !== "string" || !Number.isInteger(dailyCount.count) || dailyCount.count < 0)
+    throw new Error("invalid_rate_state");
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+  dailyCount = { day: new Date().toISOString().slice(0, 10), count: 0 };
+  saveDailyCount(dailyCount);
 }
 
 function respond(req, res, status, body) {
@@ -58,32 +79,26 @@ async function verifiedUser(token) {
   });
   if (!response.ok) return null;
   const user = await response.json();
-  return user?.id && user.email && !user.is_anonymous && user.app_metadata?.vcp_role !== "admin" ? user : null;
-}
-
-async function hasCustomerProfile(token, userId) {
-  const url = new URL(`${supabaseUrl}/rest/v1/vcp_customer_profiles`);
-  url.searchParams.set("user_id", `eq.${userId}`);
-  url.searchParams.set("select", "id");
-  url.searchParams.set("limit", "1");
-  const response = await fetch(url, {
-    headers: { apikey: publishableKey, Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!response.ok) throw new Error("profile_unavailable");
-  return (await response.json()).length === 1;
+  return user?.id && user.email && !user.is_anonymous && user.app_metadata?.vcp_role === "admin" ? user : null;
 }
 
 function withinLimit(userId) {
   const now = Date.now();
+  const today = new Date(now).toISOString().slice(0, 10);
+  if (dailyCount.day !== today) dailyCount = { day: today, count: 0 };
+  if (dailyCount.count >= 25) return false;
   const entry = limits.get(userId);
   if (!entry || entry.until <= now) {
     limits.set(userId, { count: 1, until: now + 60_000 });
     if (limits.size > 1000) for (const [key, value] of limits) if (value.until <= now) limits.delete(key);
+    dailyCount.count += 1;
+    saveDailyCount(dailyCount);
     return true;
   }
   if (entry.count >= 6) return false;
   entry.count += 1;
+  dailyCount.count += 1;
+  saveDailyCount(dailyCount);
   return true;
 }
 
@@ -105,6 +120,20 @@ const regulatoryQuestion = /사용.{0,8}(가능|불가|허용|금지)|식품\s*�
 const contactPattern = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?82[- .]?)?0\d{1,2}[- .]?\d{3,4}[- .]?\d{4}|주소|거주지|우편번호|담당자|회사\s*위치|회사명\s*[:：]|연락처|(?:제\s*이름|저는|제가)\s*[가-힣]{2,5}|^[가-힣]{2,4}(?:입니다|이에요|예요)/;
 const riskyReply = /(?:가능|허용|승인|확정|금지|불가|안전|접수|제출|전달|판매|생산|제조|사용|섭취|먹을|출시|합법|문제없|등재|등록|인정|적법|위법|보장|효능|치료|담당자|연락처|주소|이메일)/;
 const fixedRegulatoryReply = "사용 가능·불가를 여기서 단정할 수 없습니다. 원료의 정확한 이름·사용 부위와 일반식품/건강기능식품 구분을 알려 주세요. 담당자가 식약처 현행 원문을 확인하겠습니다.";
+const publicForms = ["분말스틱", "정제", "캡슐", "분말", "액상", "젤리", "츄어블", "과립", "파우치"];
+const privatePattern = /원가|단가|마진|거래처|고객사|계약|실제\s*견적|매입|사업자|주소|연락처|담당자|회사명|브랜드명|이메일|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/;
+
+/** 외부 API에는 원문을 보내지 않고 공개 사전에서 찾은 단어만 보낸다. */
+function publicQuestion(text) {
+  const ingredient = matchingMarket(text)?.name.replace(/[^\p{L}\p{N}·\s-]/gu, "").slice(0, 50);
+  const form = publicForms.find((value) => text.includes(value));
+  const topic = text.includes("납기") || text.includes("일정") ? "희망 일정"
+    : text.includes("수량") ? "희망 수량"
+      : text.includes("제형") ? "제형"
+        : text.includes("원료") ? "원료" : "제품 유형";
+  const summary = [ingredient && `공개 원료 ${ingredient}`, form && `제형 ${form}`, `주제 ${topic}`].filter(Boolean).join(" · ");
+  return { summary, prompt: `가상 제품 상담입니다. ${summary}. 다음에 확인할 질문을 한 문장으로 작성하세요.` };
+}
 
 async function handle(req, res) {
   if (req.url === "/health" && req.method === "GET") return respond(req, res, 200, { ok: true });
@@ -133,10 +162,6 @@ async function handle(req, res) {
   let user;
   try { user = await verifiedUser(match[1]); } catch { return respond(req, res, 503, { error: "로그인 확인을 잠시 할 수 없습니다." }); }
   if (!user) return respond(req, res, 401, { error: "로그인 상태를 다시 확인해 주세요." });
-  let hasProfile;
-  try { hasProfile = await hasCustomerProfile(match[1], user.id); }
-  catch { return respond(req, res, 503, { error: "고객정보를 확인하지 못했습니다." }); }
-  if (!hasProfile) return respond(req, res, 403, { error: "회사와 담당자 정보를 먼저 저장해 주세요." });
   if (!withinLimit(user.id)) return respond(req, res, 429, { error: "잠시 뒤 다시 질문해 주세요." });
 
   let messages;
@@ -147,10 +172,12 @@ async function handle(req, res) {
       messages.some((item) => item?.role !== "user" ||
         typeof item.content !== "string" || !item.content.trim() || item.content.length > 1000) ||
       messages.at(-1).role !== "user") throw new Error("invalid");
-    if (messages.some((item) => contactPattern.test(item.content))) throw new Error("contact");
+    if (messages.some((item) => contactPattern.test(item.content) || privatePattern.test(item.content))) throw new Error("contact");
+    if (!/[?？]$/.test(messages.at(-1).content.trim())) throw new Error("not_question");
   } catch (error) {
     return respond(req, res, error?.message === "too_large" ? 413 : 400,
-      { error: error?.message === "contact" ? "연락처는 대화에 적지 마세요." : "질문 형식을 확인해 주세요." });
+      { error: error?.message === "contact" ? "개인정보·거래조건 없이 공개 자료에 관한 질문만 적어 주세요."
+        : error?.message === "not_question" ? "질문만 보낼 수 있습니다. 문장 끝에 물음표를 붙여 주세요." : "질문 형식을 확인해 주세요." });
   }
 
   const question = messages.at(-1).content.trim();
@@ -158,30 +185,36 @@ async function handle(req, res) {
   if (regulatoryQuestion.test(question))
     return respond(req, res, 200, { reply: fixedRegulatoryReply, mode: "source_check", sourceUrl: foodSource, ...(evidence && { market: evidence }) });
 
+  const safeInput = messages.slice(-4).map((item) => publicQuestion(item.content));
+
   const system = [
-    "당신은 브이씨바이오의 한국어 B2B 견적 접수 도우미입니다. 제품 유형·제형·수량·원료·희망일 중 빠진 조건을 한 번에 하나씩 질문하세요. 답변은 한 문장의 질문으로만 쓰세요. 설명이나 판단은 쓰지 마세요.",
-    "고객 이름·이메일·전화번호를 다시 묻지 마세요. 견적을 제출하거나 제조사에 보냈다고 말하지 마세요. 가격·생산 가능 여부를 확정하지 마세요.",
+    "당신은 한국어 B2B 견적 상담 시험 도우미입니다. 전달된 것은 공개 원료·제형·주제만 추린 가상 질문입니다. 다음에 확인할 질문 한 문장만 작성하세요. 설명이나 판단은 쓰지 마세요.",
+    "고객 이름·이메일·전화번호를 묻지 마세요. 견적을 제출하거나 제조사에 보냈다고 말하지 마세요. 가격·생산 가능 여부를 확정하지 마세요.",
     "원료의 허용·금지·기능성을 추정하지 마세요. 공식 근거가 없으면 '공식 원문 확인 필요'라고만 하세요. 검색되지 않음은 사용불가가 아닙니다.",
     "시장 자료는 판매량·매출이 아닙니다. 기준일을 현재로 바꾸거나 없는 수치를 만들지 마세요.",
-    evidence ? `공개 검색 관심도 참고: ${evidence.name}, 값 ${evidence.searchInterest}, 관측일 ${evidence.observedAt}. 현재 주간 자료가 아니라 과거 자료라고만 설명하세요.` : "시장 수치를 받지 않았으므로 수치를 말하지 마세요.",
+    "시장 수치와 실제 고객 자료는 제공되지 않았으므로 말하지 마세요.",
   ].join("\n");
 
   try {
-    const response = await fetch("http://127.0.0.1:11434/api/chat", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, stream: false, think: false, options: { temperature: 0.2, num_predict: 240 },
-        messages: [{ role: "system", content: system }, ...messages] }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+      body: JSON.stringify({ model, instructions: system, input: safeInput.map((item) => item.prompt).join("\n"),
+        reasoning: { effort: "none" }, max_output_tokens: 180, store: false }),
       signal: AbortSignal.timeout(35_000),
     });
-    if (!response.ok) throw new Error("ollama_unavailable");
+    if (!response.ok) throw new Error("model_unavailable");
     const data = await response.json();
-    let reply = String(data?.message?.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim().slice(0, 1200);
+    if (data?.status !== "completed") throw new Error("model_incomplete");
+    let reply = Array.isArray(data?.output) ? data.output.flatMap((item) => item.content || [])
+      .filter((item) => item.type === "output_text" && typeof item.text === "string")
+      .map((item) => item.text).join("").trim().slice(0, 600) : "";
     if (!reply || riskyReply.test(reply) || /[.!。\n]/.test(reply) || !reply.endsWith("?"))
       reply = "기획하시는 제품의 유형과 제형은 무엇인가요?";
-    return respond(req, res, 200, { reply, mode: "local_ai", ...(evidence && { market: evidence }) });
+    return respond(req, res, 200, { reply, mode: "gpt6_luna_admin_test", sentSummary: safeInput.at(-1).summary,
+      ...(evidence && { market: evidence }) });
   } catch {
-    return respond(req, res, 503, { error: "맥북 AI에 연결되지 않았습니다. 직접 견적 입력은 계속 사용할 수 있습니다." });
+    return respond(req, res, 503, { error: "GPT-6 Luna 시험 연결을 확인하지 못했습니다." });
   }
 }
 

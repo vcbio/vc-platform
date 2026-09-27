@@ -35,7 +35,7 @@ export default function AiQuotePage() {
               <span className={s.eyebrow}>Quote Assistant</span>
               <h1>AI 견적 상담</h1>
               <p className={s.pageSub}>{mode === "admin"
-                ? "고객에게 보이는 AI 견적 화면의 미리보기입니다. 관리자는 이 화면에서 견적을 제출하지 않습니다."
+                ? "관리자 전용 GPT-6 Luna 시험입니다. 공개 원료·가상 제품 질문만 허용하며 견적은 제출되지 않습니다."
                 : "제품 조건을 함께 정리하는 기능입니다. AI 연결 전에도 직접 견적을 요청할 수 있습니다."}</p>
             </div>
           </div>
