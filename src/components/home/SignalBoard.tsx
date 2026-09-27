@@ -210,10 +210,10 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
 
           <div className={s.deckCta}>
             <Link
-              href={`/quote/?ingredient=${encodeURIComponent(top.name)}`}
+              href={`/quote/ai/?ingredient=${encodeURIComponent(top.name)}`}
               className={`pf-btn pf-btn-primary ${s.ctaBig}`}
             >
-              이 원료로 견적요청
+              이 원료로 견적 의뢰
             </Link>
             <Link href="/insight/" className="pf-link">
               동향 전체 보기

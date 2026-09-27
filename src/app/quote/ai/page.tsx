@@ -13,6 +13,11 @@ export default function AiQuotePage() {
   const router = useRouter();
   const [mode, setMode] = useState<"checking" | "admin" | "customer">("checking");
 
+  function toDirectQuote() {
+    const ingredient = new URLSearchParams(window.location.search).get("ingredient");
+    router.push(ingredient ? `/quote/?ingredient=${encodeURIComponent(ingredient)}` : "/quote/");
+  }
+
   useEffect(() => {
     let alive = true;
     getSession().then((session) => {
@@ -35,10 +40,13 @@ export default function AiQuotePage() {
             </div>
           </div>
           <nav className={s.quoteTabs} aria-label="견적 작성 방식">
-            {mode === "customer" && <Link href="/quote/">직접 견적 요청</Link>}
+            {mode === "customer" && <Link href="/quote/" onClick={(event) => {
+              event.preventDefault();
+              toDirectQuote();
+            }}>직접 견적 요청</Link>}
             <Link href="/quote/ai/" aria-current="page">AI 견적 상담</Link>
           </nav>
-          <AiQuotePanel mode={mode} onUseForm={() => router.push("/quote/")} />
+          <AiQuotePanel mode={mode} onUseForm={toDirectQuote} />
         </div>
       </Container>
     </AuthGuard>

@@ -97,7 +97,7 @@ export default async function Home() {
           <TrustBar initial={stats} />
           <p className={s.bandNote}>
             제조사 자료는 내부에서 확인합니다. 조건을 보내 주시면 담당자가 생산 가능 여부를 확인해 회신드립니다.{" "}
-            <Link href="/quote/">견적 요청하기</Link>
+            <Link href="/quote/ai/">AI 견적 상담</Link>
           </p>
         </Container>
       </div>

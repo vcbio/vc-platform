@@ -99,7 +99,7 @@ export default function IngredientSearch({
       onPick(name);
       return;
     }
-    router.push(`/quote/?ingredient=${encodeURIComponent(name)}`);
+    router.push(`/quote/ai/?ingredient=${encodeURIComponent(name)}`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -108,7 +108,7 @@ export default function IngredientSearch({
       return;
     }
     if (e.key === "Enter" && hits.length === 0 && key) {
-      // 목록에 없어도 길은 열어 둔다 — 적은 말 그대로 견적 폼으로 싣고 간다.
+      // 목록에 없어도 길은 열어 둔다 — 적은 말 그대로 견적 진입 화면으로 싣고 간다.
       e.preventDefault();
       choose(key);
       return;
@@ -160,7 +160,7 @@ export default function IngredientSearch({
 
       {open && key !== "" && hits.length === 0 && (
         <p className={s.searchEmpty} role="status">
-          일치하는 원료가 없습니다 — Enter 를 누르면 「{key}」 그대로 견적요청합니다.
+          일치하는 원료가 없습니다 — Enter를 누르면 「{key}」로 견적 의뢰 화면을 엽니다.
         </p>
       )}
 
