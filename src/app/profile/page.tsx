@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button, Container, Input } from "@/components/ui";
 import { getCustomerProfile, profileError, saveCustomerProfile, type CustomerProfileInput } from "@/lib/customerProfile";
 import { supabase } from "@/lib/supabase";
@@ -101,6 +102,9 @@ export default function ProfilePage() {
                 동의하지 않아도 가입과 견적 요청을 할 수 있습니다. 동의는 이 화면에서 바꿀 수 있습니다.
               </span>
             </label>
+            <p className="pf-help mb-5">
+              정보 이용·보관과 삭제 요청 방법은 <Link className="underline underline-offset-4" href="/privacy/">개인정보 처리방침</Link>에서 확인할 수 있습니다.
+            </p>
             {error && <p className="pf-alert mb-5" role="alert">{error}</p>}
             <Button type="submit" block disabled={busy}>{busy ? "저장 중" : "저장하고 계속하기"}</Button>
           </form>

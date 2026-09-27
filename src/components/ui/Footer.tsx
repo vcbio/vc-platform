@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import Container from "./Container";
 
 /** 푸터. 브랜드 줄 · 이름 풀이 · 자료 범위 고지 세 덩어리로만 둔다. */
@@ -21,6 +22,7 @@ export default function Footer() {
           <p>
             제조사 제형·설비는 조사 자료 기준이며 실제 생산 여부는 상담에서 확인합니다. 원료·견적 화면에는 시연용 정보가 포함될 수 있습니다.
           </p>
+          <p><Link href="/privacy/">개인정보 처리방침</Link></p>
         </div>
       </Container>
     </footer>

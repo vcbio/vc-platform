@@ -151,6 +151,9 @@ export default function SignupPage() {
         <p className="pf-help mt-6">
           이미 계정이 있으신가요? <Link href="/login/">로그인</Link>
         </p>
+        <p className="pf-help mt-3">
+          가입 전 <Link className="underline underline-offset-4" href="/privacy/">개인정보 처리방침</Link>을 확인해 주세요.
+        </p>
       </div>
     </Container>
   );
