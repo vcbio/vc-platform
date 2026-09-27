@@ -15,10 +15,12 @@ export default function AuthGuard({
   children,
   requireAdmin = false,
   requireCustomerProfile = false,
+  allowAdminPreview = false,
 }: {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireCustomerProfile?: boolean;
+  allowAdminPreview?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"checking" | "ok" | "error">("checking");
@@ -40,7 +42,8 @@ export default function AuthGuard({
         return;
       }
       if (requireCustomerProfile && session.isAdmin) {
-        router.replace("/admin/quotes/");
+        if (allowAdminPreview) setState("ok");
+        else router.replace("/admin/quotes/");
         return;
       }
       if (requireCustomerProfile) {
@@ -75,7 +78,7 @@ export default function AuthGuard({
     return () => {
       alive = false;
     };
-  }, [router, requireAdmin, requireCustomerProfile]);
+  }, [router, requireAdmin, requireCustomerProfile, allowAdminPreview]);
 
   if (state === "error") {
     return <p className="pf-container pf-alert" role="alert">고객 정보를 확인하지 못했습니다. 잠시 후 새로고침해 주세요.</p>;

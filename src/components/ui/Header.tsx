@@ -55,7 +55,7 @@ export default function Header() {
   }, []);
 
   const menu = session?.isAdmin
-    ? [...MENU.filter((item) => item.href !== "/quote/" && item.href !== "/quote/ai/" && item.href !== "/deal/"), ADMIN_MENU]
+    ? [...MENU.filter((item) => item.href !== "/quote/" && item.href !== "/deal/"), ADMIN_MENU]
     : MENU;
 
   async function onSignOut() {

@@ -27,8 +27,11 @@ const examples = [
 ];
 const contactPattern = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?82[- .]?)?0\d{1,2}[- .]?\d{3,4}[- .]?\d{4}|주소|거주지|우편번호|담당자|회사\s*위치|회사명\s*[:：]|연락처|(?:제\s*이름|저는|제가)\s*[가-힣]{2,5}|^[가-힣]{2,4}(?:입니다|이에요|예요)/;
 
-export default function AiQuotePanel({ onUseForm }: { onUseForm: () => void }) {
-  const ready = Boolean(endpoint && supabase);
+export default function AiQuotePanel({ onUseForm, mode }: {
+  onUseForm: () => void;
+  mode: "checking" | "admin" | "customer";
+}) {
+  const ready = Boolean(mode === "customer" && endpoint && supabase);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,17 +86,17 @@ export default function AiQuotePanel({ onUseForm }: { onUseForm: () => void }) {
           <p>제품 조건을 대화로 정리하고, 최종 견적은 직접 확인해 제출합니다.</p>
         </div>
         <span className={ready ? s.aiStatusReady : s.aiStatusWaiting}>
-          {ready ? "맥북 AI 연결 설정됨" : "AI 연결 전"}
+          {mode === "admin" ? "관리자 미리보기" : mode === "checking" ? "계정 확인 중" : ready ? "맥북 AI 연결 설정됨" : "AI 연결 전"}
         </span>
       </div>
 
       <div className={s.aiConversation} role="log" aria-label="AI 견적 대화" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && (
           <div className={s.aiEmpty}>
-            <p className={s.aiEmptyTitle}>{ready ? "어떤 제품을 만들고 싶으신가요?" : "대화 기능을 연결할 준비를 하고 있습니다."}</p>
-            <p>{ready
-              ? "제형·수량·희망일을 말씀해 주세요. 연락처는 적지 않아도 됩니다."
-              : "현재는 AI 답변을 받을 수 없습니다. 아래의 직접 입력으로 견적을 요청할 수 있습니다."}</p>
+            <p className={s.aiEmptyTitle}>{mode === "admin" ? "고객 화면 미리보기" : ready ? "어떤 제품을 만들고 싶으신가요?" : "대화 기능을 연결할 준비를 하고 있습니다."}</p>
+            <p>{mode === "admin" ? "AI 대화 입력과 견적 제출은 관리자 미리보기에서 사용할 수 없습니다."
+              : ready ? "제형·수량·희망일을 말씀해 주세요. 연락처는 적지 않아도 됩니다."
+                : "현재는 AI 답변을 받을 수 없습니다. 아래의 직접 입력으로 견적을 요청할 수 있습니다."}</p>
           </div>
         )}
         {messages.map((message, index) => (
@@ -134,10 +137,12 @@ export default function AiQuotePanel({ onUseForm }: { onUseForm: () => void }) {
         {error && <p className="pf-alert" role="alert">{error}</p>}
       </form>
 
-      <div className={s.aiToForm}>
-        <span>지금 바로 견적을 보내시려면</span>
-        <button type="button" className="pf-btn pf-btn-secondary" onClick={onUseForm}>직접 입력으로 이동</button>
-      </div>
+      {mode === "customer" && (
+        <div className={s.aiToForm}>
+          <span>지금 바로 견적을 보내시려면</span>
+          <button type="button" className="pf-btn pf-btn-secondary" onClick={onUseForm}>직접 입력으로 이동</button>
+        </div>
+      )}
     </section>
   );
 }
