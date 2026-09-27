@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Badge,
   Button,
@@ -19,10 +19,6 @@ import {
   DOSAGE_FORMS,
   EMPTY_DRAFT,
   UNITS,
-  clearDraft,
-  loadDraft,
-  saveDraft,
-  savedAgo,
   type Draft,
 } from "@/components/quote/draft";
 import { getData, type DosageForm, type Ingredient, type Quote } from "@/lib/data";
@@ -69,31 +65,20 @@ function QuoteForm() {
   const [reached, setReached] = useState(1);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
-  const [savedAt, setSavedAt] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [busy, setBusy] = useState(false);
   /** 데이터랩(「지금 뜨는 원료」)에서 넘어온 원료명. 등록 원료가 아니어도 그대로 싣는다. */
   const [fromSignal, setFromSignal] = useState("");
   const [done, setDone] = useState<Quote | null>(null);
-  const restored = useRef(false);
-
-
-  // ── 최초 1회: 임시저장분 복원 · 세션 확인 · 원료 목록 ──
+  // ── 최초 1회: 세션 확인 · 원료 목록 ──
   useEffect(() => {
     let alive = true;
 
-    // 복원·세션·원료를 한 번에 반영한다. 렌더를 세 번 돌리지 않으려는 것이다.
+    // 세션·원료를 한 번에 반영한다.
     (async () => {
-      const saved = loadDraft();
       const [sess, rows] = await Promise.all([getSession(), getData().listIngredients()]);
       if (!alive) return;
-
-      if (saved) {
-        setDraft(saved.draft);
-        setSavedAt(saved.savedAt);
-      }
 
       // useSearchParams 대신 주소를 직접 읽는다 — 이 화면은 정적 내보내기라
       // Suspense 경계를 새로 두지 않으려는 것이다(동작은 같다).
@@ -106,24 +91,11 @@ function QuoteForm() {
       }
       setSessionEmail(sess?.email ?? null);
       setIngredients(rows.filter((i) => i.isActive));
-      restored.current = true;
     })();
 
     return () => {
       alive = false;
     };
-  }, []);
-
-  // ── 입력이 바뀔 때마다 임시저장 ──
-  useEffect(() => {
-    if (!restored.current || done) return;
-    setSavedAt(saveDraft(draft));
-  }, [draft, done]);
-
-  // 저장 문구("방금 · 3분 전")를 1분마다 다시 센다.
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60000);
-    return () => clearInterval(id);
   }, []);
 
   const set = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
@@ -201,7 +173,6 @@ function QuoteForm() {
         budgetRange: draft.budgetRange,
         memo: draft.memo.trim(),
       });
-      clearDraft();
       setDone(quote);
       window.scrollTo({ top: 0 });
     } catch {
@@ -237,8 +208,6 @@ function QuoteForm() {
     );
   }
 
-  const ago = savedAgo(savedAt, now);
-
   return (
     <Container>
       <div className={s.page}>
@@ -249,10 +218,10 @@ function QuoteForm() {
             <p className={s.pageSub}>
               조건을 보내 주시면 브이씨바이오 담당자가 검토하고 회신드립니다. 접수 상태는 거래관리에서 확인할 수 있습니다.
             </p>
+            <p className={s.pageSub}>작성 중인 내용은 제출 전까지 저장되지 않습니다.</p>
           </div>
           <div className={s.headTags}>
             {fromSignal && <Badge tone="signal">데이터랩에서 가져온 원료 · {fromSignal}</Badge>}
-            {ago && <Badge tone="neutral">임시저장됨 · {ago}</Badge>}
           </div>
         </div>
 

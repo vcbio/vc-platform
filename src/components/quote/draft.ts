@@ -45,45 +45,17 @@ export const EMPTY_DRAFT: Draft = {
 
 export const DRAFT_KEY = "vcp.quoteDraft";
 
-export function loadDraft(): { draft: Draft; savedAt: number } | null {
-  if (typeof window === "undefined") return null;
+/** 과거 임시견적은 계정 귀속이 불명확하다. 어느 계정에도 복원하지 않고 지운다. */
+export function purgeStoredDrafts(): void {
+  if (typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { draft?: Partial<Draft>; savedAt?: number };
-    if (!parsed.draft) return null;
-    // 저장분이 낡아 필드가 빠져 있어도 화면이 멈추지 않게 기본값 위에 덮는다.
-    const draft = { ...EMPTY_DRAFT, ...parsed.draft } as Draft & { email?: string };
-    delete draft.email; // 이전 비회원 임시저장의 이메일은 새 견적에 옮기지 않는다.
-    return { draft, savedAt: parsed.savedAt ?? 0 };
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const key = window.localStorage.key(i);
+      if (key === DRAFT_KEY || key?.startsWith(`${DRAFT_KEY}.`)) {
+        window.localStorage.removeItem(key);
+      }
+    }
   } catch {
-    return null;
+    // 저장소가 차단되어도 견적 입력은 계속된다.
   }
-}
-
-export function saveDraft(draft: Draft): number {
-  const savedAt = Date.now();
-  try {
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ draft, savedAt }));
-  } catch {
-    // 저장 공간이 막혀도 입력은 계속돼야 한다.
-  }
-  return savedAt;
-}
-
-export function clearDraft() {
-  try {
-    window.localStorage.removeItem(DRAFT_KEY);
-  } catch {
-    // 지우기 실패는 화면 동작에 영향이 없다.
-  }
-}
-
-/** 화면에 사람이 읽을 저장 시각을 만든다. */
-export function savedAgo(savedAt: number, now: number): string {
-  if (!savedAt) return "";
-  const min = Math.floor((now - savedAt) / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
-  return `${Math.floor(min / 60)}시간 전`;
 }

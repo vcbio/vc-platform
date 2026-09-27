@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { getSession, signOut, type Session } from "@/lib/auth";
+import { purgeStoredDrafts } from "@/components/quote/draft";
 import Container from "./Container";
 
 const MENU = [
@@ -34,6 +35,7 @@ export default function Header() {
   // (모바일 메뉴는 링크 onClick 에서 닫는다 — 여기서 닫으면 렌더가 한 번 더 돈다.)
   useEffect(() => {
     let alive = true;
+    purgeStoredDrafts();
     getSession().then((s) => alive && setSession(s));
     return () => {
       alive = false;
