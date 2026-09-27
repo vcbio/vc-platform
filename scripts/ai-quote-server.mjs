@@ -1,11 +1,16 @@
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { readFileSync, writeFileSync, renameSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const host = process.env.VC_AI_HOST || "127.0.0.1";
 const port = Number(process.env.VC_AI_PORT || 4317);
 const model = "gpt-6-luna";
+const backend = process.env.VC_AI_BACKEND || "codex_oauth";
 const openaiKey = process.env.OPENAI_API_KEY;
+const codexBin = process.env.VC_AI_CODEX_BIN || "/opt/homebrew/bin/codex";
 const rateStatePath = process.env.VC_AI_RATE_STATE_PATH;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -24,8 +29,10 @@ const market = (() => {
   }
 })();
 
-if (!supabaseUrl?.startsWith("https://") || !publishableKey || !openaiKey || !isAbsolute(rateStatePath || "") || !Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error("Supabase 공개 설정, OPENAI_API_KEY, VC_AI_RATE_STATE_PATH 또는 VC_AI_PORT가 올바르지 않습니다.");
+if (!supabaseUrl?.startsWith("https://") || !publishableKey || !["codex_oauth", "openai_api"].includes(backend) ||
+  (backend === "openai_api" && !openaiKey) || !isAbsolute(rateStatePath || "") ||
+  !Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error("Supabase 공개 설정, AI 인증 방식, VC_AI_RATE_STATE_PATH 또는 VC_AI_PORT가 올바르지 않습니다.");
 }
 
 function saveDailyCount(value) {
@@ -86,7 +93,7 @@ function withinLimit(userId) {
   const now = Date.now();
   const today = new Date(now).toISOString().slice(0, 10);
   if (dailyCount.day !== today) dailyCount = { day: today, count: 0 };
-  if (dailyCount.count >= 25) return false;
+  if (dailyCount.count >= (backend === "codex_oauth" ? 8 : 25)) return false;
   const entry = limits.get(userId);
   if (!entry || entry.until <= now) {
     limits.set(userId, { count: 1, until: now + 60_000 });
@@ -118,7 +125,7 @@ function matchingMarket(text) {
 
 const regulatoryQuestion = /사용.{0,8}(가능|불가|허용|금지)|식품\s*원료|등재|법적|규제|고시|개별\s*인정|식약처|먹어도|넣어도|써도|허가|인정\s*원료/;
 const contactPattern = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?82[- .]?)?0\d{1,2}[- .]?\d{3,4}[- .]?\d{4}|주소|거주지|우편번호|담당자|회사\s*위치|회사명\s*[:：]|연락처|(?:제\s*이름|저는|제가)\s*[가-힣]{2,5}|^[가-힣]{2,4}(?:입니다|이에요|예요)/;
-const riskyReply = /(?:가능|허용|승인|확정|금지|불가|안전|접수|제출|전달|판매|생산|제조|사용|섭취|먹을|출시|합법|문제없|등재|등록|인정|적법|위법|보장|효능|치료|담당자|연락처|주소|이메일)/;
+const riskyReply = /(?:가능|허용|승인|확정|금지|불가|안전|접수|제출|전달|출시|합법|문제없|등재|등록|인정|적법|위법|보장|효능|치료|원가|단가|마진|가격|매출|담당자|연락처|주소|이메일)/;
 const fixedRegulatoryReply = "사용 가능·불가를 여기서 단정할 수 없습니다. 원료의 정확한 이름·사용 부위와 일반식품/건강기능식품 구분을 알려 주세요. 담당자가 식약처 현행 원문을 확인하겠습니다.";
 const publicForms = ["분말스틱", "정제", "캡슐", "분말", "액상", "젤리", "츄어블", "과립", "파우치"];
 const privatePattern = /원가|단가|마진|거래처|고객사|계약|실제\s*견적|매입|사업자|주소|연락처|담당자|회사명|브랜드명|이메일|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/;
@@ -135,8 +142,37 @@ function publicQuestion(text) {
   return { summary, prompt: `가상 제품 상담입니다. ${summary}. 다음에 확인할 질문을 한 문장으로 작성하세요.` };
 }
 
+async function codexOAuthReply(instructions, safeInput) {
+  const directory = mkdtempSync(join(tmpdir(), "vc-ai-oauth-"));
+  const outputPath = join(directory, "reply.txt");
+  const prompt = `${instructions}\n\n${safeInput.map((item) => item.prompt).join("\n")}\n\n` +
+    "가상 질문에 이어서 확인할 한국어 질문 한 문장만 답하세요. 파일·도구를 사용하지 마세요.";
+  const childEnv = { ...process.env };
+  delete childEnv.OPENAI_API_KEY;
+  delete childEnv.OPENAI_ADMIN_KEY;
+  delete childEnv.CODEX_API_KEY;
+  try {
+    const exitCode = await new Promise((resolve, reject) => {
+      const child = spawn(codexBin, ["exec", "-m", model, "-c", 'model_reasoning_effort="low"',
+        "--disable", "shell_tool", "--disable", "skill_search", "-s", "read-only",
+        "--ephemeral", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
+        "-C", directory, "-o", outputPath, "-"],
+      { env: childEnv, cwd: directory, stdio: ["pipe", "ignore", "ignore"] });
+      const timer = setTimeout(() => child.kill("SIGKILL"), 35_000);
+      child.on("error", (error) => { clearTimeout(timer); reject(error); });
+      child.on("close", (code) => { clearTimeout(timer); resolve(code); });
+      child.stdin.on("error", () => {});
+      child.stdin.end(prompt);
+    });
+    if (exitCode !== 0) throw new Error("codex_unavailable");
+    return readFileSync(outputPath, "utf8").trim().slice(0, 600);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 async function handle(req, res) {
-  if (req.url === "/health" && req.method === "GET") return respond(req, res, 200, { ok: true });
+  if (req.url === "/health" && req.method === "GET") return respond(req, res, 200, { ok: true, backend });
   if (req.url !== "/v1/chat") return respond(req, res, 404, { error: "주소를 찾을 수 없습니다." });
 
   if (!allowedOrigins.has(req.headers.origin)) return respond(req, res, 403, { error: "허용되지 않은 화면입니다." });
@@ -196,22 +232,26 @@ async function handle(req, res) {
   ].join("\n");
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-      body: JSON.stringify({ model, instructions: system, input: safeInput.map((item) => item.prompt).join("\n"),
-        reasoning: { effort: "none" }, max_output_tokens: 180, store: false }),
-      signal: AbortSignal.timeout(35_000),
-    });
-    if (!response.ok) throw new Error("model_unavailable");
-    const data = await response.json();
-    if (data?.status !== "completed") throw new Error("model_incomplete");
-    let reply = Array.isArray(data?.output) ? data.output.flatMap((item) => item.content || [])
-      .filter((item) => item.type === "output_text" && typeof item.text === "string")
-      .map((item) => item.text).join("").trim().slice(0, 600) : "";
+    let reply;
+    if (backend === "codex_oauth") reply = await codexOAuthReply(system, safeInput);
+    else {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+        body: JSON.stringify({ model, instructions: system, input: safeInput.map((item) => item.prompt).join("\n"),
+          reasoning: { effort: "none" }, max_output_tokens: 180, store: false }),
+        signal: AbortSignal.timeout(35_000),
+      });
+      if (!response.ok) throw new Error("model_unavailable");
+      const data = await response.json();
+      if (data?.status !== "completed") throw new Error("model_incomplete");
+      reply = Array.isArray(data?.output) ? data.output.flatMap((item) => item.content || [])
+        .filter((item) => item.type === "output_text" && typeof item.text === "string")
+        .map((item) => item.text).join("").trim().slice(0, 600) : "";
+    }
     if (!reply || riskyReply.test(reply) || /[.!。\n]/.test(reply) || !reply.endsWith("?"))
       reply = "기획하시는 제품의 유형과 제형은 무엇인가요?";
-    return respond(req, res, 200, { reply, mode: "gpt6_luna_admin_test", sentSummary: safeInput.at(-1).summary,
+    return respond(req, res, 200, { reply, mode: "gpt6_luna_admin_test", backend, sentSummary: safeInput.at(-1).summary,
       ...(evidence && { market: evidence }) });
   } catch {
     return respond(req, res, 503, { error: "GPT-6 Luna 시험 연결을 확인하지 못했습니다." });
