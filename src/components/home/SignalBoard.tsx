@@ -51,7 +51,7 @@ function WeeklyChange({ row }: { row: Ranked }) {
   );
 }
 
-export default function SignalBoard({ initial }: { initial: Signal[] }) {
+export default function SignalBoard({ initial, homeExclusion }: { initial: Signal[]; homeExclusion: { name: string; changePct: number; observedAt: string } | null }) {
   // 빌드 때 심은 값으로 먼저 그리고, 브라우저에서 같은 어댑터로 다시 읽는다.
   const [signals, setSignals] = useState<Ranked[]>(initial);
   const [sel, setSel] = useState(0);
@@ -271,6 +271,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
             </li>
             ))}
           </ol>
+          {homeExclusion && <p className={s.rankExclusion}>{homeExclusion.name}은 최근 7일 {homeExclusion.changePct.toFixed(1)}%로 하락해 상승 원료 TOP10에서 제외 · 기준일 {homeExclusion.observedAt}</p>}
         </div>
       </div>
 

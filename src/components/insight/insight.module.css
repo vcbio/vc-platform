@@ -38,6 +38,22 @@
 .extraMetrics dd { margin: 3px 0 0; color: var(--pf-ink); font-size: 14px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .extraNoQuote { color: var(--pf-ink-3); font-size: 13px; }
 .tabSwipeHint { display: none; }
+.tabViewport { width: 100%; min-width: 0; overflow: hidden; }
+.panelClip { overflow-x: clip; }
+.reportToggle {
+  min-height: 44px;
+  margin: 2px 0 16px;
+  padding: 0 14px;
+  border: 1px solid var(--pf-rule-strong);
+  border-radius: var(--pf-radius-sm);
+  background: var(--pf-paper);
+  color: var(--pf-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reportToggle:focus-visible { outline: 2px solid var(--pf-accent); outline-offset: 2px; }
 @media (max-width: 720px) {
   .extraRow { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .extraMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }

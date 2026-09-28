@@ -62,20 +62,22 @@ function FeedItem({ insight }: { insight: Insight }) {
 
 export default async function Home() {
   // prebuild가 검증·생성한 같은 JSON을 정적 첫 화면에도 심는다. 옛 로컬 시드가 잠깐 보이지 않는다.
-  const [stats, insightFile, signalFile] = await Promise.all([
+  const [stats, insightFile, signalFile, extraFile] = await Promise.all([
     homeStats(),
     readFile(path.join(process.cwd(), "public/data/insights.json"), "utf8"),
     readFile(path.join(process.cwd(), "public/data/signals.json"), "utf8"),
+    readFile(path.join(process.cwd(), "public/data/insight-extra.json"), "utf8"),
   ]);
   const insights = (JSON.parse(insightFile) as { rows: Insight[] }).rows;
   const signals = (JSON.parse(signalFile) as { rows: Signal[] }).rows.slice(0, 10);
+  const homeExclusion = (JSON.parse(extraFile) as { meta: { lactateHomeExclusion: { name: string; changePct: number; observedAt: string } | null } }).meta.lactateHomeExclusion;
 
   return (
     <>
       {/* ── 첫 화면 = 시세판 ── 문구 대신 숫자가 말한다(대표 결정 2026-09-21 D11) ── */}
       <section className={s.hero}>
         <Container>
-          <SignalBoard initial={signals} />
+          <SignalBoard initial={signals} homeExclusion={homeExclusion} />
         </Container>
       </section>
 

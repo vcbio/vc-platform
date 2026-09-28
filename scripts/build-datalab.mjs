@@ -177,7 +177,7 @@ async function main() {
     const x = classInfo(d);
     return x.registrationKind === "listed_nutrient_source" && x.gradeFilter && d.grade && x.gradeFilter !== d.grade;
   };
-  const classGrade = (d) => classificationConflict(d) ? "분류 충돌·확인 필요" : classInfo(d).gradeFilter || d.grade;
+  const classGrade = (d) => classificationConflict(d) ? d.grade : classInfo(d).gradeFilter || d.grade;
   function classLabel(d) {
     const x = classInfo(d);
     if (x.defaultInclude === false) return "원료 아닌 참고 분류";
@@ -524,7 +524,7 @@ async function main() {
       id: "dl-safety-unapproved",
       tab: "safety",
       title: `검색은 많지만 기능성 인정이 없는 원료 ${unapproved.length}종`,
-      summary: `${names(unapproved, 3)} 등은 검색이 많은 편이지만 고시형·개별인정형이 아닙니다. 일반식품으로 만들 수는 있어도 기능성 표시는 할 수 없습니다.`,
+      summary: `${names(unapproved, 3)} 등은 검색이 많은 편이지만 데이터랩 원료 상세에서 고시형·개별인정형으로 표시되지 않습니다. 식품 사용·기능성 표시 가능 여부는 원료별 규격 확인 전까지 미확정입니다.`,
       body: `인정 지위는 데이터랩이 정리한 공개 자료 값입니다. 기획 단계에서 이 구분을 놓치면 표시·광고 문구를 다시 써야 하고, 그때는 이미 디자인과 인쇄가 끝나 있는 경우가 많습니다. 최종 판단은 관할 기관 고시와 개별 품목 확인이 우선입니다.`,
       source: SOURCE,
       publishedAt: asOf,

@@ -70,13 +70,13 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
   return (
     <ol className={c.extraList}>
       {rows.map((row, index) => {
-        const quoteBlocked = row.role.includes("의약품") || row.grade === "의약품" || row.grade === "분류 충돌·확인 필요" || row.trust === "검색 오염";
+        const quoteBlocked = row.role.includes("의약품") || row.grade === "의약품" || row.category.includes("규격 확인 필요") || row.trust === "검색 오염";
         return (
           <li key={`${kind}-${row.id}`} className={c.extraRow}>
             <div className={c.extraName}>
               <span className={c.extraRank}>{index + 1}</span>
               <a href={row.href} target="_blank" rel="noopener noreferrer">{row.name}<span className="pf-sr-only"> (새 탭에서 열림)</span></a>
-              <small>{row.grade === "분류 충돌·확인 필요" ? row.grade : row.role === "원료" ? row.category || row.role : row.role}</small>
+              <small>{row.name === "젖산마그네슘" ? `${row.grade} · 규격 확인 필요` : row.role === "원료" ? row.category || row.role : row.role}</small>
               {row.trust === "검색 오염" && <small>검색 오염 · 해석 주의</small>}
               {kind === "report" && !!row.aliases?.length && <small className={c.extraAliases}>
                 같은 공개 집계값: {row.aliases.map((alias, i) => <span key={alias.id}>
@@ -143,6 +143,7 @@ export default function InsightTabs() {
   const [loaded, setLoaded] = useState<{ tab: InsightTab; rows: Signal[]; notes: Insight[]; extra: { meta: InsightExtraMeta; rows: InsightExtraRow[] } | null } | null>(
     null,
   );
+  const [showAllReports, setShowAllReports] = useState(false);
   const [meta, setMeta] = useState<DatalabMeta | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -195,7 +196,13 @@ export default function InsightTabs() {
   const rows = ready?.rows;
   const notes = ready?.notes;
   const extra = ready?.extra;
-  const extraRows = extra?.rows.filter((row) => tab === "trend" ? row.kind === "season" || row.kind === "forecast" : row.kind === tab) ?? [];
+  const extraRows = extra?.rows.filter((row) => {
+    if (tab === "trend") return row.kind === "season" || row.kind === "forecast";
+    if (row.kind !== tab) return false;
+    if (tab !== "report" || showAllReports) return true;
+    return row.role === "원료" && row.trust === "쓸만함" &&
+      (row.category === "건강기능식품 원료" || row.category === "일반식품 원료");
+  }) ?? [];
   const visibleCount = tab === "weekly" || tab === "safety" ? rows?.length ?? 0 : extraRows.length;
   const usesExtra = tab === "trend" || tab === "broadcast" || tab === "report";
   // 기준 주는 관측이 있는 첫 줄에서 가져온다 — 맨 윗줄이 「주간 비교 미제공」일 수 있다.
@@ -240,7 +247,7 @@ export default function InsightTabs() {
           </p>
         )}
 
-        <div className={s.tabs} role="tablist" aria-label="인사이트 분류">
+        <div className={c.tabViewport}><div className={s.tabs} role="tablist" aria-label="인사이트 분류">
           {TABS.map((t, i) => (
             <button
               key={t.id}
@@ -260,7 +267,7 @@ export default function InsightTabs() {
               {t.label}
             </button>
           ))}
-        </div>
+        </div></div>
         <p className={c.tabSwipeHint}>탭을 옆으로 밀면 홈쇼핑 방송·제조보고도 볼 수 있습니다.</p>
 
         <div
@@ -269,7 +276,7 @@ export default function InsightTabs() {
           aria-labelledby={`insight-tab-${tab}`}
           tabIndex={0}
           key={tab}
-          className={s.panel}
+          className={`${s.panel} ${c.panelClip}`}
         >
           {!rows || !notes || (usesExtra && !extra) ? (
             <p className="pf-help">자료를 불러오는 중입니다.</p>
@@ -285,12 +292,13 @@ export default function InsightTabs() {
                       <p className={c.extraCaution}>최신 예측은 상대지수입니다. 검색량·매출 예측이 아니며, 원료별 예측값과 대상 기간을 함께 표시합니다.</p>
                       <ExtraList kind="forecast" rows={extraRows.filter((row) => row.kind === "forecast")} />
                       {extra?.meta.lactateHomeExclusion && <p className={c.extraCaution}>
-                        젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 원료 상세와 별도 분류 원본이 달라 플랫폼 분류는 ‘확인 필요’로 표시합니다.
+                        젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 플랫폼 분류는 데이터랩 원료 상세의 ‘비인정’을 따르며, 별도 분류 자료와의 차이는 규격 확인 대상으로 남깁니다.
                       </p>}
                     </div>
                   ) : tab === "broadcast" || tab === "report" ? (
                     <div className={c.extraGroup}>
                       {tab === "report" && <p className={c.extraCaution}>원본 {extra?.meta.reportRawCount}원료 중 같은 수치·상위 업체·유사한 이름은 {extra?.meta.reportDisplayCount}묶음으로 표시합니다. 수치를 더하지 않았고 실제 동일 신고번호인지는 미검증입니다. 수집 시작일도 미확인입니다.</p>}
+                      {tab === "report" && <button type="button" className={c.reportToggle} aria-pressed={showAllReports} onClick={() => setShowAllReports((value) => !value)}>{showAllReports ? "원료만 보기" : "전체 보기 · 식재료·첨가물 포함"}</button>}
                       {tab === "broadcast" && <p className={c.extraCaution}>방송 연결은 과거·예정 편성이 섞여 있으며 실제 판매량을 뜻하지 않습니다.</p>}
                       <ExtraList kind={tab} rows={extraRows} />
                     </div>
