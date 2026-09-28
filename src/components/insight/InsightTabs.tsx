@@ -26,7 +26,7 @@ const TABS: { id: InsightTab; label: string; lead: string; hash: string; more: s
   {
     id: "weekly",
     label: "주간 급상승",
-    lead: "마지막 완전주의 검색이 직전 주보다 얼마나 움직였는지 봅니다.",
+    lead: "최근 관측 7일의 검색 관심도가 앞선 7일보다 얼마나 움직였는지 봅니다.",
     hash: "#view=ingredients&tab=trend",
     more: "원료 전체 목록은 데이터랩에서",
   },
@@ -156,7 +156,7 @@ export default function InsightTabs() {
         {meta && (
           <p className={c.caption}>
             <span>
-              기준일 <b>{meta.observedAt}</b>
+              최근 관측일 <b>{meta.observedAt}</b>
             </span>
             <span>출처 · {meta.source}</span>
             <em>{meta.note}</em>
@@ -246,12 +246,12 @@ export default function InsightTabs() {
                   <dl>
                     <KV label="목록 원료">{rows.length}종</KV>
                     <KV label="읽는 글">{notes.length}건</KV>
-                    <KV label="기준 주">{topRow?.periodLabel ?? "—"}</KV>
+                    <KV label="관측 구간">{topRow?.periodLabel ?? "—"}</KV>
                     <KV label="자료 기준일">{meta?.observedAt ?? "—"}</KV>
                   </dl>
                   <Note>
                     월 검색량은 참고값입니다. 정확한 산정 기간이 제공되지 않고, 원료 간 시장 규모를
-                    뜻하지도 않습니다. 변화율은 마지막 완전주의 일평균을 직전 주와 견준 값이며, 기준값이
+                    뜻하지도 않습니다. 변화율은 최근 관측 7일의 일평균을 앞선 7일과 견준 값이며, 기준값이
                     0이거나 빠진 원료는 비워 둡니다. 인정 지위와 제품화 가능 여부는 담당자 확인이
                     필요합니다.
                   </Note>

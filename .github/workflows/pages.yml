@@ -2,13 +2,13 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    # 스냅샷 커밋이 다시 이 워크플로를 부르지 않게 한다(무한 재귀 방지 1/2).
+    # 일별 스냅샷 커밋이 다시 이 워크플로를 부르지 않게 한다(무한 재귀 방지 1/2).
     paths-ignore:
       - "public/data/history/**"
   workflow_dispatch:
   schedule: [{ cron: "30 22 * * *" }]   # 매일 07:30 KST — 데이터랩 갱신 반영
 permissions:
-  # 주차별 스냅샷을 저장소에 되돌려 넣어야 해서 write 가 필요하다.
+  # 일별 스냅샷을 저장소에 되돌려 넣어야 해서 write 가 필요하다.
   contents: write
   pages: write
   id-token: write
@@ -30,9 +30,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.VC_PLATFORM_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.VC_PLATFORM_SUPABASE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_VC_AI_ENDPOINT: ${{ vars.VC_PLATFORM_AI_ENDPOINT }}
-      # prebuild 가 만든 이번 주 스냅샷을 저장소에 남긴다.
+      # prebuild 가 만든 실제 관측일 스냅샷을 저장소에 남긴다.
       # 다음 회차가 이 파일을 읽어 순위 변동(▲▼)을 낸다.
-      - name: Commit weekly snapshot
+      - name: Commit daily snapshot
         if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"

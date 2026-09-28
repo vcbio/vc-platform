@@ -152,7 +152,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
     >
       <div className={s.deckHead}>
         <span className={s.deckEyebrow}>
-          지금 뜨는 원료 · {top.observedAt} 기준 · {top.source}
+          지금 뜨는 원료 · 최근 관측 {top.observedAt} · {top.source}
         </span>
         <span className={s.live}>최근 집계</span>
       </div>
@@ -173,8 +173,9 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
           </h1>
 
           <p className={s.deckNum}>
+            {top.volumeExact === false && <span className="pf-sr-only">최소 </span>}
             <Odometer text={nf.format(top.monthlyVolume)} reduced={reduced} className={s.odoBig} />
-            <span className={s.deckUnit}>회 / 월</span>
+            <span className={s.deckUnit}>{top.volumeExact === false ? "회 이상 / 월" : "회 / 월"}</span>
           </p>
 
           {/* 변화율은 숫자와 같은 줄에 두지 않는다 — 자릿수가 길면 줄이 감겨
@@ -225,7 +226,7 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
           <div className={s.rankTop}>
             <div>
               <h2>검색 관심 TOP 10</h2>
-              <p>월 검색량 · 직전 주 변화</p>
+              <p>월 검색량 · 앞선 7일 대비</p>
             </div>
             {!reduced && (
               <button
@@ -255,13 +256,14 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
               id={`sig-opt-${i}`}
               role="option"
               aria-selected={i === sel}
-              aria-label={`${i + 1}위 ${sig.name}, 월 검색량 ${nf.format(sig.monthlyVolume)}회, ${sig.changeStatus === "관측" ? `직전 주 변화 ${pct(sig.changePct)}` : "직전 주 변화 미제공"}`}
+              aria-label={`${i + 1}위 ${sig.name}, 월 검색량 ${sig.volumeExact === false ? "최소 " : ""}${nf.format(sig.monthlyVolume)}회, ${sig.changeStatus === "관측" ? `앞선 7일 대비 ${pct(sig.changePct)}` : "7일 변화 미제공"}`}
               className={i === sel ? s.rowOn : undefined}
               onClick={() => pick(i)}
             >
               <span className={s.boardRowRank}>{String(i + 1).padStart(2, "0")}</span>
               <span className={s.boardRowName}>{sig.name}</span>
               <span className={s.boardRowNum}>
+                {sig.volumeExact === false && <span aria-hidden="true">≥ </span>}
                 {/* 네 자리가 넘는 값만 굴린다 — 짧은 수는 굴려도 읽히지 않는다 */}
                 {sig.monthlyVolume >= 1000 ? (
                   <Odometer

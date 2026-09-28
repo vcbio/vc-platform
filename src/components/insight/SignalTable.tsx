@@ -87,13 +87,13 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
                 </span>
               </td>
               <td className={c.vol}>
-                {num(r.monthlyVolume)}
-                <small>회 · 참고값</small>
+                {r.volumeExact === false ? "≥ " : ""}{num(r.monthlyVolume)}
+                <small>회 · {r.volumeExact === false ? "확인된 최소값" : "참고값"}{r.volumeDate ? ` · ${r.volumeDate}` : ""}</small>
               </td>
               <td className={`${c.chg} ${dir === "up" ? c.up : dir === "down" ? c.down : c.flat}`}>
                 {observed ? `${mark} ${r.changePct > 0 ? "+" : ""}${r.changePct.toFixed(1)}%` : "—"}
                 {/* 기저가 낮으면 퍼센트가 몇 배로 튄다. 숫자 옆에서 바로 말해 준다. */}
-                {r.lowBase && <span className={c.lowBase}>직전 주 기저 매우 낮음</span>}
+                {r.lowBase && <span className={c.lowBase}>앞선 7일 기저 매우 낮음</span>}
                 <span className={c.period}>{r.periodLabel}</span>
               </td>
               <td className={c.sparkCell}>

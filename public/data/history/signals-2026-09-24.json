@@ -1,0 +1,127 @@
+{
+  "observedAt": "2026-09-24",
+  "basis": "rolling7",
+  "source": "한국 공개자료 · 데이터랩",
+  "rows": [
+    {
+      "id": "ing_3b43f38712ae66a4",
+      "name": "마그네슘",
+      "monthlyVolume": 129900,
+      "changePct": 1.2
+    },
+    {
+      "id": "ing_b0f620eba4f03450",
+      "name": "유산균",
+      "monthlyVolume": 114600,
+      "changePct": 0.7
+    },
+    {
+      "id": "ing_0cade9ccd77cc1f1",
+      "name": "콘드로이친",
+      "monthlyVolume": 101200,
+      "changePct": 12.4
+    },
+    {
+      "id": "ing_5def52cf57bbe4ac",
+      "name": "크레아틴",
+      "monthlyVolume": 98400,
+      "changePct": 6.1
+    },
+    {
+      "id": "ing_0dc3160ca2edbe2c",
+      "name": "베르베린",
+      "monthlyVolume": 76200,
+      "changePct": 2.4
+    },
+    {
+      "id": "ing_d6d9e65a201af582",
+      "name": "카무트효소",
+      "monthlyVolume": 75270,
+      "changePct": 3.9
+    },
+    {
+      "id": "ing_7d604df0b60dfed9",
+      "name": "글루타치온",
+      "monthlyVolume": 68270,
+      "changePct": 5.7
+    },
+    {
+      "id": "ing_12ee81e6fd464fb6",
+      "name": "아르기닌",
+      "monthlyVolume": 65400,
+      "changePct": 3.8
+    },
+    {
+      "id": "ing_7478199ee3e9cb57",
+      "name": "포스파티딜세린",
+      "monthlyVolume": 63090,
+      "changePct": 0.5
+    },
+    {
+      "id": "ing_a02d6e12e49774d4",
+      "name": "커큐민",
+      "monthlyVolume": 60280,
+      "changePct": 22.4
+    },
+    {
+      "id": "ing_44dae654a56c8d70",
+      "name": "알룰로스",
+      "monthlyVolume": 44890,
+      "changePct": 1.6
+    },
+    {
+      "id": "ing_304fbb1a972d232d",
+      "name": "프로폴리스",
+      "monthlyVolume": 44520,
+      "changePct": 18.2
+    },
+    {
+      "id": "ing_08a48053af7f0507",
+      "name": "애사비",
+      "monthlyVolume": 43720,
+      "changePct": 6.9
+    },
+    {
+      "id": "ing_348838ae589edbdf",
+      "name": "비오틴",
+      "monthlyVolume": 38880,
+      "changePct": 1.3
+    },
+    {
+      "id": "ing_4e5af721d4019c5d",
+      "name": "NMN",
+      "monthlyVolume": 33140,
+      "changePct": 22.5
+    },
+    {
+      "id": "ing_702da04fc888f741",
+      "name": "히알루론산",
+      "monthlyVolume": 31800,
+      "changePct": 61.1
+    },
+    {
+      "id": "ing_06aee214244b6375",
+      "name": "흑염소",
+      "monthlyVolume": 28110,
+      "changePct": 7.6
+    },
+    {
+      "id": "ing_6563c007393064da",
+      "name": "칼마디",
+      "monthlyVolume": 27290,
+      "changePct": 2.7
+    },
+    {
+      "id": "ing_d4fbbc4fd53ae6bd",
+      "name": "프로바이오틱스",
+      "monthlyVolume": 25600,
+      "changePct": 8.6
+    },
+    {
+      "id": "ing_32c0cbe44cc23c13",
+      "name": "보이차",
+      "monthlyVolume": 25520,
+      "changePct": 8.5
+    }
+  ]
+}

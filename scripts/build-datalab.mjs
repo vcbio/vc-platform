@@ -6,23 +6,22 @@
  * 왜 파생본을 만드나 — 데이터랩 원본(keywords 46.5MB 등)은 브라우저에서 읽을 크기가 아니다.
  * 첫 화면 페이로드를 300KB 아래로 묶으려고 빌드 시 한 번만 내려받아 필요한 줄만 깎아 둔다.
  *
- * 왜 JSON 이 아니라 페이지 HTML 을 읽나 — 공개 페이지가 화면에 쓰는 값(DATA·OBS)을 그대로 인라인으로
- * 갖고 있다. 같은 덩어리를 읽어야 화면 숫자가 데이터랩 화면과 한 자리도 어긋나지 않는다.
- * 페이지 안의 *_REF 상수(해시 파일명)도 함께 읽어 로그에 남긴다 — 갱신되면 파일명이 바뀐다.
+ * 공개 페이지에서 원료·분류·검색량과 최신 일별 자료 포인터를 읽는다.
+ * 일별 변화율은 데이터랩 기간 요약, 8주 차트는 해시 검증된 일별 원본으로 만든다.
  *
- * ⚠️ 실패해도 빌드를 세우지 않는다(exit 0). 기존 public/data 파일이 그대로 남고, 그것도 없으면
- *    화면이 로컬 시드로 떨어진다.
+ * ⚠️ 원본이 맞지 않으면 빌드를 실패시킨다. 성공처럼 낡은 날짜를 게시하지 않는다.
  * ⚠️ 데이터랩 저장소는 읽기 전용이다. 이 스크립트는 아무것도 올리지 않는다.
  */
 
 import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 /** 값을 긁어 오는 대상. 화면 링크용 주소는 `src/lib/data/datalab.ts` 의 DATALAB_URL 이다(같이 바꿀 것). */
 const PAGE = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
 const BASE = "https://vcbio.github.io/shelf/d/";
 const OUT_DIR = path.join(process.cwd(), "public", "data");
-/** 주차별 스냅샷 보관소. 순위 변동(▲▼)은 지난주 파일이 있어야 계산할 수 있다. */
+/** 관측일별 스냅샷 보관소. 순위 변동(▲▼)은 7일 전 파일이 있어야 계산할 수 있다. */
 const HISTORY_DIR = path.join(OUT_DIR, "history");
 /** 비교 대상으로 인정하는 최소 간격. 같은 주의 파일을 지난주로 착각하지 않게 한다. */
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -39,14 +38,13 @@ const SIGNAL_MIN_VOLUME = 10000;
 const log = (...a) => console.log("[build-datalab]", ...a);
 
 /**
- * 30초 워치독. 파싱이 어디선가 돌아버려도 빌드를 세우지 않는다 —
- * 그냥 빠져나가고 기존 public/data 파일이 그대로 쓰인다.
+ * 네트워크가 멈추면 실패한다. GitHub Pages는 이전 배포를 보존한다.
  * unref 라서 정상 종료를 붙잡지 않는다.
  */
 const watchdog = setTimeout(() => {
-  log("30초를 넘겨 중단합니다. 기존 public/data 파일을 그대로 둡니다.");
-  process.exit(0);
-}, 30_000);
+  console.error("[build-datalab] 120초 시간 초과 — 이번 배포를 중단합니다.");
+  process.exit(1);
+}, 120_000);
 watchdog.unref();
 
 /* ── 인라인 리터럴 한 덩어리 떼어내기 ──────────────────────────────────────────
@@ -79,6 +77,8 @@ const mmdd = (iso) => iso.slice(5).replace("-", "-");
 const round1 = (n) => Math.round(n * 10) / 10;
 /** 미니바용 — 지수가 0.0x 대인 원료가 많아 소수 1자리로 깎으면 막대가 전부 0이 된다. */
 const round3 = (n) => Math.round(n * 1000) / 1000;
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const dateAt = (iso, offset) => new Date(Date.parse(`${iso}T00:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
 
 async function main() {
   log("읽는 중:", PAGE);
@@ -90,6 +90,33 @@ async function main() {
   // 원본 파일명(해시)은 갱신 때마다 바뀐다. 추적용으로 남긴다.
   const refs = [...html.matchAll(/([A-Z0-9_]+_REF)\s*=\s*"([^"]+)"/g)].map(([, k, v]) => `${k}=${BASE}${v}`);
   refs.forEach((r) => log("원본 참조", r));
+  const refPath = (key) => {
+    const match = html.match(new RegExp(`(?:const\\s+)?${key}\\s*=\\s*"([^"]+)"`));
+    if (!match) throw new Error(`${key} 포인터가 없습니다`);
+    return match[1];
+  };
+  async function fetchSource(relative) {
+    const response = await fetch(new URL(relative, BASE));
+    if (!response.ok) throw new Error(`${relative}: HTTP ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return { data: JSON.parse(bytes.toString("utf8")), hash: sha256(bytes) };
+  }
+  const { data: PERIOD } = await fetchSource(refPath("PERIOD_SUMMARY_REF"));
+  const { data: FORECAST } = await fetchSource(refPath("NEW_FORECAST_REF"));
+  const mainRef = refPath("MAIN_SERIES_REF");
+  const { data: MAIN_INDEX, hash: indexHash } = await fetchSource(mainRef);
+  if (PERIOD.status !== "complete" || PERIOD.source?.zeroFill !== false ||
+      PERIOD.source?.indexSha256 !== indexHash || PERIOD.source?.asOf !== MAIN_INDEX.asOf ||
+      !Array.isArray(PERIOD.ingredients) || !Array.isArray(MAIN_INDEX.items)) {
+    throw new Error("일별 요약·원본 색인 날짜/해시가 맞지 않습니다");
+  }
+  const asOf = PERIOD.source.asOf;
+  if (FORECAST.asOf !== asOf || !Array.isArray(FORECAST.items)) {
+    throw new Error("예측 원본의 관측일이 일별 원본과 맞지 않습니다");
+  }
+  const periodById = new Map(PERIOD.ingredients.map((row) => [row.id, row]));
+  const shardById = new Map(MAIN_INDEX.items.map((row) => [row.id, row]));
+  log(`일별 관측 ${asOf} · 관측 원료 ${PERIOD.source.observedIngredients}/${PERIOD.source.ingredientCount}`);
 
   const DATA = carve(html, "const DATA=[", "[", "]");
   const OBS = carve(html, ", OBS={", "{", "}");
@@ -101,46 +128,35 @@ async function main() {
     log("주의 — CLASSIFICATION 을 못 읽었습니다. s2·s4 만으로 분류합니다.");
   }
   const classById = new Map((CLASSIFICATION.items ?? []).map((x) => [x.id, x]));
-  log(`DATA ${DATA.length}건 · OBS ${OBS.items.length}건 · 마지막 완전주 ${OBS.completeWeekEnd}`);
+  log(`DATA ${DATA.length}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
 
-  const obsById = new Map(OBS.items.map((o) => [o.id, o]));
-
-  /* ── 월 검색량 ── 데이터랩 화면의 volumeValue() 와 같은 값을 쓴다.
-     DATA.search 는 갱신 전 원값(originalTotal)이라 화면 숫자와 어긋난다.
-     화면은 RANKING 의 volume.lower 를 「정확일치 + exact」일 때만 숫자로 찍으므로 그 조건을 그대로 따르고,
-     아니면 예전 추정값으로 물러선다(비워 두면 정렬이 무너진다). */
+  /* ── 월 검색량 ── 정확일치·실측 하한만 순위에 쓴다. 결측은 0으로 채우지 않는다. */
   let RANKING = { items: [] };
   try {
     RANKING = carve(html, "RANKING={", "{", "}");
-  } catch {
-    log("주의 — RANKING 을 못 읽었습니다. DATA.search(월간 추정값)로 표시합니다.");
-  }
+  } catch { throw new Error("검색량 원본 RANKING을 못 읽었습니다"); }
   const rankById = new Map((RANKING.items ?? []).map((x) => [x.id, x]));
   function volumeOf(row) {
     const v = rankById.get(row.id)?.volume;
-    if (v && v.lower != null && v.status === "정확일치" && v.exact) return v.lower;
-    return row.search ?? 0;
+    if (v?.status === "정확일치" && Number.isFinite(v.lower) && v.lower > 0) return v.lower;
+    return null;
   }
 
-  /* ── 주간 변화율 ──────────────────────────────────────────────────────────
-     데이터랩과 같은 산식이다 — 마지막 완전주 일평균 ÷ 직전 주 일평균 − 1.
-     적격(eligible) 판정도 데이터랩 것을 그대로 따른다. 기준값이 0·결측이면 계산하지 않는다. */
+  /* ── 최근 연속 7일 / 앞선 7일 ── 빈 날이 있으면 변화를 내지 않는다. */
   function weekly(row) {
-    const o = obsById.get(row.id);
-    const weeks = o?.weeks ?? [];
-    if (!o?.eligible || weeks.length < 2) return null;
-    const cur = weeks.at(-1);
-    const prev = weeks.at(-2);
-    if (!(prev.mean > 0)) return null;
+    const o = periodById.get(row.id);
+    const cur = o?.periods?.find((p) => p.days === 7);
+    if (o?.status !== "observed" || o.observedEnd !== asOf || cur?.end !== asOf ||
+        cur.missingDays !== 0 || cur.observedDays !== 7 || cur.previousObservedDays !== 7 ||
+        !(cur.previousMean > 0) || !Number.isFinite(cur.changeRatePct)) return null;
     return {
-      changePct: round1((cur.mean / prev.mean - 1) * 100),
-      periodLabel: `주간 ${mmdd(cur.start)}~${mmdd(cur.end)}`,
-      observedAt: cur.end,
-      weeks8: weeks.slice(-8).map((w) => round3(w.mean)),
-      weeks8Dates: weeks.slice(-8).map((w) => ({ start: w.start, end: w.end })),
-      riseWeeks: o.score8 ?? null,
-      // 직전 주가 8주 최고의 20% 에도 못 미치면 퍼센트가 몇 배로 튄다. 화면에 그 사실을 적는다.
-      lowBase: prev.mean < Math.max(...weeks.slice(-8).map((w) => w.mean)) * 0.2,
+      changePct: round1(cur.changeRatePct),
+      periodLabel: `최근 7일 ${mmdd(cur.start)}~${mmdd(cur.end)}`,
+      observedAt: asOf,
+      weeks8: [],
+      weeks8Dates: [],
+      riseWeeks: null,
+      lowBase: cur.previousMean < cur.mean * 0.2,
     };
   }
 
@@ -176,7 +192,7 @@ async function main() {
     for (const n of names.filter((n) => n.startsWith("signals-") && n.endsWith(".json"))) {
       try {
         const snap = JSON.parse(await readFile(path.join(HISTORY_DIR, n), "utf8"));
-        if (!snap?.observedAt || !Array.isArray(snap.rows)) continue;
+        if (!snap?.observedAt || snap.basis !== "rolling7" || !Array.isArray(snap.rows)) continue;
         if (new Date(snap.observedAt).getTime() <= cutoff) found.push(snap);
       } catch {
         // 깨진 파일 하나 때문에 빌드를 세우지 않는다.
@@ -187,7 +203,7 @@ async function main() {
   }
 
   const href = (row) => `${PAGE}#view=ingredients&id=${row.id}&tab=trend`;
-  const searchAsOf = (row) => row.q?.asOf?.["검색"] ?? OBS.sourceDate;
+  const searchAsOf = (row) => rankById.get(row.id)?.volume?.date ?? row.q?.asOf?.["검색"] ?? "";
 
   /** DATA 한 줄 → Signal. 주간 관측이 없으면 변화율 자리를 비운 채로 낸다(0 으로 꾸미지 않는다). */
   function toSignal(row, tabs) {
@@ -198,10 +214,12 @@ async function main() {
       category: classLabel(row),
       functionCategory: row.cat && row.cat !== "기타" ? row.cat : "",
       monthlyVolume: volumeOf(row),
+      volumeExact: rankById.get(row.id)?.volume?.exact === true,
+      volumeDate: searchAsOf(row),
       changePct: w ? w.changePct : 0,
       changeStatus: w ? "관측" : "미제공",
       periodLabel: w ? w.periodLabel : "주간 비교 미제공",
-      observedAt: w ? w.observedAt : searchAsOf(row),
+      observedAt: w ? w.observedAt : periodById.get(row.id)?.observedEnd ?? "",
       source: SOURCE,
       href: href(row),
       grade: classGrade(row),
@@ -230,7 +248,7 @@ async function main() {
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
-  const previous = await loadPreviousSnapshot(OBS.completeWeekEnd);
+  const previous = await loadPreviousSnapshot(asOf);
   if (previous) {
     const prevRank = new Map(previous.rows.map((r, i) => [r.id, i + 1]));
     signals.forEach((r, i) => {
@@ -256,8 +274,11 @@ async function main() {
 
   /* ── ③ 계절·예측 ── 데이터랩이 「계절반복」으로 판정했거나 2주 예측 조건을 통과한 원료. */
   const seasonal = usable.filter((d) => d.season === "계절반복");
-  const forecastable = usable.filter((d) => d.forecastV4?.status === "eligible");
-  const trendRows = [...new Set([...seasonal, ...forecastable])]
+  const forecastIds = new Set(FORECAST.items.filter((row) => row.status === "calculated" &&
+    row.forecasts?.some((forecast) => forecast.horizon_weeks === 2 && forecast.platform_eligible === true))
+    .map((row) => row.id));
+  const forecastable = usable.filter((d) => forecastIds.has(d.id));
+  const trendRows = [...new Set([...seasonal, ...forecastable])].filter((d) => volumeOf(d) != null)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 16)
     .map((d) => toSignal(d, ["trend"]));
@@ -269,6 +290,7 @@ async function main() {
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 12);
   const medicinal = DATA.filter((d) => classGrade(d) === "의약품")
+    .filter((d) => volumeOf(d) != null)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 6);
   const safetyRows = [...unapproved, ...medicinal].map((d) => toSignal(d, ["safety"]));
@@ -281,15 +303,55 @@ async function main() {
     else tagged.set(s.id, s);
   }
   const top100 = ingredients
+    .filter((d) => volumeOf(d) != null)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 100)
     .map((d) => tagged.get(d.id) ?? toSignal(d, []));
   // 상위 100 밖이지만 탭에 걸린 줄은 뒤에 붙인다 — 화면이 두 파일을 합치지 않아도 되게.
   for (const s of tagged.values()) if (!top100.some((t) => t.id === s.id)) top100.push(s);
 
+  /* 선택된 원료의 실제 일별 원본으로만 8주 차트를 만든다. 56일 중 하나라도 빠지면 비워 둔다. */
+  const selected = new Map([...signals, ...risers, ...trendRows, ...safetyRows, ...top100].map((r) => [r.id, r]));
+  const seriesById = new Map();
+  const selectedIds = [...selected.keys()];
+  for (let start = 0; start < selectedIds.length; start += 10) {
+    await Promise.all(selectedIds.slice(start, start + 10).map(async (id) => {
+      const shard = shardById.get(id);
+      if (shard?.status !== "observed" || !shard.file || shard.observedEnd !== asOf) return;
+      const { data, hash } = await fetchSource(`${mainRef.slice(0, mainRef.lastIndexOf("/") + 1)}${shard.file}`);
+      if (hash !== shard.sha256 || data.asOf !== asOf) throw new Error(`${id} 일별 원본 해시/날짜 불일치`);
+      const row = data.series?.find((x) => x.id === id);
+      if (!row || !Array.isArray(row.daily)) throw new Error(`${id} 일별 원본 ID 불일치`);
+      const byDate = new Map(row.daily.map((point) => [point.date, point.index]));
+      const weeks = [];
+      const dates = [];
+      for (let week = 7; week >= 0; week--) {
+        const end = dateAt(asOf, -7 * week);
+        const begin = dateAt(end, -6);
+        const values = Array.from({ length: 7 }, (_, day) => byDate.get(dateAt(begin, day)));
+        if (values.some((value) => !Number.isFinite(value))) return;
+        weeks.push(values.reduce((sum, value) => sum + value, 0) / 7);
+        dates.push({ start: begin, end });
+      }
+      const latestMean = periodById.get(id)?.periods?.find((p) => p.days === 7)?.mean;
+      if (Number.isFinite(latestMean) && Math.abs(weeks.at(-1) - latestMean) > 0.001) {
+        throw new Error(`${id} 7일 평균과 일별 원본 불일치`);
+      }
+      seriesById.set(id, { weeks8: weeks.map(round3), weeks8Dates: dates,
+        riseWeeks: weeks.slice(1).filter((value, i) => value > weeks[i]).length,
+        lowBase: weeks.at(-2) < Math.max(...weeks) * 0.2 });
+    }));
+  }
+  for (const row of [...signals, ...risers, ...trendRows, ...safetyRows, ...top100]) {
+    const chart = seriesById.get(row.id);
+    if (chart) Object.assign(row, chart);
+  }
+  if (!signals.length || !risers.length || !seriesById.has(signals[0].id)) {
+    throw new Error("최신 관측일의 상승 원료·8주 차트를 만들 수 없습니다");
+  }
+
   /* ── 인사이트 카드 ── 값은 전부 위에서 뽑은 실값이다. 문장은 관측을 말할 뿐 효능을 말하지 않는다. */
-  const asOf = OBS.completeWeekEnd;
-  const weekLabel = risers[0]?.periodLabel ?? `주간 ~${asOf}`;
+  const weekLabel = risers[0]?.periodLabel ?? `최근 7일 ~${asOf}`;
   const num = (n) => n.toLocaleString("ko-KR");
   const pct = (n) => `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
   const names = (arr, n = 3) => arr.slice(0, n).map((x) => x.name).join(" · ");
@@ -312,7 +374,7 @@ async function main() {
       tab: "weekly",
       // 대표 카드는 절대량 1위다 — 퍼센트가 아니라 사람이 실제로 많이 찾는 원료를 먼저 본다.
       title: `지금 가장 많이 찾는 상승 원료는 ${signals[0].name}입니다`,
-      summary: `${weekLabel} 기준 ${signals[0].name}의 월 검색량은 ${num(signals[0].monthlyVolume)}회이고, 직전 주보다 ${pct(signals[0].changePct)} 움직였습니다.`,
+      summary: `${weekLabel} 기준 ${signals[0].name}의 월 검색량은 ${signals[0].volumeExact ? "" : "최소 "}${num(signals[0].monthlyVolume)}회이고, 앞선 7일보다 ${pct(signals[0].changePct)} 움직였습니다.`,
       body: `오른 원료 중 검색 규모가 큰 순서로 ${names(signals, 3)}입니다. 상승률만으로 줄을 세우면 월 몇천 회짜리 원료가 앞자리를 차지해 기획에 쓰기 어렵습니다. 그래서 이 카드는 월 ${num(SIGNAL_MIN_VOLUME)}회 이상인 원료를 검색량 순으로 봅니다. 아래 표는 반대로 변화율 순이라 무엇이 움직였는지를 봅니다.`,
       source: SOURCE,
       publishedAt: asOf,
@@ -321,8 +383,8 @@ async function main() {
       id: "dl-weekly-persistent",
       tab: "weekly",
       title: `8주 중 ${persistent[0].riseWeeks}주를 오른 ${persistent[0].name}`,
-      summary: `직전 주보다 오른 횟수가 가장 잦은 원료는 ${names(persistent, 3)}입니다. 한 주 급등과 달리 흐름이 이어지는 쪽입니다.`,
-      body: `데이터랩은 최근 8주 동안 "직전 주보다 올랐는가"를 세어 지속성을 봅니다. 한 번에 크게 뛴 원료는 다음 주에 되돌아오는 경우가 많고, 오른 주가 잦은 원료는 기획을 붙일 시간이 더 있습니다. 두 값을 같이 보셔야 합니다.`,
+      summary: `앞선 7일보다 오른 횟수가 가장 잦은 원료는 ${names(persistent, 3)}입니다. 한 구간 급등과 달리 흐름이 이어지는 쪽입니다.`,
+      body: `최근 연속 7일 구간 8개에서 바로 앞 구간보다 오른 횟수를 셌습니다. 구간은 서로 겹치지 않습니다. 한 번에 크게 뛴 원료는 이후 되돌아올 수 있으니 두 값을 같이 보셔야 합니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -330,8 +392,8 @@ async function main() {
       id: "dl-weekly-spike",
       tab: "weekly",
       title: `변화율 1위는 ${risers[0].name}입니다${risers[0].lowBase ? " — 기저가 낮습니다" : ""}`,
-      summary: `${risers[0].name}의 검색이 직전 주보다 ${pct(risers[0].changePct)} 움직였습니다. 월 검색량은 ${num(risers[0].monthlyVolume)}회입니다.${risers[0].lowBase ? " 직전 주 값이 매우 낮아 퍼센트가 크게 튄 경우라 참고값으로만 보십시오." : ""}`,
-      body: `변화율 상위 5종은 ${names(risers, 5)}입니다. 직전 주가 8주 최고의 20%에도 못 미치는 줄에는 표에서 「직전 주 기저 매우 낮음」이 붙습니다. 그런 줄은 다음 주에 되돌아오는 경우가 많으니, 8주 막대로 흐름이 이어지는지 먼저 보시기 바랍니다.`,
+      summary: `${risers[0].name}의 검색이 앞선 7일보다 ${pct(risers[0].changePct)} 움직였습니다. 월 검색량은 ${risers[0].volumeExact ? "" : "최소 "}${num(risers[0].monthlyVolume)}회입니다.${risers[0].lowBase ? " 앞선 7일 값이 매우 낮아 퍼센트가 크게 튄 경우라 참고값으로만 보십시오." : ""}`,
+      body: `변화율 상위 5종은 ${names(risers, 5)}입니다. 앞선 구간이 8주 최고의 20%에도 못 미치는 줄에는 기저가 낮다고 표시합니다. 8주 막대로 흐름이 이어지는지 먼저 보시기 바랍니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -347,9 +409,9 @@ async function main() {
     {
       id: "dl-trend-forecast",
       tab: "trend",
-      title: `2주 예측 조건을 통과한 원료 ${forecastable.length}종`,
-      summary: `데이터랩의 2주 예측은 과거 오차 시험을 통과한 원료에만 값을 냅니다. 이번 회차에 통과한 원료는 ${forecastable.length}종입니다.`,
-      body: `나머지 원료는 "지난주 값을 그대로 쓰는 방법보다 충분히 낫지 않다"는 이유로 값을 내지 않습니다. 예측은 데이터랩이 계산한 결과이고 이 화면은 그 결과를 옮겨 보여 줄 뿐입니다. 이 플랫폼은 예측을 따로 계산하지 않습니다.`,
+      title: `2주 예측 조건을 통과한 원료 ${forecastIds.size}종`,
+      summary: `데이터랩의 2주 예측 통계 조건을 통과한 원료는 전체 ${forecastIds.size}종입니다. 이 플랫폼의 표시 대상 중에는 ${forecastable.length}종이 있습니다.`,
+      body: `통계 조건을 통과해도 실제 제품 기획에 적합하다는 뜻은 아닙니다. 예측은 데이터랩 원본의 결과이며 이 플랫폼은 따로 계산하지 않습니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -385,7 +447,7 @@ async function main() {
       tab: "safety",
       title: `이 숫자를 읽을 때 같이 봐야 하는 것`,
       summary: `월 검색량은 참고값입니다. 정확한 산정 기간이 제공되지 않고, 원료 간 시장 규모를 뜻하지도 않습니다.`,
-      body: `변화율은 마지막 완전주(${weekLabel.replace("주간 ", "")})의 일평균을 직전 주와 견준 값입니다. 기준값이 0이거나 빠진 원료는 변화율을 내지 않고 비워 둡니다. 원자료는 ${OBS.rawSource}이며, 자세한 관측일수와 품질 표시는 데이터랩 화면에서 확인하실 수 있습니다.`,
+      body: `변화율은 ${weekLabel}의 일평균을 앞선 7일과 견준 값입니다. 빠진 날짜가 있거나 앞선 값이 0이면 변화율을 내지 않습니다. 월 검색량이 범위로 제공되면 확인된 최소값만 표시합니다. 원자료는 ${OBS.rawSource}이며, 자세한 관측일수와 품질 표시는 데이터랩 화면에서 확인하실 수 있습니다.`,
       source: SOURCE,
       publishedAt: asOf,
     },
@@ -394,7 +456,10 @@ async function main() {
   const meta = {
     generatedAt: new Date().toISOString(),
     observedAt: asOf,
-    sourceDate: OBS.sourceDate,
+    sourceDate: asOf,
+    sourceIndexSha256: indexHash,
+    observedIngredients: PERIOD.source.observedIngredients,
+    totalIngredients: PERIOD.source.ingredientCount,
     source: SOURCE,
     sourcePage: PAGE,
     rawSource: OBS.rawSource,
@@ -403,11 +468,11 @@ async function main() {
       // 가장 이른 관측 시작일로 햇수를 센다. "10년"을 손으로 적어 두면 해가 바뀌어도 그대로 남는다.
       const starts = DATA.map((d) => d.obs0).filter(Boolean).sort();
       if (!starts.length) return undefined;
-      return Math.max(1, new Date(OBS.sourceDate).getFullYear() - new Date(starts[0]).getFullYear());
+      return Math.max(1, new Date(asOf).getFullYear() - new Date(starts[0]).getFullYear());
     })(),
     minVolume: MIN_VOLUME,
     signalMinVolume: SIGNAL_MIN_VOLUME,
-    note: "검색량은 참고값(정확 산정기간 미제공) · 원료 간 시장 규모를 뜻하지 않습니다",
+    note: "월 검색량은 정확 산정기간이 미제공이고 범위값은 최소치만 표시 · 일별 관심도는 최신 관측 7일/앞선 7일 · 시장 규모를 뜻하지 않습니다",
   };
 
   await mkdir(OUT_DIR, { recursive: true });
@@ -423,9 +488,9 @@ async function main() {
     log(`생성 ${name} — ${payload.rows.length}건 · ${kb.toFixed(1)}KB${kb > 300 ? "  ⚠️ 300KB 초과" : ""}`);
   }
 
-  /* ── 이번 주 스냅샷 남기기 ──
-     파일 이름의 날짜는 실행일이 아니라 **자료의 완전주 기준일**이다.
-     그래야 하루에 여러 번(매일 cron) 돌아도 파일이 한 주에 하나만 쌓이고,
+  /* ── 이번 관측일 스냅샷 남기기 ──
+     파일 이름의 날짜는 실행일이 아니라 **자료의 실제 관측일**이다.
+     그래야 같은 자료로 여러 번(매일 cron) 돌아도 파일이 하나만 쌓이고,
      "7일 이상 이전" 비교가 정확해진다. 같은 주면 같은 파일을 덮어쓴다. */
   await mkdir(HISTORY_DIR, { recursive: true });
   const snapFile = path.join(HISTORY_DIR, `signals-${asOf}.json`);
@@ -435,7 +500,8 @@ async function main() {
     snapFile,
     JSON.stringify(
       {
-        observedAt: asOf,
+          observedAt: asOf,
+          basis: "rolling7",
         source: SOURCE,
         rows: signals.map((r) => ({
           id: r.id,
@@ -454,7 +520,7 @@ async function main() {
   const check = ingredients.find((d) => d.name === "젖산마그네슘");
   if (check) {
     const w = weekly(check);
-    log(`검산 젖산마그네슘 — 월 검색량 ${num(volumeOf(check))}회 · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "주간 미제공"}`);
+    log(`검산 젖산마그네슘 — 월 검색량 ${volumeOf(check) == null ? "미제공" : `${num(volumeOf(check))}회`} · ${w ? `${pct(w.changePct)} (${w.periodLabel})` : "7일 비교 미제공"}`);
   }
   log(`검산 오늘의 신호 상위 3 — ${signals.slice(0, 3).map((r, i) => `${i + 1}위 ${r.name} ${num(r.monthlyVolume)}회 ${pct(r.changePct)}`).join(" · ")}`);
   log(
@@ -465,13 +531,12 @@ async function main() {
   );
   for (const nm of ["글루타치온", "병아리콩", "모링가"]) {
     const d = ingredients.find((x) => x.name === nm);
-    if (d) log(`검산 ${nm} — 화면값 ${num(volumeOf(d))}회 (갱신 전 DATA.search ${num(d.search ?? 0)}회)`);
+    if (d) log(`검산 ${nm} — 화면값 ${volumeOf(d) == null ? "미제공" : `${num(volumeOf(d))}회`} (갱신 전 DATA.search ${num(d.search ?? 0)}회)`);
   }
   log(`검산 급상승 탭 1위 — ${risers[0].name} ${num(risers[0].monthlyVolume)}회 ${pct(risers[0].changePct)}${risers[0].lowBase ? " (기저 낮음 표시)" : ""}`);
 }
 
 main().catch((e) => {
-  log("실패 —", e.message);
-  log("기존 public/data 파일을 그대로 두고 빌드를 이어갑니다.");
-  process.exit(0);
+  console.error("[build-datalab] 실패 —", e.message);
+  process.exitCode = 1;
 });

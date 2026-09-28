@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ClipboardList, Factory, TrendingUp } from "lucide-react";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import TrustBar from "@/components/home/TrustBar";
 import SignalBoard from "@/components/home/SignalBoard";
 import { homeStats } from "@/components/home/stats";
-import { getData, type Insight } from "@/lib/data";
+import type { Insight, Signal } from "@/lib/data";
 import s from "@/components/home/home.module.css";
 
 /** 데이터랩 원본 주소 — 정의는 `src/lib/data/constants.ts` 한 곳(순환 import 방지용 분리, 2026-09-21). */
@@ -57,12 +59,14 @@ function FeedItem({ insight }: { insight: Insight }) {
 }
 
 export default async function Home() {
-  // 빌드 시점에는 시드로, 브라우저에서는 저장분으로 같은 어댑터가 다시 읽는다.
-  const [stats, insights, signals] = await Promise.all([
+  // prebuild가 검증·생성한 같은 JSON을 정적 첫 화면에도 심는다. 옛 로컬 시드가 잠깐 보이지 않는다.
+  const [stats, insightFile, signalFile] = await Promise.all([
     homeStats(),
-    getData().listInsights(),
-    getData().listSignals(10),
+    readFile(path.join(process.cwd(), "public/data/insights.json"), "utf8"),
+    readFile(path.join(process.cwd(), "public/data/signals.json"), "utf8"),
   ]);
+  const insights = (JSON.parse(insightFile) as { rows: Insight[] }).rows;
+  const signals = (JSON.parse(signalFile) as { rows: Signal[] }).rows.slice(0, 10);
 
   return (
     <>
@@ -105,7 +109,7 @@ export default async function Home() {
       <section className={`${s.sec} ${s.secBand}`}>
         <Container>
           <Card
-            title="오늘의 업계 동향"
+            title="업계 자료"
             padded={false}
             action={
               <ButtonLink href="/insight/" variant="ghost" size="sm">

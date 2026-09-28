@@ -98,6 +98,8 @@ export type Signal = {
   name: string;              // 원료명 (예: 젖산마그네슘)
   category?: string;         // 건강기능식품 원료 / 일반식품 원료 …
   monthlyVolume: number;     // 월 검색량(회)
+  volumeExact?: boolean;     // false면 실측 범위의 최소값; 숫자를 확정치로 표시하지 않는다
+  volumeDate?: string;       // 월 검색량의 원료별 관측일
   changePct: number;         // 직전 기간 대비 변화율(%) — 양수 상승
   periodLabel: string;       // 비교 기간 설명 (예: "주간 08-31~09-06")
   observedAt: string;        // 데이터 기준일 ISO (예: 2026-09-07)
