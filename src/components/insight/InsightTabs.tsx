@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Badge, Card, Container } from "@/components/ui";
-import { getData, type Insight, type InsightTab, type Signal } from "@/lib/data";
-import { datalabLink, getDatalabMeta, listSignalRows, type DatalabMeta } from "@/lib/data/datalab";
+import { Badge, ButtonLink, Card, Container } from "@/components/ui";
+import { getData, type Insight, type InsightExtraRow, type InsightTab, type Signal } from "@/lib/data";
+import { datalabLink, getDatalabMeta, getInsightExtra, listSignalRows, type DatalabMeta, type InsightExtraMeta } from "@/lib/data/datalab";
 import { KV, Note, PageHead, styles as s } from "@/components/deal/shared";
 import SignalTable from "./SignalTable";
 import c from "./insight.module.css";
@@ -44,10 +44,77 @@ const TABS: { id: InsightTab; label: string; lead: string; hash: string; more: s
     hash: "#view=news",
     more: "공개 소식 전체는 데이터랩에서",
   },
+  {
+    id: "broadcast",
+    label: "홈쇼핑 방송",
+    lead: "수집한 홈쇼핑 편성 연결 수를 많은 순서로 봅니다. 과거 방송과 예정 편성이 섞여 있습니다.",
+    hash: "#view=ingredients",
+    more: "원료별 방송 상세는 데이터랩에서",
+  },
+  {
+    id: "report",
+    label: "제조보고",
+    lead: "수집 기간 내 원료명에 연결된 제조보고 건수입니다. 제품 수나 현재 생산능력이 아닙니다.",
+    hash: "#view=ingredients",
+    more: "원료별 제조보고 상세는 데이터랩에서",
+  },
 ];
 
 function isTab(v: string | null): v is InsightTab {
-  return v === "weekly" || v === "trend" || v === "safety";
+  return v === "weekly" || v === "trend" || v === "safety" || v === "broadcast" || v === "report";
+}
+
+const n = (value: number | undefined) => value == null ? "자료 없음" : value.toLocaleString("ko-KR");
+
+function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtraRow["kind"] }) {
+  return (
+    <ol className={c.extraList}>
+      {rows.map((row, index) => {
+        const quoteBlocked = row.role.includes("의약품") || row.grade === "의약품" || row.grade === "분류 충돌·확인 필요" || row.trust === "검색 오염";
+        return (
+          <li key={`${kind}-${row.id}`} className={c.extraRow}>
+            <div className={c.extraName}>
+              <span className={c.extraRank}>{index + 1}</span>
+              <a href={row.href} target="_blank" rel="noopener noreferrer">{row.name}<span className="pf-sr-only"> (새 탭에서 열림)</span></a>
+              <small>{row.grade === "분류 충돌·확인 필요" ? row.grade : row.role === "원료" ? row.category || row.role : row.role}</small>
+              {row.trust === "검색 오염" && <small>검색 오염 · 해석 주의</small>}
+              {kind === "report" && !!row.aliases?.length && <small className={c.extraAliases}>
+                같은 공개 집계값: {row.aliases.map((alias, i) => <span key={alias.id}>
+                  {i > 0 && " · "}<a href={alias.href} target="_blank" rel="noopener noreferrer">{alias.name}</a>
+                </span>)}
+              </small>}
+            </div>
+            <dl className={c.extraMetrics}>
+              {kind === "broadcast" && <>
+                <div><dt>방송 연결</dt><dd>{n(row.count)}회</dd></div>
+                <div><dt>최다 채널</dt><dd>{row.channel || "미제공"}</dd></div>
+                <div><dt>최다 가격대</dt><dd>{row.priceBand || "미제공"}</dd></div>
+                <div><dt>편성 기간</dt><dd>{row.periodStart}~{row.periodEnd}</dd></div>
+              </>}
+              {kind === "report" && <>
+                <div><dt>수집 기간 내 제조보고</dt><dd>{n(row.count)}건</dd></div>
+                <div><dt>연결 업체 최대 3곳</dt><dd>{row.companies?.length ? row.companies.join(" · ") : "미제공"}</dd></div>
+                <div><dt>자료 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
+                <div><dt>수집 시작일</dt><dd>미확인</dd></div>
+              </>}
+              {kind === "season" && <>
+                <div><dt>계절 고점</dt><dd>{row.peakMonth ? `${row.peakMonth}월` : "미제공"}</dd></div>
+                <div><dt>원본 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
+              </>}
+              {kind === "forecast" && <>
+                <div><dt>2주 예상</dt><dd>{row.point == null ? "미제공" : `${n(row.point)} ${row.unit}`}</dd></div>
+                <div><dt>대상 기간</dt><dd>{row.targetStart}~{row.targetEnd}</dd></div>
+                <div><dt>예측 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
+                <div><dt>해석</dt><dd>통계 조건 통과 · 제품 적합성 확인 아님</dd></div>
+              </>}
+            </dl>
+            {quoteBlocked ? <span className={c.extraNoQuote}>견적 연결 전 확인 필요</span> :
+              <ButtonLink href={`/quote/ai/?ingredient=${encodeURIComponent(row.name)}`} variant="secondary" size="sm">견적요청</ButtonLink>}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 /* ── 주소창을 탭 상태의 원본으로 삼는다 ────────────────────────────────────────
@@ -73,7 +140,7 @@ export default function InsightTabs() {
   const tab: InsightTab = isTab(fromUrl) ? fromUrl : "weekly";
 
   /** 받은 자료는 어느 탭 것인지와 함께 들고 있는다 — 탭을 바꿨을 때 앞 탭 표가 남지 않게. */
-  const [loaded, setLoaded] = useState<{ tab: InsightTab; rows: Signal[]; notes: Insight[] } | null>(
+  const [loaded, setLoaded] = useState<{ tab: InsightTab; rows: Signal[]; notes: Insight[]; extra: { meta: InsightExtraMeta; rows: InsightExtraRow[] } | null } | null>(
     null,
   );
   const [meta, setMeta] = useState<DatalabMeta | null>(null);
@@ -81,8 +148,13 @@ export default function InsightTabs() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([listSignalRows(tab), getData().listInsights(tab)]).then(([rows, notes]) => {
-      if (alive) setLoaded({ tab, rows, notes });
+    const ordinary = tab === "weekly" || tab === "safety";
+    Promise.all([
+      ordinary ? listSignalRows(tab) : Promise.resolve([] as Signal[]),
+      ordinary ? getData().listInsights(tab) : Promise.resolve([] as Insight[]),
+      ordinary ? Promise.resolve(null) : getInsightExtra(),
+    ]).then(([rows, notes, extra]) => {
+      if (alive) setLoaded({ tab, rows, notes, extra });
     });
     return () => {
       alive = false;
@@ -122,6 +194,10 @@ export default function InsightTabs() {
   const ready = loaded?.tab === tab ? loaded : null;
   const rows = ready?.rows;
   const notes = ready?.notes;
+  const extra = ready?.extra;
+  const extraRows = extra?.rows.filter((row) => tab === "trend" ? row.kind === "season" || row.kind === "forecast" : row.kind === tab) ?? [];
+  const visibleCount = tab === "weekly" || tab === "safety" ? rows?.length ?? 0 : extraRows.length;
+  const usesExtra = tab === "trend" || tab === "broadcast" || tab === "report";
   // 기준 주는 관측이 있는 첫 줄에서 가져온다 — 맨 윗줄이 「주간 비교 미제공」일 수 있다.
   const topRow = rows?.find((r) => r.changeStatus !== "미제공");
 
@@ -130,11 +206,11 @@ export default function InsightTabs() {
       <div className={s.page}>
         <PageHead
           eyebrow="Market Signals"
-          title="원료 검색 동향"
-          sub="지금 시장이 무엇을 찾고 있는지 공개 검색 자료로 봅니다. 눈에 띄는 원료는 그 자리에서 견적으로 넘길 수 있습니다."
+          title="원료 동향"
+          sub="공개 검색·방송 편성·제조보고 자료를 축별로 봅니다. 각 숫자의 기준일은 원료마다 따로 확인해 주세요."
           right={
             <span className={c.headRight}>
-              <Badge tone="neutral">기준 {meta?.observedAt ?? "—"}</Badge>
+              <Badge tone="neutral">{tab === "broadcast" ? `편성 ${extra?.meta.broadcastEnd ?? "—"}` : tab === "report" ? `제조보고 ${extra?.meta.reportAsOf ?? "—"}` : tab === "trend" ? `예측 ${extra?.meta.forecastAsOf ?? "—"}` : `검색 ${meta?.observedAt ?? "—"}`}</Badge>
               <a
                 className={c.cta}
                 href={datalabLink()}
@@ -149,18 +225,18 @@ export default function InsightTabs() {
 
         <p className={c.ctaNote}>
           {meta?.catalogCount ? `${meta.catalogCount.toLocaleString("ko-KR")}개 원료` : "원료 전수"} ·{" "}
-          {meta?.historyYears ? `${meta.historyYears}년 검색 흐름` : "장기 검색 흐름"} · 예측 · 홈쇼핑 편성은
-          데이터랩에서 봅니다.
+          {meta?.historyYears ? `${meta.historyYears}년 검색 흐름` : "장기 검색 흐름"} · 방송·제조보고·예측의 기준일은 각각 다릅니다.
         </p>
 
         {meta && (
           <p className={c.caption}>
-            <span>
-              최근 관측일 <b>{meta.observedAt}</b>
-            </span>
+            <span>검색 최근 관측일 <b>{meta.observedAt}</b></span>
             <span>출처 · {meta.source}</span>
-            <em>{meta.note}</em>
-            <em>월 {meta.minVolume.toLocaleString("ko-KR")}회 이상 원료만 담았습니다</em>
+            {(tab === "weekly" || tab === "safety") && <>
+              <em>{meta.note}</em>
+              <em>월 {meta.minVolume.toLocaleString("ko-KR")}회 이상 원료만 담았습니다</em>
+            </>}
+            {usesExtra && <em>아래 숫자는 각 카드에 적힌 원본 날짜를 따릅니다.</em>}
           </p>
         )}
 
@@ -185,6 +261,7 @@ export default function InsightTabs() {
             </button>
           ))}
         </div>
+        <p className={c.tabSwipeHint}>탭을 옆으로 밀면 홈쇼핑 방송·제조보고도 볼 수 있습니다.</p>
 
         <div
           role="tabpanel"
@@ -194,13 +271,30 @@ export default function InsightTabs() {
           key={tab}
           className={s.panel}
         >
-          {!rows || !notes ? (
+          {!rows || !notes || (usesExtra && !extra) ? (
             <p className="pf-help">자료를 불러오는 중입니다.</p>
           ) : (
             <div className={s.grid21}>
               <div className={s.stack}>
                 <Card title={current.label} hint={current.lead} padded={false}>
-                  {rows.length > 0 ? (
+                  {tab === "trend" ? (
+                    <div className={c.extraGroup}>
+                      <h2>계절 반복 <span>{extraRows.filter((row) => row.kind === "season").length}종</span></h2>
+                      <ExtraList kind="season" rows={extraRows.filter((row) => row.kind === "season")} />
+                      <h2>2주 예측 <span>{extraRows.filter((row) => row.kind === "forecast").length}종</span></h2>
+                      <p className={c.extraCaution}>최신 예측은 상대지수입니다. 검색량·매출 예측이 아니며, 원료별 예측값과 대상 기간을 함께 표시합니다.</p>
+                      <ExtraList kind="forecast" rows={extraRows.filter((row) => row.kind === "forecast")} />
+                      {extra?.meta.lactateHomeExclusion && <p className={c.extraCaution}>
+                        젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 원료 상세와 별도 분류 원본이 달라 플랫폼 분류는 ‘확인 필요’로 표시합니다.
+                      </p>}
+                    </div>
+                  ) : tab === "broadcast" || tab === "report" ? (
+                    <div className={c.extraGroup}>
+                      {tab === "report" && <p className={c.extraCaution}>원본 {extra?.meta.reportRawCount}원료 중 같은 수치·상위 업체·유사한 이름은 {extra?.meta.reportDisplayCount}묶음으로 표시합니다. 수치를 더하지 않았고 실제 동일 신고번호인지는 미검증입니다. 수집 시작일도 미확인입니다.</p>}
+                      {tab === "broadcast" && <p className={c.extraCaution}>방송 연결은 과거·예정 편성이 섞여 있으며 실제 판매량을 뜻하지 않습니다.</p>}
+                      <ExtraList kind={tab} rows={extraRows} />
+                    </div>
+                  ) : rows.length > 0 ? (
                     <SignalTable rows={rows} />
                   ) : (
                     <div style={{ padding: "20px 16px" }}>
@@ -221,7 +315,7 @@ export default function InsightTabs() {
                   </a>
                 </p>
 
-                <section className={c.notes}>
+                {notes.length > 0 && <section className={c.notes}>
                   <h2 className={c.notesHead}>읽는 법</h2>
                   {notes.map((n) => (
                     <article key={n.id} className={c.note}>
@@ -237,23 +331,23 @@ export default function InsightTabs() {
                       </div>
                     </article>
                   ))}
-                  {notes.length === 0 && <p className="pf-help">이 분류에 올라온 글이 아직 없습니다.</p>}
-                </section>
+                </section>}
               </div>
 
               <aside>
                 <Card title="이 탭 요약">
                   <dl>
-                    <KV label="목록 원료">{rows.length}종</KV>
+                    <KV label={tab === "trend" ? "표시 항목" : tab === "report" ? "표시 묶음" : "목록 원료"}>{visibleCount}종</KV>
+                    {tab === "report" && <KV label="원본 원료명">{extra?.meta.reportRawCount ?? "—"}종</KV>}
                     <KV label="읽는 글">{notes.length}건</KV>
-                    <KV label="관측 구간">{topRow?.periodLabel ?? "—"}</KV>
-                    <KV label="자료 기준일">{meta?.observedAt ?? "—"}</KV>
+                    <KV label="관측 구간">{usesExtra ? tab === "broadcast" ? `${extra?.meta.broadcastStart}~${extra?.meta.broadcastEnd}` : tab === "report" ? "시작일 미확인" : "원료별 카드 참조" : topRow?.periodLabel ?? "—"}</KV>
+                    <KV label="자료 기준일">{tab === "broadcast" ? extra?.meta.broadcastEnd ?? "—" : tab === "report" ? extra?.meta.reportAsOf ?? "—" : tab === "trend" ? extra?.meta.forecastAsOf ?? "—" : meta?.observedAt ?? "—"}</KV>
                   </dl>
                   <Note>
-                    월 검색량은 참고값입니다. 정확한 산정 기간이 제공되지 않고, 원료 간 시장 규모를
-                    뜻하지도 않습니다. 변화율은 최근 관측 7일의 일평균을 앞선 7일과 견준 값이며, 기준값이
-                    0이거나 빠진 원료는 비워 둡니다. 인정 지위와 제품화 가능 여부는 담당자 확인이
-                    필요합니다.
+                    {tab === "broadcast" ? "수집한 편성 연결 건수입니다. 과거·예정이 섞여 있으며 판매량은 아닙니다." :
+                      tab === "report" ? "수집 시작일이 공개되지 않았습니다. 보고 매칭 건수는 제품 수가 아니며 다른 이름과 중복될 수 있습니다." :
+                      tab === "trend" ? "계절 판정 기준일과 최신 예측 기준일이 다릅니다. 예측 통계 조건 통과는 제품 적합성 승인이 아닙니다." :
+                      "월 검색량은 참고값입니다. 변화율은 최근 관측 7일의 일평균을 앞선 7일과 견준 값이며, 기준값이 0이거나 빠진 원료는 비워 둡니다. 인정 지위와 제품화 가능 여부는 담당자 확인이 필요합니다."}
                   </Note>
                 </Card>
               </aside>

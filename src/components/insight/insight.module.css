@@ -1,6 +1,49 @@
 /* 동향 인사이트 표 — 에디토리얼 데이터 저널. 카드를 띄우지 않고 룰선으로 가른다.
    색은 globals.css 의 --pf-* 토큰만 쓴다(새 색 없음). */
 
+.extraGroup { padding: 12px 16px 18px; }
+.extraGroup h2 {
+  margin: 8px 0 12px;
+  font-size: 18px;
+  color: var(--pf-ink);
+}
+.extraGroup h2:not(:first-child) { margin-top: 28px; }
+.extraGroup h2 span { color: var(--pf-accent); font-variant-numeric: tabular-nums; }
+.extraCaution {
+  margin: 8px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--pf-rule);
+  background: var(--pf-paper-2);
+  color: var(--pf-ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.extraList { list-style: none; }
+.extraRow {
+  display: grid;
+  grid-template-columns: minmax(145px, 1fr) minmax(0, 2fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 15px 0;
+  border-top: 1px solid var(--pf-rule);
+}
+.extraName { display: grid; gap: 3px; min-width: 0; }
+.extraName a { color: var(--pf-ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.extraName small { color: var(--pf-ink-3); font-size: 13px; line-height: 1.4; }
+.extraAliases a { color: var(--pf-accent); font-size: 13px; font-weight: 600; }
+.extraRank { color: var(--pf-accent); font-size: 13px; font-variant-numeric: tabular-nums; }
+.extraMetrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin: 0; }
+.extraMetrics div { min-width: 0; }
+.extraMetrics dt { color: var(--pf-ink-3); font-size: 13px; }
+.extraMetrics dd { margin: 3px 0 0; color: var(--pf-ink); font-size: 14px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.extraNoQuote { color: var(--pf-ink-3); font-size: 13px; }
+.tabSwipeHint { display: none; }
+@media (max-width: 720px) {
+  .extraRow { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .extraMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabSwipeHint { display: block; margin: -12px 0 18px; color: var(--pf-ink-3); font-size: 13px; }
+}
+
 /* ── 데이터랩 전체 보기 ────────────────────────────────────────────────────
    이 화면은 요약이고 원본은 데이터랩에 있다. 그 사실을 제목 옆에서 바로 말한다. */
 .headRight {

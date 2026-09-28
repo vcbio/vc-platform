@@ -17,6 +17,8 @@ const TAB_LABEL = {
   weekly: { text: "주간 메모", tone: "info" as const },
   trend: { text: "시장 동향", tone: "neutral" as const },
   safety: { text: "안전·표시", tone: "warn" as const },
+  broadcast: { text: "홈쇼핑 방송", tone: "info" as const },
+  report: { text: "제조보고", tone: "neutral" as const },
 };
 
 /** 쓰는 순서 세 단계. 「준비 중」이 없는, 지금 되는 것만 적는다. */

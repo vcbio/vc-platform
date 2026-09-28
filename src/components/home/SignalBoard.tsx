@@ -20,7 +20,7 @@ import s from "./home.module.css";
  */
 
 const LIMIT = 10;
-const CYCLE_MS = 5000;
+const CYCLE_MS = 3000;
 const RESUME_MS = 10000;
 
 type Ranked = Signal;
@@ -48,49 +48,6 @@ function WeeklyChange({ row }: { row: Ranked }) {
     <span className={row.changePct > 0 ? s.deltaUp : row.changePct < 0 ? s.deltaDown : s.deltaFlat}>
       {pct(row.changePct)}
     </span>
-  );
-}
-
-/** 검색·제조보고·방송은 서로 기준일이 다르다. 숫자 바로 곁에 해당 날짜를 둔다. */
-function SignalFacts({ row, compact = false }: { row: Ranked; compact?: boolean }) {
-  const detail = row.detail;
-  if (!detail) return <p className={compact ? s.rankFactsEmpty : s.deckFactsEmpty}>원료 상세 자료 없음</p>;
-  const { broadcast, report, phase, forecast } = detail;
-  if (compact) return (
-    <p className={s.rankFacts}>
-      {`월 검색량 기준 ${row.volumeDate ?? "미제공"}`}
-      {" · "}
-      {broadcast.count == null ? "홈쇼핑 자료 없음" : `홈쇼핑 ${nf.format(broadcast.count)}회(${broadcast.start}~${broadcast.end}, 과거·예정)${broadcast.channel ? ` · ${broadcast.channel} 최다` : ""}${broadcast.priceBand ? ` · 가격대 ${broadcast.priceBand} 최다` : ""}`}
-      {" · "}
-      {report.count == null ? "최근 1년 제조보고 자료 없음" : `최근 1년 제조보고 ${nf.format(report.count)}건(${report.asOf ?? "기준일 미제공"})`}
-      {" · "}
-      {`국면 ${phase.label ?? "자료 없음"}(${phase.asOf ?? "검색일 미제공"})`}
-      {forecast && ` · 2주 예상 ${nf.format(forecast.point)} ${forecast.unit}(${forecast.asOf ?? "기준일 미제공"} 기준)`}
-    </p>
-  );
-  return (
-    <div className={s.deckFacts}>
-      <p>
-        <b>{broadcast.count == null ? "홈쇼핑 자료 없음" : `홈쇼핑 ${nf.format(broadcast.count)}회`}</b>
-        {broadcast.count != null && broadcast.channel && <span> · {broadcast.channel} 최다</span>}
-        {broadcast.count != null && broadcast.priceBand && <span> · 가격대 {broadcast.priceBand} 최다</span>}
-        <small>편성 {broadcast.start}~{broadcast.end} · 과거·예정 혼합</small>
-      </p>
-      <p>
-        <b>{report.count == null ? "최근 1년 제조보고 자료 없음" : `최근 1년 제조보고 ${nf.format(report.count)}건`}</b>
-        <small>원료 매칭 · 기준 {report.asOf ?? "미제공"} · 제품 수 아님</small>
-      </p>
-      <p>
-        <b>국면 {phase.label ?? "자료 없음"}</b>
-        <small>검색 기준 {phase.asOf ?? "미제공"}</small>
-      </p>
-      {forecast && (
-        <p>
-          <b>2주 뒤 예상 {nf.format(forecast.point)} {forecast.unit}</b>
-          <small>{forecast.asOf ?? "기준일 미제공"} 기준 · 대상 {forecast.start ?? "미제공"}~{forecast.end ?? "미제공"}</small>
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -220,7 +177,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
             <Odometer text={nf.format(top.monthlyVolume)} reduced={reduced} className={s.odoBig} />
             <span className={s.deckUnit}>{top.volumeExact === false ? "회 이상 / 월" : "회 / 월"}</span>
           </p>
-          <p className={s.deckVolumeDate}>월 검색량 기준 {top.volumeDate ?? "미제공"}</p>
 
           {/* 변화율은 숫자와 같은 줄에 두지 않는다 — 자릿수가 길면 줄이 감겨
               아래 블록이 통째로 밀린다(자동 순환마다 52px 점프, 2026-09-21 실측) */}
@@ -243,8 +199,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
             />
           )}
 
-          <SignalFacts row={top} />
-
           <IngredientSearch
             signals={signals.map((r) => ({
               name: r.name,
@@ -262,7 +216,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
             >
               이 원료로 견적 의뢰
             </Link>
-            {top.href && <a href={top.href} target="_blank" rel="noopener noreferrer" className="pf-link">자세히 보기 → 데이터랩</a>}
             <Link href="/insight/" className="pf-link">
               동향 전체 보기
             </Link>
@@ -315,11 +268,6 @@ export default function SignalBoard({ initial }: { initial: Signal[] }) {
                 </span>
                 <span className={s.boardRowDelta}><WeeklyChange row={sig} /></span>
               </button>
-              <SignalFacts row={sig} compact />
-              <div className={s.rankActions}>
-                {sig.href && <a href={sig.href} target="_blank" rel="noopener noreferrer">자세히 보기 → 데이터랩</a>}
-                <Link href={`/quote/ai/?ingredient=${encodeURIComponent(sig.name)}`}>이 원료로 견적 의뢰 → 견적</Link>
-              </div>
             </li>
             ))}
           </ol>

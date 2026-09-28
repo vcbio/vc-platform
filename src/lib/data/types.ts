@@ -62,7 +62,33 @@ export type Quote = {
   internalNote?: string;
 };
 
-export type InsightTab = "weekly" | "trend" | "safety";
+export type InsightTab = "weekly" | "trend" | "safety" | "broadcast" | "report";
+
+/** 데이터랩 공개 원료 상세와 최신 예측에서 빌드한 동향 탭 전용 한 줄. */
+export type InsightExtraRow = {
+  kind: "broadcast" | "report" | "season" | "forecast";
+  id: string;
+  name: string;
+  href: string;
+  role: string;
+  grade: string;
+  category: string;
+  trust: string;
+  count?: number;
+  channel?: string | null;
+  priceBand?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  companies?: string[];
+  aliases?: { id: string; name: string; href: string }[];
+  asOf?: string | null;
+  peakMonth?: string | null;
+  point?: number;
+  unit?: string;
+  targetStart?: string;
+  targetEnd?: string;
+  businessApproved?: boolean;
+};
 
 export type Insight = {
   id: string;
@@ -105,13 +131,6 @@ export type Signal = {
   observedAt: string;        // 데이터 기준일 ISO (예: 2026-09-07)
   source: string;            // 출처 표기 (예: "한국 공개자료 · 데이터랩")
   href?: string;             // 데이터랩 원료 상세 URL
-  /** 홈 TOP10 전용 원료 상세. 축마다 자료 기준일이 다르므로 각 값과 함께 둔다. */
-  detail?: {
-    broadcast: { count: number | null; channel: string | null; priceBand: string | null; start: string; end: string };
-    report: { count: number | null; asOf: string | null };
-    phase: { label: string | null; asOf: string | null };
-    forecast?: { point: number; unit: string; asOf: string | null; start: string | null; end: string | null };
-  };
 
   /* ── 아래는 데이터랩 파생본이 채우는 선택 필드다. 로컬 시드에는 없어도 화면이 돈다. ── */
 

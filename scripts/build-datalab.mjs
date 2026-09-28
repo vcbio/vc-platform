@@ -173,10 +173,15 @@ async function main() {
   const classInfo = (d) => classById.get(d.id) ?? {};
   const healthScope = (d) => classInfo(d).healthScope ?? d.s2;
   const generalScope = (d) => !healthScope(d) && (classInfo(d).generalScope ?? d.s4);
-  const classGrade = (d) => classInfo(d).gradeFilter || d.grade;
+  const classificationConflict = (d) => {
+    const x = classInfo(d);
+    return x.registrationKind === "listed_nutrient_source" && x.gradeFilter && d.grade && x.gradeFilter !== d.grade;
+  };
+  const classGrade = (d) => classificationConflict(d) ? "분류 충돌·확인 필요" : classInfo(d).gradeFilter || d.grade;
   function classLabel(d) {
     const x = classInfo(d);
     if (x.defaultInclude === false) return "원료 아닌 참고 분류";
+    if (classificationConflict(d)) return "영양성분 원료형태 · 규격 확인 필요";
     if (healthScope(d)) return x.registrationKind === "generic_related_keyword" ? "건기식 관련 검색어" : "건강기능식품 원료";
     if (generalScope(d)) return "일반식품 원료";
     if (d.role?.includes("의약품")) return "의약품 참고";
@@ -254,32 +259,17 @@ async function main() {
     .slice(0, 20)
     .map((d) => toSignal(d, []));
 
-  /* 홈 TOP10 상세: 파일 이름의 해시는 매 빌드 공개 HTML에서 읽는다. 다른 날짜의 축을 섞지 않는다. */
-  await Promise.all(signals.slice(0, 10).map(async (signal) => {
-    const { data: detail } = await fetchSource(`${detailFolder}/${signal.id}.json`);
-    if (detail.id !== signal.id || detail.name !== signal.name) {
-      throw new Error(`${signal.id} 상세 파일의 원료 동일성이 맞지 않습니다`);
-    }
-    const reportDate = /^\d{8}$/.test(String(detail.rAsOf ?? ""))
-      ? `${String(detail.rAsOf).slice(0, 4)}-${String(detail.rAsOf).slice(4, 6)}-${String(detail.rAsOf).slice(6)}` : null;
-    const searchDate = /^\d{4}-\d{2}-\d{2}$/.test(detail.spEnd ?? "") ? detail.spEnd : detail.q?.asOf?.["검색"] ?? null;
-    const forecast = detail.forecastV4;
-    signal.detail = {
-      broadcast: {
-        count: Number.isFinite(detail.hs) && detail.hs > 0 ? detail.hs : null,
-        channel: detail.ax?.["채널"]?.[0]?.k || null,
-        priceBand: detail.ax?.["가격대"]?.[0]?.k || null,
-        start: broadcastStart,
-        end: broadcastEnd,
-      },
-      report: { count: Number.isFinite(detail.r365) && detail.r365 > 0 ? detail.r365 : null, asOf: reportDate },
-      phase: { label: detail.verdict || null, asOf: searchDate },
-      ...(forecast?.status && forecast.status !== "unavailable" && Number.isFinite(forecast.point)
-        ? { forecast: { point: round3(forecast.point), unit: forecast.unit || "검색 상대지수",
-            asOf: forecast.asOf || null, start: forecast.targetStart || null, end: forecast.targetEnd || null } }
-        : {}),
-    };
-  }));
+  /* 원료별 상세 해시는 공개 HTML에서 매번 찾는다. 새 동향 탭이 이 값을 사용한다. */
+  const detailCandidates = DATA.filter((d) => d.hs > 0 || d.r365 > 0);
+  const detailById = new Map();
+  for (let start = 0; start < detailCandidates.length; start += 12) {
+    await Promise.all(detailCandidates.slice(start, start + 12).map(async (row) => {
+      const { data: detail } = await fetchSource(`${detailFolder}/${row.id}.json`);
+      if (detail.id !== row.id || detail.name !== row.name) throw new Error(`${row.id} 상세 파일 원료 동일성 불일치`);
+      detailById.set(row.id, detail);
+    }));
+  }
+  log(`탭용 원료 상세 ${detailById.size}건 직접 확인`);
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
@@ -313,6 +303,77 @@ async function main() {
     row.forecasts?.some((forecast) => forecast.horizon_weeks === 2 && forecast.platform_eligible === true))
     .map((row) => row.id));
   const forecastable = usable.filter((d) => forecastIds.has(d.id));
+  const isoReportDate = (value) => /^\d{8}$/.test(String(value ?? ""))
+    ? `${String(value).slice(0, 4)}-${String(value).slice(4, 6)}-${String(value).slice(6)}` : null;
+  const extraBase = (row, kind) => ({
+    kind, id: row.id, name: row.name, href: href(row), role: row.role,
+    grade: classGrade(row), category: classLabel(row), trust: row.trust,
+  });
+  const broadcastRows = DATA.filter((row) => row.hs > 0).map((row) => {
+    const detail = detailById.get(row.id);
+    if (detail?.hs !== row.hs) throw new Error(`${row.id} 방송 수가 목록·상세에서 다릅니다`);
+    return { ...extraBase(row, "broadcast"), count: detail.hs,
+      channel: detail.ax?.["채널"]?.[0]?.k || null,
+      priceBand: detail.ax?.["가격대"]?.[0]?.k || null,
+      periodStart: broadcastStart, periodEnd: broadcastEnd };
+  }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
+  const rawReportRows = DATA.filter((row) => row.r365 > 0).map((row) => {
+    const detail = detailById.get(row.id);
+    if (detail?.r365 !== row.r365) throw new Error(`${row.id} 제조보고 수가 목록·상세에서 다릅니다`);
+    return { ...extraBase(row, "report"), count: detail.r365,
+      companies: String(detail.rFirm || "").split(/\s+\/\s+/).filter(Boolean).slice(0, 3),
+      asOf: isoReportDate(detail.rAsOf), periodStart: null };
+  }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
+  /* 신고번호가 공개되지 않았다. 집계값·상위 업체가 같고 이름까지 닮은 행만 화면상 한 묶음으로 표시한다.
+     수치는 더하지 않으며 원료별 원본 링크를 모두 보존한다. 실제 동일 신고 판정은 하지 않는다. */
+  const simpleName = (name) => name.replace(/[\s·,()]/g, "").toLowerCase();
+  const relatedNames = (a, b) => {
+    const x = simpleName(a), y = simpleName(b);
+    if (x.includes(y) || y.includes(x)) return true;
+    for (let i = 0; i <= x.length - 3; i++) if (y.includes(x.slice(i, i + 3))) return true;
+    return false;
+  };
+  const sameAggregate = new Map();
+  for (const row of rawReportRows) {
+    if (row.count < 30 || !row.companies.length) continue;
+    const key = `${row.count}|${row.companies.join("|")}`;
+    if (!sameAggregate.has(key)) sameAggregate.set(key, []);
+    sameAggregate.get(key).push(row);
+  }
+  const grouped = new Set();
+  const reportRows = [];
+  for (const row of rawReportRows) {
+    if (grouped.has(row.id)) continue;
+    const key = `${row.count}|${row.companies.join("|")}`;
+    const pool = sameAggregate.get(key) ?? [row];
+    const family = [row];
+    for (let i = 0; i < family.length; i++) {
+      for (const other of pool) {
+        if (!family.includes(other) && relatedNames(family[i].name, other.name)) family.push(other);
+      }
+    }
+    family.forEach((item) => grouped.add(item.id));
+    family.sort((a, b) => simpleName(a.name).length - simpleName(b.name).length || a.name.localeCompare(b.name, "ko"));
+    reportRows.push({ ...family[0], aliases: family.slice(1).map((item) => ({ id: item.id, name: item.name, href: item.href })) });
+  }
+  const seasonRows = DATA.filter((row) => row.season === "계절반복").map((row) => ({
+    ...extraBase(row, "season"), peakMonth: row.seasonMonth || null,
+    asOf: row.spEnd || row.q?.asOf?.["검색"] || null,
+  })).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  const forecastRows = FORECAST.items.flatMap((source) => {
+    const forecast = source.forecasts?.find((item) => item.horizon_weeks === 2 && item.platform_eligible === true);
+    if (!forecast) return [];
+    const row = DATA.find((item) => item.id === source.id);
+    if (!row || !Number.isFinite(forecast.point)) throw new Error(`${source.id} 2주 예측 원료·수치 불일치`);
+    return [{ ...extraBase(row, "forecast"), point: round3(forecast.point),
+      unit: forecast.unit, asOf: FORECAST.asOf,
+      targetStart: forecast.target_start, targetEnd: forecast.target_end,
+      businessApproved: forecast.business_approved === true }];
+  });
+  const lactate = DATA.find((row) => row.name === "젖산마그네슘");
+  const lactateWeek = lactate && weekly(lactate);
+  const extraRows = [...broadcastRows, ...reportRows, ...seasonRows, ...forecastRows];
+  log(`동향 추가: 방송 ${broadcastRows.length} · 제조보고 원본 ${rawReportRows.length}/표시 묶음 ${reportRows.length} · 계절 ${seasonRows.length} · 최신 2주 예측 ${forecastRows.length}`);
   const trendRows = [...new Set([...seasonal, ...forecastable])].filter((d) => volumeOf(d) != null)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 16)
@@ -515,6 +576,17 @@ async function main() {
     ["signals.json", { meta, rows: signals }],
     ["insights.json", { meta, rows: insights }],
     ["ingredients-top.json", { meta, rows: top100 }],
+    ["insight-extra.json", { meta: {
+      ...meta, detailFolder, broadcastStart, broadcastEnd,
+      reportStart: null, reportStartStatus: "미확인",
+      reportAsOf: rawReportRows[0]?.asOf ?? null,
+      reportRawCount: rawReportRows.length,
+      reportDisplayCount: reportRows.length,
+      forecastAsOf: FORECAST.asOf,
+      lactateHomeExclusion: lactateWeek?.changePct < 0
+        ? { name: lactate.name, changePct: lactateWeek.changePct, observedAt: asOf,
+            reason: "홈 TOP10은 최근 7일 상승 원료만 포함" } : null,
+    }, rows: extraRows }],
   ];
   for (const [name, payload] of files) {
     const file = path.join(OUT_DIR, name);

@@ -46,7 +46,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
   gap: clamp(24px, 3vw, 44px);
-  align-items: start;
+  align-items: stretch;
   padding-top: 26px;
 }
 .deckMain {
@@ -430,6 +430,8 @@
 }
 
 .rankWrap {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 .rankTop {
@@ -475,39 +477,6 @@
   flex-wrap: wrap;
   margin-top: 22px;
 }
-.deckFacts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
-}
-.deckFacts p {
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--pf-rule);
-  border-radius: var(--pf-radius-sm);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.deckFacts b,
-.rankFacts b { color: var(--pf-ink); }
-.deckFacts small,
-.rankFacts small {
-  display: block;
-  margin-top: 4px;
-  color: var(--pf-ink-3);
-  font-size: 13px;
-  line-height: 1.45;
-}
-.deckFactsEmpty,
-.rankFactsEmpty { color: var(--pf-ink-3); font-size: 13px; }
-.deckVolumeDate {
-  margin-top: 2px;
-  color: var(--pf-ink-3);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
 .ctaBig {
   height: 56px;
   padding: 0 26px;
@@ -516,6 +485,9 @@
 
 /* ── 순위 목록 1~10 ── 선택된 한 줄만 면으로 강조한다 */
 .rankList {
+  display: grid;
+  grid-template-rows: repeat(10, minmax(0, 1fr));
+  flex: 1;
   list-style: none;
   min-width: 0;
 }
@@ -524,7 +496,10 @@
   outline-offset: 2px;
 }
 .rankList li {
-  padding: 5px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 10px;
   border-radius: var(--pf-radius-sm);
   border-bottom: 1px solid var(--pf-rule);
   transition: background-color var(--pf-motion-fast), color var(--pf-motion-fast);
@@ -535,7 +510,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 54px;
+  min-height: 40px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -544,35 +519,8 @@
   text-align: left;
   cursor: pointer;
 }
-.rankSelect:focus-visible,
-.rankActions a:focus-visible { outline: 2px solid var(--pf-ink); outline-offset: 2px; }
-.rowOn .rankSelect:focus-visible,
-.rowOn .rankActions a:focus-visible { outline-color: var(--pf-paper); }
-.rankFacts {
-  padding: 2px 0 5px 38px;
-  color: var(--pf-ink-2);
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.rankActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  padding-left: 38px;
-}
-.rankActions a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  color: var(--pf-accent);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.rowOn .rankFacts,
-.rowOn .rankActions a { color: var(--pf-paper); }
+.rankSelect:focus-visible { outline: 2px solid var(--pf-ink); outline-offset: 2px; }
+.rowOn .rankSelect:focus-visible { outline-color: var(--pf-paper); }
 .rankList li:last-child {
   border-bottom: 0;
 }
@@ -857,8 +805,6 @@
     gap: 6px;
   }
   .deckFacts { grid-template-columns: minmax(0, 1fr); }
-  .rankFacts { padding-left: 30px; }
-  .rankActions { padding-left: 30px; }
   .boardRowRank { font-size: 16px; }
   .boardRowName { font-size: 14px; }
   .boardRowNum { font-size: 13px; }

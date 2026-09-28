@@ -13,7 +13,7 @@
 
 import { localData } from "./local";
 import type { DataAdapter } from "./index";
-import type { Insight, InsightTab, Signal } from "./types";
+import type { Insight, InsightExtraRow, InsightTab, Signal } from "./types";
 
 /** GitHub Pages 하위 경로. next.config.ts 의 basePath 와 같아야 한다. */
 const BASE_PATH = "/vc-platform";
@@ -46,6 +46,18 @@ export type DatalabMeta = {
   sourcePage: string;
   minVolume: number;
   note: string;
+};
+
+export type InsightExtraMeta = DatalabMeta & {
+  broadcastStart: string;
+  broadcastEnd: string;
+  reportStart: null;
+  reportStartStatus: string;
+  reportAsOf: string | null;
+  reportRawCount: number;
+  reportDisplayCount: number;
+  forecastAsOf: string;
+  lactateHomeExclusion: { name: string; changePct: number; observedAt: string; reason: string } | null;
 };
 
 type Payload<T> = { meta: DatalabMeta; rows: T[] };
@@ -81,6 +93,13 @@ function load<T>(name: string): Promise<Payload<T> | null> {
 export async function getDatalabMeta(): Promise<DatalabMeta | null> {
   const p = (await load<Signal>("signals.json")) ?? (await load<Insight>("insights.json"));
   return p?.meta ?? null;
+}
+
+/** 새 동향 탭: 원료 상세 디렉터리 이름은 빌드 때 공개 HTML에서 찾는다. */
+export async function getInsightExtra(): Promise<{ meta: InsightExtraMeta; rows: InsightExtraRow[] } | null> {
+  return (await load<InsightExtraRow>("insight-extra.json")) as
+    | { meta: InsightExtraMeta; rows: InsightExtraRow[] }
+    | null;
 }
 
 /**
