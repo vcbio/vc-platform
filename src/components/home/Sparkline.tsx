@@ -72,20 +72,20 @@ export default function Sparkline({
               <line key={tick} x1="0" x2={W} y1={tick} y2={tick} className={s.sparkGrid} />
             ))}
             <path d={area} className={s.sparkArea} />
-            <path
-              d={line}
-              pathLength={1}
-              className={reduced ? s.sparkPathStill : s.sparkPath}
-              vectorEffect="non-scaling-stroke"
-            />
           </svg>
-          {points.map((v, i) => (
-            <span
-              key={i}
-              className={`${i === active ? s.sparkPointOn : s.sparkPoint} ${i === points.length - 1 && !reduced ? s.sparkPointLast : ""}`.trim()}
-              style={{ left: `${(x(i) / W) * 100}%`, top: `${(y(v) / H) * 100}%` }}
-            />
-          ))}
+          {/* 선과 점을 하나의 가림 영역으로 드러낸다. 브라우저별 개별 애니메이션 시차가 없다. */}
+          <div className={reduced ? s.sparkMarksStill : s.sparkMarks}>
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+              <path d={line} className={s.sparkPathStill} vectorEffect="non-scaling-stroke" />
+            </svg>
+            {points.map((v, i) => (
+              <span
+                key={i}
+                className={i === active ? s.sparkPointOn : s.sparkPoint}
+                style={{ left: `${(x(i) / W) * 100}%`, top: `${(y(v) / H) * 100}%` }}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
