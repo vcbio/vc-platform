@@ -98,7 +98,7 @@ export default function MatchClient() {
               제형·지역으로 제조사를 찾아보세요. 제형과 설비는 조사 자료 기준이며, 실제 생산 가능 여부는 상담 시 확인합니다.
             </p>
           </div>
-          <ButtonLink href="/quote/" variant="ghost" size="sm">
+          <ButtonLink href="/quote/ai/" variant="ghost" size="sm">
             견적으로 요청하기
           </ButtonLink>
         </div>

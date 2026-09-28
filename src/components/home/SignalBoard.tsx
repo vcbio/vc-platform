@@ -225,8 +225,9 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
         <div className={s.rankWrap}>
           <div className={s.rankTop}>
             <div>
-              <h2>검색 관심 TOP 10</h2>
-              <p>월 검색량 · 앞선 7일 대비</p>
+              <h2>상승 원료 TOP 10</h2>
+              <p>최근 7일 상승한 원료를 월 검색량 순으로 표시</p>
+              {homeExclusion && <p className={s.rankExclusion}>{homeExclusion.name}은 최근 7일 {homeExclusion.changePct.toFixed(1)}%로 하락해 제외 · 기준일 {homeExclusion.observedAt}</p>}
             </div>
             {!reduced && (
               <button
@@ -271,7 +272,6 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
             </li>
             ))}
           </ol>
-          {homeExclusion && <p className={s.rankExclusion}>{homeExclusion.name}은 최근 7일 {homeExclusion.changePct.toFixed(1)}%로 하락해 상승 원료 TOP10에서 제외 · 기준일 {homeExclusion.observedAt}</p>}
         </div>
       </div>
 

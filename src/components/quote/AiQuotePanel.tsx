@@ -30,8 +30,7 @@ const examples = [
 const contactPattern = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?82[- .]?)?0\d{1,2}[- .]?\d{3,4}[- .]?\d{4}|주소|거주지|우편번호|담당자|회사\s*위치|회사명\s*[:：]|연락처|(?:제\s*이름|저는|제가)\s*[가-힣]{2,5}|^[가-힣]{2,4}(?:입니다|이에요|예요)/;
 const privatePattern = /원가|단가|마진|거래처|고객사|계약|실제\s*견적|매입|사업자|회사명|브랜드명/;
 
-export default function AiQuotePanel({ onUseForm, mode }: {
-  onUseForm: () => void;
+export default function AiQuotePanel({ mode }: {
   mode: "checking" | "admin" | "customer";
 }) {
   const ready = Boolean(mode === "admin" && endpoint && supabase);
@@ -149,12 +148,6 @@ export default function AiQuotePanel({ onUseForm, mode }: {
         {error && <p className="pf-alert" role="alert">{error}</p>}
       </form>
 
-      {mode === "customer" && (
-        <div className={s.aiToForm}>
-          <span>지금 바로 견적을 보내시려면</span>
-          <button type="button" className="pf-btn pf-btn-secondary" onClick={onUseForm}>직접 입력으로 이동</button>
-        </div>
-      )}
     </section>
   );
 }

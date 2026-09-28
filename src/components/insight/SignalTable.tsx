@@ -112,7 +112,7 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
                   <span className={c.noQuote}>식품 원료 아님</span>
                 ) : (
                   <ButtonLink
-                    href={`/quote/?ingredient=${encodeURIComponent(r.name)}`}
+                    href={`/quote/ai/?ingredient=${encodeURIComponent(r.name)}`}
                     variant="secondary"
                     size="sm"
                   >

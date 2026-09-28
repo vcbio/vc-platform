@@ -297,6 +297,7 @@ export default function InsightTabs() {
                     </div>
                   ) : tab === "broadcast" || tab === "report" ? (
                     <div className={c.extraGroup}>
+                      {tab === "report" && <p className={c.extraCaution} role="note"><strong>일반식품 신고가 섞인 값, 집계 기준 수정 중</strong></p>}
                       {tab === "report" && <p className={c.extraCaution}>원본 {extra?.meta.reportRawCount}원료 중 같은 수치·상위 업체·유사한 이름은 {extra?.meta.reportDisplayCount}묶음으로 표시합니다. 수치를 더하지 않았고 실제 동일 신고번호인지는 미검증입니다. 수집 시작일도 미확인입니다.</p>}
                       {tab === "report" && <button type="button" className={c.reportToggle} aria-pressed={showAllReports} onClick={() => setShowAllReports((value) => !value)}>{showAllReports ? "원료만 보기" : "전체 보기 · 식재료·첨가물 포함"}</button>}
                       {tab === "broadcast" && <p className={c.extraCaution}>방송 연결은 과거·예정 편성이 섞여 있으며 실제 판매량을 뜻하지 않습니다.</p>}
