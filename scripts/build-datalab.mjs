@@ -90,6 +90,14 @@ async function main() {
   // 원본 파일명(해시)은 갱신 때마다 바뀐다. 추적용으로 남긴다.
   const refs = [...html.matchAll(/([A-Z0-9_]+_REF)\s*=\s*"([^"]+)"/g)].map(([, k, v]) => `${k}=${BASE}${v}`);
   refs.forEach((r) => log("원본 참조", r));
+  const detailFolder = html.match(/(data-[0-9a-f]+)\/ing_[0-9a-f]+\.json/)?.[1];
+  const broadcastDates = html.match(/수집한 방송 연결[\s\S]{0,300}?(\d{4}-\d{2}-\d{2})~(\d{2}-\d{2})/);
+  if (!detailFolder || !broadcastDates) throw new Error("원료 상세 파일 또는 홈쇼핑 편성 기간을 찾지 못했습니다");
+  const broadcastStart = broadcastDates[1];
+  const broadcastEndYear = Number(broadcastDates[2].slice(0, 2)) < Number(broadcastStart.slice(5, 7))
+    ? Number(broadcastStart.slice(0, 4)) + 1 : Number(broadcastStart.slice(0, 4));
+  const broadcastEnd = `${broadcastEndYear}-${broadcastDates[2]}`;
+  log(`원료 상세 ${detailFolder} · 홈쇼핑 편성 ${broadcastStart}~${broadcastEnd}`);
   const refPath = (key) => {
     const match = html.match(new RegExp(`(?:const\\s+)?${key}\\s*=\\s*"([^"]+)"`));
     if (!match) throw new Error(`${key} 포인터가 없습니다`);
@@ -245,6 +253,33 @@ async function main() {
     .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
+
+  /* 홈 TOP10 상세: 파일 이름의 해시는 매 빌드 공개 HTML에서 읽는다. 다른 날짜의 축을 섞지 않는다. */
+  await Promise.all(signals.slice(0, 10).map(async (signal) => {
+    const { data: detail } = await fetchSource(`${detailFolder}/${signal.id}.json`);
+    if (detail.id !== signal.id || detail.name !== signal.name) {
+      throw new Error(`${signal.id} 상세 파일의 원료 동일성이 맞지 않습니다`);
+    }
+    const reportDate = /^\d{8}$/.test(String(detail.rAsOf ?? ""))
+      ? `${String(detail.rAsOf).slice(0, 4)}-${String(detail.rAsOf).slice(4, 6)}-${String(detail.rAsOf).slice(6)}` : null;
+    const searchDate = /^\d{4}-\d{2}-\d{2}$/.test(detail.spEnd ?? "") ? detail.spEnd : detail.q?.asOf?.["검색"] ?? null;
+    const forecast = detail.forecastV4;
+    signal.detail = {
+      broadcast: {
+        count: Number.isFinite(detail.hs) && detail.hs > 0 ? detail.hs : null,
+        channel: detail.ax?.["채널"]?.[0]?.k || null,
+        priceBand: detail.ax?.["가격대"]?.[0]?.k || null,
+        start: broadcastStart,
+        end: broadcastEnd,
+      },
+      report: { count: Number.isFinite(detail.r365) && detail.r365 > 0 ? detail.r365 : null, asOf: reportDate },
+      phase: { label: detail.verdict || null, asOf: searchDate },
+      ...(forecast?.status && forecast.status !== "unavailable" && Number.isFinite(forecast.point)
+        ? { forecast: { point: round3(forecast.point), unit: forecast.unit || "검색 상대지수",
+            asOf: forecast.asOf || null, start: forecast.targetStart || null, end: forecast.targetEnd || null } }
+        : {}),
+    };
+  }));
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */

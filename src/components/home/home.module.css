@@ -479,6 +479,39 @@
   flex-wrap: wrap;
   margin-top: 22px;
 }
+.deckFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.deckFacts p {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--pf-rule);
+  border-radius: var(--pf-radius-sm);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.deckFacts b,
+.rankFacts b { color: var(--pf-ink); }
+.deckFacts small,
+.rankFacts small {
+  display: block;
+  margin-top: 4px;
+  color: var(--pf-ink-3);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.deckFactsEmpty,
+.rankFactsEmpty { color: var(--pf-ink-3); font-size: 13px; }
+.deckVolumeDate {
+  margin-top: 2px;
+  color: var(--pf-ink-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 .ctaBig {
   height: 56px;
   padding: 0 26px;
@@ -495,23 +528,64 @@
   outline-offset: 2px;
 }
 .rankList li {
+  padding: 5px 10px 10px;
+  border-radius: var(--pf-radius-sm);
+  border-bottom: 1px solid var(--pf-rule);
+  transition: background-color var(--pf-motion-fast), color var(--pf-motion-fast);
+}
+.rankSelect {
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr) minmax(86px, auto) 76px;
   align-items: center;
   gap: 8px;
+  width: 100%;
   min-height: 54px;
-  padding: 5px 10px;
-  border-radius: var(--pf-radius-sm);
-  border-bottom: 1px solid var(--pf-rule);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: background-color var(--pf-motion-fast), color var(--pf-motion-fast);
 }
+.rankSelect:focus-visible,
+.rankActions a:focus-visible { outline: 2px solid var(--pf-ink); outline-offset: 2px; }
+.rowOn .rankSelect:focus-visible,
+.rowOn .rankActions a:focus-visible { outline-color: var(--pf-paper); }
+.rankFacts {
+  padding: 2px 0 5px 38px;
+  color: var(--pf-ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.rankActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding-left: 38px;
+}
+.rankActions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--pf-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rowOn .rankFacts,
+.rowOn .rankActions a { color: var(--pf-paper); }
 .rankList li:last-child {
   border-bottom: 0;
 }
 @media (hover: hover) and (pointer: fine) {
   .rankList li:hover {
     background: var(--pf-paper-2);
+  }
+  .rankList li.rowOn:hover {
+    background: var(--pf-accent-hover);
   }
 }
 
@@ -782,11 +856,13 @@
 }
 
 @media (max-width: 680px) {
-  .rankList li {
+  .rankSelect {
     grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto) 61px;
     gap: 6px;
-    padding-inline: 8px;
   }
+  .deckFacts { grid-template-columns: minmax(0, 1fr); }
+  .rankFacts { padding-left: 30px; }
+  .rankActions { padding-left: 30px; }
   .boardRowRank { font-size: 16px; }
   .boardRowName { font-size: 14px; }
   .boardRowNum { font-size: 13px; }
