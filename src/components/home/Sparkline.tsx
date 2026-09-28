@@ -82,7 +82,7 @@ export default function Sparkline({
           {points.map((v, i) => (
             <span
               key={i}
-              className={i === active ? s.sparkPointOn : s.sparkPoint}
+              className={`${i === active ? s.sparkPointOn : s.sparkPoint} ${i === points.length - 1 && !reduced ? s.sparkPointLast : ""}`.trim()}
               style={{ left: `${(x(i) / W) * 100}%`, top: `${(y(v) / H) * 100}%` }}
             />
           ))}
