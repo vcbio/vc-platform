@@ -1,0 +1,140 @@
+.page {
+  padding-block: 40px 24px;
+}
+
+.head {
+  max-width: 760px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--pf-accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.head p {
+  max-width: 68ch;
+  margin-top: 10px;
+  color: var(--pf-ink-2);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.form {
+  padding: 24px;
+  border: 1px solid var(--pf-rule-strong);
+  border-radius: var(--pf-radius);
+  background: var(--pf-paper);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 2px 0 20px;
+  color: var(--pf-ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.consent input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--pf-accent);
+  flex: none;
+}
+
+.consent a {
+  font-weight: 600;
+}
+
+.challenge { margin: 0 0 20px; }
+.challengeHelp { margin: 0 0 10px; color: var(--pf-ink-3); font-size: 13px; line-height: 1.5; }
+.challengeHelp a { text-decoration: underline; text-underline-offset: 2px; }
+.challengeProblem { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; color: var(--pf-up-ink); font-size: 13px; }
+
+.aside {
+  padding-top: 18px;
+  border-top: 2px solid var(--pf-ink);
+}
+
+.aside h2 {
+  font-size: 18px;
+}
+
+.aside p,
+.aside li {
+  color: var(--pf-ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.aside ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
+.result {
+  padding: 28px;
+  border-top: 2px solid var(--pf-accent);
+  background: var(--pf-accent-soft);
+}
+
+.result h2 {
+  margin-bottom: 8px;
+  font-size: 22px;
+  color: var(--pf-accent-deep);
+}
+
+.result p {
+  max-width: 62ch;
+  color: var(--pf-ink-2);
+}
+
+.result p + p {
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .page { padding-top: 28px; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .wide { grid-column: auto; }
+  .form { padding: 18px; }
+}

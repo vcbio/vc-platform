@@ -9,12 +9,17 @@ import { getSession, signOut, type Session } from "@/lib/auth";
 import { purgeStoredDrafts } from "@/components/quote/draft";
 import Container from "./Container";
 
+const MANUFACTURER_INTAKE_ENABLED = process.env.NEXT_PUBLIC_MANUFACTURER_INTAKE_ENABLED === "true";
+
 const MENU = [
   { href: "/", label: "홈" },
   { href: "/quote/ai/", label: "AI 견적" },
   { href: "/insight/", label: "동향" },
   { href: "/deal/", label: "거래관리" },
   { href: "/faq/", label: "자주 묻는 질문" },
+  ...(MANUFACTURER_INTAKE_ENABLED
+    ? [{ href: "/manufacturer/apply/", label: "제조사 입점" }]
+    : []),
 ];
 
 /** 관리자 세션에만 붙는 메뉴. */

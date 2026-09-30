@@ -31,6 +31,11 @@ export default function PrivacyPage() {
         <section className={sectionClass}>
           <h2 className="text-xl font-bold">2. 보관 기간과 파기</h2>
           <p className="mt-3 leading-7">
+            비회원 간편 문의와 제조사 입점 신청은 회신과 상담 이력 확인을 위해 접수 후 3년간 보관한 뒤 삭제합니다.
+            수집 항목은 간편 문의의 원료·제형·수량·연락처와 입점 신청의 회사명·지역·보유 인증·가능 제형·연락처입니다.
+          </p>
+          <p className="mt-3 leading-7">반복 접수를 제한할 때 접속 정보를 되돌릴 수 없는 식별값으로 바꿔 최대 2일간 보관합니다.</p>
+          <p className="mt-3 leading-7">
             가입 중에는 계정 운영과 견적 상담을 위해 보관합니다. 탈퇴 후 3년 보관에 별도로 동의하지
             않았다면 탈퇴 처리 때 고객정보와 견적을 삭제합니다. 동의했다면 탈퇴 후 연락처와 견적
             내용을 3년간 보관한 뒤 매일 실행되는 삭제 작업으로 지웁니다. 전자 기록은 운영 데이터베이스의
@@ -49,6 +54,13 @@ export default function PrivacyPage() {
             할 때는 전달 대상과 항목을 먼저 알리고 별도로 확인받겠습니다. 로그인과 견적 저장에는
             클라우드 서비스 Supabase를 이용합니다.
           </p>
+          <p className="mt-3 leading-7">
+            비회원 문의와 제조사 입점 신청의 자동 접수를 막기 위해 Cloudflare, Inc.의 Turnstile을 사용합니다.
+            확인 과정에서 접속 IP 주소, 브라우저·통신 환경 정보와 접속 사이트 정보가 Cloudflare에 전달되어
+            사람과 자동 프로그램을 구별하는 데 쓰입니다. 원료·수량·연락처 등 폼 입력 내용은
+            Turnstile에 보내지 않습니다. 자세한 처리 내용은{" "}
+            <a className="underline underline-offset-4" href="https://www.cloudflare.com/turnstile-privacy-policy/" target="_blank" rel="noopener noreferrer">Cloudflare의 Turnstile 개인정보 안내</a>에서 확인할 수 있습니다.
+          </p>
         </section>
 
         <section className={sectionClass}>
@@ -61,6 +73,11 @@ export default function PrivacyPage() {
             견적 접수 시 암호화된 인터넷 연결로 전송됩니다. Supabase는 인증과 데이터 보관을 위해
             처리하며 보관 기간은 위 2항을 따릅니다. 이 이전을 원하지 않으면 가입과 온라인 견적 접수를
             이용할 수 없습니다. 아래 전화로 다른 상담 방법을 문의할 수 있습니다.
+          </p>
+          <p className="mt-3 leading-7">
+            공개 접수 폼을 열면 자동 접수 방지용 보안 신호가 미국 기업 Cloudflare, Inc.의 국외 네트워크에서
+            처리될 수 있습니다. 보안 신호의 세부 처리·보관은 위 Cloudflare 안내를 확인해 주세요.
+            이 확인을 원하지 않으면 공개 폼 대신 아래 전화로 문의할 수 있습니다.
           </p>
         </section>
 

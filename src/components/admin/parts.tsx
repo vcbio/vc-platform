@@ -10,6 +10,7 @@ import { styles as s } from "@/components/deal/shared";
 const MENU = [
   { href: "/admin/", label: "요약" },
   { href: "/admin/quotes/", label: "견적 접수" },
+  { href: "/admin/inquiries/", label: "비회원 접수" },
   { href: "/admin/manufacturers/", label: "제조사" },
   { href: "/admin/ingredients/", label: "원료" },
 ];  // as const 를 쓰지 않는다 — href 가 리터럴로 좁혀지면 타입드 라우트와 어긋난다

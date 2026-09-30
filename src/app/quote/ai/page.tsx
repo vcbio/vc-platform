@@ -5,20 +5,29 @@ import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import AiQuotePanel from "@/components/quote/AiQuotePanel";
 import DirectQuoteForm from "@/components/quote/DirectQuoteForm";
+import PublicIntakePage from "@/components/intake/PublicIntakePage";
 import { Container } from "@/components/ui";
 import { getSession } from "@/lib/auth";
 import s from "@/components/quote/quote.module.css";
 
 export default function AiQuotePage() {
-  const [mode, setMode] = useState<"checking" | "admin" | "customer">("checking");
+  const [mode, setMode] = useState<"checking" | "guest" | "admin" | "customer">("checking");
 
   useEffect(() => {
     let alive = true;
     getSession().then((session) => {
-      if (alive && session) setMode(session.isAdmin ? "admin" : "customer");
+      if (alive) setMode(session ? (session.isAdmin ? "admin" : "customer") : "guest");
     });
     return () => { alive = false; };
   }, []);
+
+  if (mode === "checking") {
+    return <p className="pf-container pf-help" style={{ paddingBlock: 64 }}>확인 중입니다.</p>;
+  }
+
+  if (mode === "guest") {
+    return <Container><PublicIntakePage /></Container>;
+  }
 
   return (
     <AuthGuard requireCustomerProfile allowAdminPreview>
