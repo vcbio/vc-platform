@@ -169,7 +169,7 @@ export default function IngredientSearch({
               onMouseEnter={() => setCursor(i)}
               onClick={() => choose(r)}
             >
-              <span>{r.name}</span>
+              <span className={s.searchName}><span>{r.name}</span>{r.category && <small>{r.category}</small>}</span>
               <b>{r.monthlyVolume == null ? "자료 없음" : nf.format(r.monthlyVolume)}</b>
             </li>
           ))}

@@ -55,7 +55,7 @@ const TABS: { id: InsightTab; label: string; lead: string; hash: string; more: s
   {
     id: "report",
     label: "제조보고",
-    lead: "C003 건기식 신고와 C002 건강보조식품 후보·보류를 나누어 봅니다. 판매량은 아닙니다.",
+    lead: "건강기능식품 신고와 건강보조식품 후보·보류를 나누어 봅니다. 판매량은 아닙니다.",
     hash: "#view=ingredients",
     more: "원료별 제조보고 상세는 데이터랩에서",
   },
@@ -92,8 +92,8 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
                 <div><dt>편성 기간</dt><dd>{row.periodStart}~{row.periodEnd}</dd></div>
               </>}
               {kind === "report" && <>
-                <div><dt>건강기능식품 신고 · C003</dt><dd>{n(row.count)}건</dd></div>
-                <div><dt>건강보조식품 후보 · C002</dt><dd>{n(row.supportCount)}건</dd></div>
+                <div><dt>건강기능식품 신고</dt><dd>{n(row.count)}건</dd></div>
+                <div><dt>건강보조식품 후보</dt><dd>{n(row.supportCount)}건</dd></div>
                 <div><dt>분류 보류</dt><dd>{n(row.heldCount)}건</dd></div>
                 <div><dt>건기식 신고일</dt><dd>{row.healthFunctionalPeriodStart || "미확인"}~{row.healthFunctionalPeriodEnd || "미확인"}</dd></div>
                 <div><dt>건강보조식품 후보 신고일</dt><dd>{row.healthSupportPeriodStart || "미확인"}~{row.healthSupportPeriodEnd || "미확인"}</dd></div>
@@ -210,7 +210,7 @@ export default function InsightTabs() {
     if (tab === "trend") return row.kind === "season" || row.kind === "forecast";
     if (row.kind !== tab) return false;
     if (tab !== "report") return true;
-    const valid = row.category === "건강기능식품 원료" || row.category === "건강보조식품 원료";
+    const valid = ["건강기능식품", "건강기능식품 원료", "건강보조식품", "건강보조식품 원료"].includes(row.category);
     return valid || (showAllReports && row.category === "보류");
   }) ?? [];
   const visibleCount = tab === "weekly" || tab === "safety" ? rows?.length ?? 0 : extraRows.length;
@@ -309,7 +309,8 @@ export default function InsightTabs() {
                     </div>
                   ) : tab === "broadcast" || tab === "report" ? (
                     <div className={c.extraGroup}>
-                      {tab === "report" && <p className={c.extraCaution} role="note">2026-09-29 전체 원본: 건기식 {extra?.meta.reportSourceCounts?.C003Total.toLocaleString("ko-KR") ?? "미제공"}건 중 원료 연결 {extra?.meta.reportSourceCounts?.C003LinkedReports.toLocaleString("ko-KR") ?? "미제공"}건 · 일반식품 {Object.values(extra?.meta.reportSourceCounts?.C002 ?? {}).reduce((sum, value) => sum + value, 0).toLocaleString("ko-KR")}건을 건강보조식품 후보·보류·범위 밖으로 나눴습니다. 같은 원료명 묶음은 합산하지 않았습니다.</p>}
+                      {tab === "report" && <p className={c.extraCaution} role="note">기준일 {extra?.meta.reportAsOf ?? "미제공"} 전체 원본: 건강기능식품 {extra?.meta.reportSourceCounts?.C003Total.toLocaleString("ko-KR") ?? "미제공"}건 중 원료 연결 {extra?.meta.reportSourceCounts?.C003LinkedReports.toLocaleString("ko-KR") ?? "미제공"}건 · 일반식품 {Object.values(extra?.meta.reportSourceCounts?.C002 ?? {}).reduce((sum, value) => sum + value, 0).toLocaleString("ko-KR")}건을 건강보조식품 후보·보류·범위 밖으로 나눴습니다. 같은 원료명 묶음은 합산하지 않았습니다.</p>}
+                      {tab === "report" && <p className={c.caption}>출처 · 식품안전나라 건강기능식품 품목제조신고 원재료(C003) · 일반식품 품목제조보고(C002/I1250)</p>}
                       {tab === "report" && <button type="button" className={c.reportToggle} aria-pressed={showAllReports} onClick={() => setShowAllReports((value) => !value)}>{showAllReports ? "보류 숨기기" : "보류 원료도 보기"}</button>}
                       {tab === "broadcast" && <p className={c.extraCaution}>날짜가 확인된 편성 기록만 셌습니다. 편성은 실제 송출·판매량을 뜻하지 않습니다.</p>}
                       <ExtraList kind={tab} rows={extraRows} />

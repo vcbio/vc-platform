@@ -359,8 +359,6 @@ async function main() {
     row.forecasts?.some((forecast) => forecast.horizon_weeks === 2 && forecast.platform_eligible === true))
     .map((row) => row.id));
   const forecastable = usable.filter((d) => forecastIds.has(d.id));
-  const isoReportDate = (value) => /^\d{8}$/.test(String(value ?? ""))
-    ? `${String(value).slice(0, 4)}-${String(value).slice(4, 6)}-${String(value).slice(6)}` : null;
   const extraBase = (row, kind) => ({
     kind, id: row.id, name: row.name, href: href(row), role: classLabel(row),
     grade: classGrade(row), category: classLabel(row), trust: row.trust,
