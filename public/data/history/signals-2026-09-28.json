@@ -1,0 +1,127 @@
+{
+  "observedAt": "2026-09-28",
+  "basis": "rolling7",
+  "source": "한국 공개자료 · 데이터랩",
+  "rows": [
+    {
+      "id": "ing_fe4ff6ec1c9f3b72",
+      "name": "젖산마그네슘",
+      "monthlyVolume": 152760,
+      "changePct": 17.5
+    },
+    {
+      "id": "ing_3b43f38712ae66a4",
+      "name": "마그네슘",
+      "monthlyVolume": 128600,
+      "changePct": 1
+    },
+    {
+      "id": "ing_0cade9ccd77cc1f1",
+      "name": "콘드로이친",
+      "monthlyVolume": 101100,
+      "changePct": 9.2
+    },
+    {
+      "id": "ing_5def52cf57bbe4ac",
+      "name": "크레아틴",
+      "monthlyVolume": 91800,
+      "changePct": 4.6
+    },
+    {
+      "id": "ing_d6d9e65a201af582",
+      "name": "카무트효소",
+      "monthlyVolume": 75930,
+      "changePct": 60.4
+    },
+    {
+      "id": "ing_7478199ee3e9cb57",
+      "name": "포스파티딜세린",
+      "monthlyVolume": 60780,
+      "changePct": 16.1
+    },
+    {
+      "id": "ing_6321af524fa7087c",
+      "name": "라이코펜",
+      "monthlyVolume": 48860,
+      "changePct": 145
+    },
+    {
+      "id": "ing_08a48053af7f0507",
+      "name": "애사비",
+      "monthlyVolume": 41570,
+      "changePct": 9.8
+    },
+    {
+      "id": "ing_348838ae589edbdf",
+      "name": "비오틴",
+      "monthlyVolume": 38320,
+      "changePct": 17.2
+    },
+    {
+      "id": "ing_702da04fc888f741",
+      "name": "히알루론산",
+      "monthlyVolume": 35280,
+      "changePct": 73.3
+    },
+    {
+      "id": "ing_4e5af721d4019c5d",
+      "name": "NMN",
+      "monthlyVolume": 32810,
+      "changePct": 21.8
+    },
+    {
+      "id": "ing_06aee214244b6375",
+      "name": "흑염소",
+      "monthlyVolume": 27940,
+      "changePct": 15.3
+    },
+    {
+      "id": "ing_d4fbbc4fd53ae6bd",
+      "name": "프로바이오틱스",
+      "monthlyVolume": 27200,
+      "changePct": 8.2
+    },
+    {
+      "id": "ing_32356e62f83ce1d1",
+      "name": "폴리코사놀",
+      "monthlyVolume": 26310,
+      "changePct": 55.7
+    },
+    {
+      "id": "ing_32c0cbe44cc23c13",
+      "name": "보이차",
+      "monthlyVolume": 25830,
+      "changePct": 20.2
+    },
+    {
+      "id": "ing_5ad5a851b0a4dc89",
+      "name": "MSM",
+      "monthlyVolume": 25130,
+      "changePct": 12.9
+    },
+    {
+      "id": "ing_9cb1d32431347f51",
+      "name": "쏘팔메토",
+      "monthlyVolume": 22940,
+      "changePct": 9.5
+    },
+    {
+      "id": "ing_ab5769a379aea8a3",
+      "name": "단백질바",
+      "monthlyVolume": 20360,
+      "changePct": 137.2
+    },
+    {
+      "id": "ing_2e5beab753b653a1",
+      "name": "석류",
+      "monthlyVolume": 18440,
+      "changePct": 10.5
+    },
+    {
+      "id": "ing_c5575f2c3f55b806",
+      "name": "테아닌",
+      "monthlyVolume": 16280,
+      "changePct": 2.7
+    }
+  ]
+}
