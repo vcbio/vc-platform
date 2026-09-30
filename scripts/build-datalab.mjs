@@ -140,6 +140,71 @@ async function main() {
   const classById = new Map((CLASSIFICATION.items ?? []).map((x) => [x.id, x]));
   log(`DATA ${DATA.length}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
 
+  // 공개 HTML의 첫 화면 표시 규칙을 읽기 전용 데이터로 대조한다. 원격 JS 실행은 금지.
+  // 규칙이 바뀌면 이 두 해시가 달라져 배포를 중단하고 새 표시를 다시 검토한다.
+  const gradeRuleStart = html.indexOf("function gradeInfo(id){");
+  const gradeRuleEnd = html.indexOf("const esc=s=>", gradeRuleStart);
+  const gradeLabelsRule = html.match(/const GRADE_LABELS=\{[^{}]+\};/)?.[0];
+  const classRule = html.match(/const classInfo=d=>[\s\S]{0,2000}?function classLabel\(d\)\{[^{}]+\}/)?.[0];
+  if (gradeRuleStart < 0 || gradeRuleEnd < 0 ||
+      sha256(Buffer.from(html.slice(gradeRuleStart, gradeRuleEnd))) !== "9c294f9cf2db676a0454ab7b2f81adb8e4a5a2649240be622d3b6c2107b5fe6d" ||
+      !gradeLabelsRule || sha256(Buffer.from(gradeLabelsRule)) !== "c8c9df6ce73af5befccd92578a97cb7863f212a8a72fc7220dbbc1bb7f561c65" ||
+      !classRule || sha256(Buffer.from(classRule)) !== "99428b0561d177ca191590b7559b57984f9714a730e4e3165d2a7620e1b3aa9f") {
+    throw new Error("데이터랩 첫 화면 분류 규칙이 바뀌었습니다 — 검토 전 배포 중단");
+  }
+  const gradeMap = carve(html, "const MAP=", "{", "}");
+  const rawGradeById = carve(html, "const GRADE_RAW_BY_ID=", "{", "}");
+  const recognitionNumbersById = carve(html, "const RECOGNITION_NUMBERS_BY_ID=", "{", "}");
+  if (gradeMap.schemaVersion !== "A311EfficacyDisplayTagsV1" || gradeMap.perId?.length !== DATA.length ||
+      DATA.some((row) => rawGradeById[row.id] !== row.grade)) {
+    throw new Error("데이터랩 표시 분류 자료의 ID·원본 등급이 맞지 않습니다");
+  }
+  const gradeEvidenceById = new Map(gradeMap.perId.map((row) => [row.ingredientId, row]));
+  if (gradeEvidenceById.size !== DATA.length || DATA.some((row) => !gradeEvidenceById.has(row.id))) {
+    throw new Error("데이터랩 표시 분류의 원료 ID가 중복되거나 빠졌습니다");
+  }
+  const specialGrades = new Map([
+    ["ing_fe4ff6ec1c9f3b72", "고시형 · 마그네슘 원료"],
+    ["ing_304fbb1a972d232d", "고시형 · 프로폴리스추출물"],
+    ["ing_5a3de34d5287e327", "고시형"],
+    ["ing_63f4008ff00761b4", "현행 고시 제외"],
+    ["ing_e9828b4a4cd9049f", "고시형 · EPA 및 DHA 함유 유지"],
+  ]);
+  const gradeDisplay = (d) => {
+    const raw = d.grade || "";
+    if (specialGrades.has(d.id) && (d.id !== "ing_63f4008ff00761b4" || raw === "고시형") &&
+        (d.id !== "ing_fe4ff6ec1c9f3b72" || raw === "비인정") &&
+        (d.id !== "ing_e9828b4a4cd9049f" || raw === "고시형")) return specialGrades.get(d.id);
+    if (raw === "개별인정") {
+      const types = new Set((gradeEvidenceById.get(d.id)?.officialTopicTags ?? [])
+        .flatMap((tag) => (tag.evidenceRows ?? []).map((evidence) => evidence.listType)));
+      if (types.has("high_type") && types.has("individual")) return "인정 구분 확인 필요";
+      if (types.has("high_type")) return "고시형 표기 · 구분 확인";
+      if (!types.has("individual") && recognitionNumbersById[d.id]) return "인정번호 확인";
+      if (!types.has("individual")) return "분류 확인 필요";
+      return "개별인정형";
+    }
+    return { "고시형": "고시형", "비인정": "일반원료", "의약품": "의약품" }[raw] || "미확인";
+  };
+  const foodSearchNames = new Set(["그릭요거트", "병아리콩", "카무트효소", "흑염소진액", "견과류"]);
+  const classDisplay = (d) => {
+    const info = classById.get(d.id) ?? {};
+    const health = info.healthScope ?? d.s2;
+    const general = !health && (info.generalScope ?? d.s4);
+    if (info.defaultInclude === false) return "원료 아닌 참고 분류";
+    if (health) return info.registrationKind === "generic_related_keyword" ? "건기식 관련 검색어" : "건강기능식품 원료";
+    if (general) return "일반식품 원료";
+    if (d.role?.includes("의약품")) return "의약품 참고";
+    return info.displayClassification || (foodSearchNames.has(d.name) ? "식품·제품명 검색어" : "원료명 검색어");
+  };
+  const gradeDisplayById = new Map(DATA.map((row) => [row.id, gradeDisplay(row)]));
+  const classDisplayById = new Map(DATA.map((row) => [row.id, classDisplay(row)]));
+  if (gradeDisplayById.size !== DATA.length || classDisplayById.size !== DATA.length ||
+      DATA.some((row) => !gradeDisplayById.get(row.id) || !classDisplayById.get(row.id))) {
+    throw new Error("데이터랩 첫 화면 분류 631개를 모두 읽지 못했습니다");
+  }
+  log(`데이터랩 첫 화면 분류 ${gradeDisplayById.size}건 직접 추출`);
+
   /* ── 월 검색량 ── 정확일치·실측 하한만 순위에 쓴다. 결측은 0으로 채우지 않는다. */
   let RANKING = { items: [] };
   try {
@@ -252,11 +317,22 @@ async function main() {
 
   const ingredients = DATA.filter((d) => d.role === "원료");
   const usable = ingredients.filter((d) => d.trust === "쓸만함");
+  // 데이터랩 첫 화면의 식품 검색어 목록을 데이터로 읽는다. 판정 함수가 바뀌면 배포를 멈춘다.
+  const homeFoodLiteral = html.match(/const HOME_FOOD_NAMES=new Set\(\[([^\]]*)\]\)/)?.[1];
+  const homeFoodRule = html.match(/function isHomeFood\(d\)\{[^{}]+\}/)?.[0];
+  if (!homeFoodLiteral || !/^\s*'[^']+'(?:\s*,\s*'[^']+')*\s*$/.test(homeFoodLiteral) ||
+      !homeFoodRule || sha256(Buffer.from(homeFoodRule)) !== "e2564c4ba9b59b73372b9e9f17dac7d275a9a1617b2b57513b43c08eb607e793") {
+    throw new Error("데이터랩 첫 화면 식품 검색어 분리 규칙이 바뀌었습니다");
+  }
+  const homeFoodNames = new Set([...homeFoodLiteral.matchAll(/'([^']+)'/g)].map((match) => match[1]));
+  // 현재 공개 데이터랩은 치아씨드를 원료로 두지만 대표님은 홈 순위 제외를 직접 지시했다.
+  homeFoodNames.add("치아씨드");
+  const homeIngredient = (d) => d.role !== "일반 식재료" && !homeFoodNames.has(d.name);
 
   /* ── ① 오늘의 신호 (signals.json) ── 오른 원료 중 월 검색량이 큰 순서.
      퍼센트로 줄을 세우면 월 1,150회짜리가 1위로 올라온다 — 절대량이 먼저다. */
   const signals = usable
-    .filter((d) => volumeOf(d) >= SIGNAL_MIN_VOLUME && (weekly(d)?.changePct ?? 0) > 0)
+    .filter((d) => homeIngredient(d) && volumeOf(d) >= SIGNAL_MIN_VOLUME && (weekly(d)?.changePct ?? 0) > 0)
     .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
@@ -456,13 +532,29 @@ async function main() {
      제형은 데이터랩 공개 JSON에 현재 제조 가능 여부가 없으므로 추정하지 않는다. */
   const detailRows = [...selected.values()].map((row) => {
     const source = detailById.get(row.id);
-    const seasonalMonths = Array.isArray(source?.sp) && source.sp.length === 12 && source.sp.every(Number.isFinite)
-      ? source.sp.map(round3) : [];
+    // 상세 파일의 sp는 최근 12주다. 달력 월별 계절 지수에는 기간 요약 monthly만 쓴다.
+    const monthly = periodById.get(row.id)?.monthly;
+    const calendarMonths = Array.isArray(monthly) && monthly.length === 12
+      ? [...monthly].sort((a, b) => a.month - b.month) : [];
+    const seasonalMonths = calendarMonths.length === 12 && calendarMonths.some((item) => Number.isFinite(item.mean))
+      ? calendarMonths.map((item) => Number.isFinite(item.mean)
+        ? item.mean > 0 && item.mean < .0005 ? item.mean : round3(item.mean)
+        : null) : [];
+    const highestMonth = seasonalMonths.some((value) => value != null && value > 0)
+      ? seasonalMonths.reduce((best, value, index) =>
+        value != null && (best == null || value > seasonalMonths[best]) ? index : best, null)
+      : null;
+    const observedMonths = calendarMonths.filter((item) => Number.isFinite(item.mean));
     const reportDate = isoReportDate(source?.rAsOf);
     return {
       ...row,
+      category: classDisplayById.get(row.id),
+      gradeDisplay: gradeDisplayById.get(row.id),
       seasonalMonths,
-      seasonalAsOf: seasonalMonths.length ? source.spEnd || null : null,
+      seasonalPeakMonth: highestMonth == null ? null : highestMonth + 1,
+      seasonalAsOf: seasonalMonths.length ? asOf : null,
+      seasonalPeriodStart: observedMonths.length ? observedMonths.map((item) => item.actualStart).sort()[0] : null,
+      seasonalPeriodEnd: observedMonths.length ? observedMonths.map((item) => item.actualEnd).sort().at(-1) : null,
       reportCount: source?.r365 > 0 ? source.r365 : null,
       reportAsOf: source?.r365 > 0 ? reportDate : null,
       reportPeriodStart: null,

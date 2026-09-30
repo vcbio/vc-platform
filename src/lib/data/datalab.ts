@@ -5,8 +5,7 @@
  * 제조사·원료·견적 같은 나머지는 전부 로컬 어댑터에 그대로 넘긴다.
  *
  * 읽는 파일은 `scripts/build-datalab.mjs` 가 빌드 때 만들어 둔 파생 JSON 3종이다.
- * 원본(46MB)을 브라우저가 열지 않는다. 파일이 없거나 형식이 다르면 조용히 로컬 시드로 떨어진다 —
- * 화면이 비는 것보다 옛 시드라도 보이는 편이 낫다.
+ * 원본(46MB)을 브라우저가 열지 않는다. 파생본을 못 읽으면 시연용 값을 대신 표시하지 않는다.
  *
  * ⚠️ 서버(정적 내보내기) 쪽에서는 상대 경로 fetch 가 성립하지 않는다. 그래서 브라우저에서만 읽는다.
  */
@@ -126,13 +125,13 @@ export const datalabData: DataAdapter = {
 
   async listSignals(limit = 3): Promise<Signal[]> {
     const rows = (await load<Signal>("signals.json"))?.rows;
-    if (!rows?.length) return localData.listSignals(limit);
+    if (!rows?.length) return [];
     return rows.slice(0, limit);
   },
 
   async listInsights(tab?: InsightTab): Promise<Insight[]> {
     const rows = (await load<Insight>("insights.json"))?.rows;
-    if (!rows?.length) return localData.listInsights(tab);
+    if (!rows?.length) return [];
     const picked = tab ? rows.filter((r) => r.tab === tab) : rows;
     return [...picked].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   },

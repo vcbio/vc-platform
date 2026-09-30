@@ -22,12 +22,6 @@
       "changePct": 1.1
     },
     {
-      "id": "ing_d6d9e65a201af582",
-      "name": "카무트효소",
-      "monthlyVolume": 75930,
-      "changePct": 63.1
-    },
-    {
       "id": "ing_6321af524fa7087c",
       "name": "라이코펜",
       "monthlyVolume": 48860,
@@ -56,12 +50,6 @@
       "name": "NMN",
       "monthlyVolume": 32810,
       "changePct": 15
-    },
-    {
-      "id": "ing_b3abddb7260630dc",
-      "name": "치아씨드",
-      "monthlyVolume": 31010,
-      "changePct": 1.3
     },
     {
       "id": "ing_06aee214244b6375",
@@ -122,6 +110,18 @@
       "name": "초석잠",
       "monthlyVolume": 13170,
       "changePct": 15.3
+    },
+    {
+      "id": "ing_a57eab66661a22d6",
+      "name": "회화나무",
+      "monthlyVolume": 12880,
+      "changePct": 19.3
+    },
+    {
+      "id": "ing_13906ae6ceefbdad",
+      "name": "보스웰리아",
+      "monthlyVolume": 12700,
+      "changePct": 2.9
     }
   ]
 }

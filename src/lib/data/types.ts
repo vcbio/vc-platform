@@ -165,9 +165,14 @@ export type Signal = {
 /** 플랫폼 안의 원료 한 장. 값은 빌드 때 읽은 데이터랩 공개 JSON만 담는다. */
 export type IngredientDetailRow = Omit<Signal, "monthlyVolume"> & {
   monthlyVolume: number | null;
-  /** 1~12월 검색 상대지수. 원본이 12개를 모두 주지 않으면 빈 배열이다. */
-  seasonalMonths: number[];
+  /** 데이터랩 첫 화면의 ID별 표시 문구. 옛 DATA.grade와 구별한다. */
+  gradeDisplay: string;
+  /** 공개 기간 요약의 달력 1~12월 검색 평균 상대지수. 결측은 null이다. */
+  seasonalMonths: (number | null)[];
+  seasonalPeakMonth?: number | null;
   seasonalAsOf?: string;
+  seasonalPeriodStart?: string | null;
+  seasonalPeriodEnd?: string | null;
   /** 최근 제조보고 연결 수. 원본의 0은 자료 없음으로 다뤄 null이다. */
   reportCount: number | null;
   reportAsOf?: string;

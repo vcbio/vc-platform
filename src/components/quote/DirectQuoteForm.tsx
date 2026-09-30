@@ -325,10 +325,10 @@ function QuoteForm() {
                       }))}
                       value={draft.ingredients}
                       onChange={(v) => set("ingredients", v)}
-                      help={`${draft.dosageForm}에 쓸 수 있는 등록 원료입니다. 정하지 않으셨다면 비워 두고 원료 추천을 요청하셔도 됩니다.`}
+                      help="선택지는 입력 예시입니다. 실제 사용 가능 여부와 제형 적합성은 담당자가 확인합니다. 원료를 정하지 않으셨다면 비워 두셔도 됩니다."
                     />
                   ) : (
-                    <p className={s.help}>{draft.dosageForm}에 등록된 원료가 아직 없습니다.</p>
+                    <p className={s.help}>표시할 예시 원료가 없습니다. 원료를 정하지 않으셨다면 비워 두셔도 됩니다.</p>
                   )}
 
                   <Select
