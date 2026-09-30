@@ -503,7 +503,8 @@
   padding: 4px 10px;
   border-radius: var(--pf-radius-sm);
   border-bottom: 1px solid var(--pf-rule);
-  transition: background-color var(--pf-motion-fast), color var(--pf-motion-fast);
+  /* 배경과 글자가 같은 순간 바뀌어 자동 전환 중에도 대비가 무너지지 않는다. */
+  transition: none;
 }
 .rankSelect {
   display: grid;
@@ -621,6 +622,9 @@
 }
 
 /* ---------------- 섹션 ---------------- */
+
+/* 높은 화면에서 main의 flex:1이 업계 자료 아래에 빈 면을 만들지 않게 한다. */
+:global(main#main):has(> .hero) { flex: 0 0 auto; }
 
 .sec {
   padding: 44px 0;

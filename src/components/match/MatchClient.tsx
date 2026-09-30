@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Badge, ButtonLink, Card, Chip, Container, Select } from "@/components/ui";
 import MakerCard from "./MakerCard";
 import {
@@ -108,13 +109,7 @@ export default function MatchClient() {
             <span className={s.signalLabel}>지금 뜨는 원료로 조건 잡기</span>
             {signals.map((sig) => (
               <span key={sig.id} className={s.signalItem}>
-                {sig.href ? (
-                  <a href={sig.href} target="_blank" rel="noopener noreferrer">
-                    {sig.name}
-                  </a>
-                ) : (
-                  <span className={s.signalPlain}>{sig.name}</span>
-                )}
+                <Link href={`/ingredient/?id=${encodeURIComponent(sig.id)}`}>{sig.name}</Link>
                 <em>월 {sig.monthlyVolume.toLocaleString("ko-KR")}회</em>
                 <b>
                   {sig.periodLabel.split(" ")[0]}{" "}

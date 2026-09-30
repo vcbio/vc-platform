@@ -112,12 +112,6 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
     release();
   }
 
-  /** 검색에서 고른 원료가 시세판에 있으면 그 자리에서 대표 카드를 바꾼다. */
-  function pickByName(name: string) {
-    const i = signals.findIndex((r) => r.name === name);
-    if (i >= 0) pick(i);
-  }
-
   function onListKeyDown(e: React.KeyboardEvent<HTMLOListElement>) {
     if ((e.target as HTMLElement).closest("a")) return;
     const last = signals.length - 1;
@@ -161,14 +155,7 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
         <div className={s.deckMain}>
           {/* 이 화면의 제목은 문구가 아니라 지금 뜨는 원료 이름이다 */}
           <h1 className={s.deckName}>
-            {top.href ? (
-              <a href={top.href} target="_blank" rel="noopener noreferrer">
-                {top.name}
-                <span className="pf-sr-only"> (새 탭에서 열림)</span>
-              </a>
-            ) : (
-              top.name
-            )}
+            <Link href={`/ingredient/?id=${encodeURIComponent(top.id)}`}>{top.name}</Link>
             {top.category && <em>{top.category}</em>}
           </h1>
 
@@ -201,12 +188,12 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
 
           <IngredientSearch
             signals={signals.map((r) => ({
+              id: r.id,
               name: r.name,
               monthlyVolume: r.monthlyVolume,
               category: r.category,
               functionCategory: (r as { functionCategory?: string }).functionCategory,
             }))}
-            onPick={pickByName}
           />
 
           <div className={s.deckCta}>

@@ -7,20 +7,20 @@ import s from "./home.module.css";
 /**
  * 원료 검색 한 줄.
  *
- * 후보는 ①지금 시세판에 올라 있는 원료(signals) ②공개 집계 상위 원료 목록(ingredients-top.json)
- * 두 곳에서 **앞글자가 맞는 것**만 고른다. 시세판에 있으면 그 자리에서 대표 카드를 바꾸고,
- * 없으면 견적 폼으로 그 원료를 싣고 넘어간다.
+ * 후보는 ①지금 시세판에 올라 있는 원료 ②공개 원료 상세 631개에서 고른다.
+ * 선택한 원료는 이 플랫폼의 상세 화면에서 연다.
  *
- * ingredients-top 은 어댑터에 없는 파일이라 여기서 한 번만 받아 메모리에 둔다.
+ * 상세 목록은 여기서 한 번만 받아 메모리에 둔다.
  * 실패하면 목록이 비고 드롭다운만 닫힌다 — 화면은 멀쩡히 돌아간다(콘솔 에러 없음).
  */
 
-const TOP_URL = "/vc-platform/data/ingredients-top.json";
+const TOP_URL = "/vc-platform/data/ingredient-details.json";
 const MAX = 6;
 
 type Row = {
+  id: string;
   name: string;
-  monthlyVolume: number;
+  monthlyVolume: number | null;
   category?: string;
   /** 기능성 분류(혈당·관절 …). 이름이 안 맞아도 이 말로 찾는 사람이 많다. */
   functionCategory?: string;
@@ -61,17 +61,15 @@ function match(key: string, pool: Row[]): Row[] {
   }
 
   // 같은 등급 안에서는 검색량이 큰 쪽을 먼저 보여 준다.
-  scored.sort((a, b) => a.rank - b.rank || b.row.monthlyVolume - a.row.monthlyVolume);
+  scored.sort((a, b) => a.rank - b.rank || (b.row.monthlyVolume ?? -1) - (a.row.monthlyVolume ?? -1));
   return scored.slice(0, MAX).map((x) => x.row);
 }
 
 export default function IngredientSearch({
   signals,
-  onPick,
 }: {
-  /** 시세판에 올라 있는 원료(이름 → 검색량). 여기 있으면 화면 안에서 바로 바꾼다. */
+  /** 시세판에 올라 있는 원료. */
   signals: Row[];
-  onPick: (name: string) => void;
 }) {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
@@ -92,14 +90,10 @@ export default function IngredientSearch({
   const key = q.trim();
   const hits = match(key, [...signals, ...rows]);
 
-  function choose(name: string) {
+  function choose(row: Row) {
     setOpen(false);
     setQ("");
-    if (signals.some((r) => r.name === name)) {
-      onPick(name);
-      return;
-    }
-    router.push(`/quote/ai/?ingredient=${encodeURIComponent(name)}`);
+    router.push(`/ingredient/?id=${encodeURIComponent(row.id)}`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -108,9 +102,7 @@ export default function IngredientSearch({
       return;
     }
     if (e.key === "Enter" && hits.length === 0 && key) {
-      // 목록에 없어도 길은 열어 둔다 — 적은 말 그대로 견적 진입 화면으로 싣고 간다.
       e.preventDefault();
-      choose(key);
       return;
     }
     if (hits.length === 0) return;
@@ -123,7 +115,7 @@ export default function IngredientSearch({
       setCursor((c) => Math.max(0, c - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      choose(hits[Math.min(cursor, hits.length - 1)].name);
+      choose(hits[Math.min(cursor, hits.length - 1)]);
     }
   }
 
@@ -160,7 +152,7 @@ export default function IngredientSearch({
 
       {open && key !== "" && hits.length === 0 && (
         <p className={s.searchEmpty} role="status">
-          일치하는 원료가 없습니다 — Enter를 누르면 「{key}」로 견적 의뢰 화면을 엽니다.
+          공개 자료에 연결된 원료가 없습니다.
         </p>
       )}
 
@@ -175,10 +167,10 @@ export default function IngredientSearch({
               className={i === cursor ? s.searchOn : undefined}
               onMouseDown={(e) => e.preventDefault()}
               onMouseEnter={() => setCursor(i)}
-              onClick={() => choose(r.name)}
+              onClick={() => choose(r)}
             >
               <span>{r.name}</span>
-              <b>{nf.format(r.monthlyVolume)}</b>
+              <b>{r.monthlyVolume == null ? "자료 없음" : nf.format(r.monthlyVolume)}</b>
             </li>
           ))}
         </ul>

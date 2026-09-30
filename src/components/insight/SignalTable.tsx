@@ -1,7 +1,7 @@
 import { ButtonLink } from "@/components/ui";
+import Link from "next/link";
 import { TableWrap } from "@/components/deal/shared";
 import type { Signal } from "@/lib/data";
-import { datalabIngredient } from "@/lib/data/datalab";
 import c from "./insight.module.css";
 
 const num = (n: number) => n.toLocaleString("ko-KR");
@@ -61,14 +61,12 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
             <tr key={r.id}>
               <td className={c.rank}>{i + 1}</td>
               <td className={c.nameCell}>
-                <a
+                <Link
                   className={c.nameLink}
-                  href={datalabIngredient(r.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/ingredient/?id=${encodeURIComponent(r.id)}`}
                 >
                   {r.name}
-                </a>
+                </Link>
                 <span className={c.sub}>
                   {r.grade && (
                     <span
@@ -82,7 +80,7 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
                   {[r.category, r.functionCategory].filter(Boolean).join(" · ")}
                   {/* 바깥으로 나가는 링크라는 표시. 줄 위로 손이 오면 드러난다. */}
                   <span className={c.goMark} aria-hidden="true">
-                    데이터랩 ↗
+                    상세 보기
                   </span>
                 </span>
               </td>

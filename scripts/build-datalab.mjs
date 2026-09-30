@@ -260,7 +260,7 @@ async function main() {
     .map((d) => toSignal(d, []));
 
   /* 원료별 상세 해시는 공개 HTML에서 매번 찾는다. 새 동향 탭이 이 값을 사용한다. */
-  const detailCandidates = DATA.filter((d) => d.hs > 0 || d.r365 > 0);
+  const detailCandidates = DATA;
   const detailById = new Map();
   for (let start = 0; start < detailCandidates.length; start += 12) {
     await Promise.all(detailCandidates.slice(start, start + 12).map(async (row) => {
@@ -269,7 +269,7 @@ async function main() {
       detailById.set(row.id, detail);
     }));
   }
-  log(`탭용 원료 상세 ${detailById.size}건 직접 확인`);
+  log(`플랫폼 원료 상세 ${detailById.size}건 직접 확인`);
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
@@ -311,15 +311,14 @@ async function main() {
   });
   const broadcastRows = DATA.filter((row) => row.hs > 0).map((row) => {
     const detail = detailById.get(row.id);
-    if (detail?.hs !== row.hs) throw new Error(`${row.id} 방송 수가 목록·상세에서 다릅니다`);
+    if (detail?.hs !== row.hs) throw new Error(`${row.id} 방송 수가 목록(${row.hs})·상세(${detail?.hs ?? "없음"})에서 다릅니다`);
     return { ...extraBase(row, "broadcast"), count: detail.hs,
       channel: detail.ax?.["채널"]?.[0]?.k || null,
-      priceBand: detail.ax?.["가격대"]?.[0]?.k || null,
       periodStart: broadcastStart, periodEnd: broadcastEnd };
   }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
   const rawReportRows = DATA.filter((row) => row.r365 > 0).map((row) => {
     const detail = detailById.get(row.id);
-    if (detail?.r365 !== row.r365) throw new Error(`${row.id} 제조보고 수가 목록·상세에서 다릅니다`);
+    if (detail?.r365 !== row.r365) throw new Error(`${row.id} 제조보고 수가 목록(${row.r365})·상세(${detail?.r365 ?? "없음"})에서 다릅니다`);
     return { ...extraBase(row, "report"), count: detail.r365,
       companies: String(detail.rFirm || "").split(/\s+\/\s+/).filter(Boolean).slice(0, 3),
       asOf: isoReportDate(detail.rAsOf), periodStart: null };
@@ -372,7 +371,9 @@ async function main() {
   });
   const lactate = DATA.find((row) => row.name === "젖산마그네슘");
   const lactateWeek = lactate && weekly(lactate);
-  const extraRows = [...broadcastRows, ...reportRows, ...seasonRows, ...forecastRows];
+  // 업체 실명은 공개 산출물에 넣지 않는다. 내부 중복 묶음 계산에만 사용한다.
+  const publicReportRows = reportRows.map((row) => { const copy = { ...row }; delete copy.companies; return copy; });
+  const extraRows = [...broadcastRows, ...publicReportRows, ...seasonRows, ...forecastRows];
   log(`동향 추가: 방송 ${broadcastRows.length} · 제조보고 원본 ${rawReportRows.length}/표시 묶음 ${reportRows.length} · 계절 ${seasonRows.length} · 최신 2주 예측 ${forecastRows.length}`);
   const trendRows = [...new Set([...seasonal, ...forecastable])].filter((d) => volumeOf(d) != null)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
@@ -407,7 +408,10 @@ async function main() {
   for (const s of tagged.values()) if (!top100.some((t) => t.id === s.id)) top100.push(s);
 
   /* 선택된 원료의 실제 일별 원본으로만 8주 차트를 만든다. 56일 중 하나라도 빠지면 비워 둔다. */
-  const selected = new Map([...signals, ...risers, ...trendRows, ...safetyRows, ...top100].map((r) => [r.id, r]));
+  const selected = new Map(DATA.map((row) => {
+    const ready = tagged.get(row.id) ?? toSignal(row, []);
+    return [ready.id, ready];
+  }));
   const seriesById = new Map();
   const selectedIds = [...selected.keys()];
   for (let start = 0; start < selectedIds.length; start += 10) {
@@ -438,13 +442,36 @@ async function main() {
         lowBase: weeks.at(-2) < Math.max(...weeks) * 0.2 });
     }));
   }
-  for (const row of [...signals, ...risers, ...trendRows, ...safetyRows, ...top100]) {
+  for (const row of [...signals, ...risers, ...trendRows, ...safetyRows, ...top100, ...selected.values()]) {
     const chart = seriesById.get(row.id);
     if (chart) Object.assign(row, chart);
   }
   if (!signals.length || !risers.length || !seriesById.has(signals[0].id)) {
     throw new Error("최신 관측일의 상승 원료·8주 차트를 만들 수 없습니다");
   }
+
+  /* ── 플랫폼 원료 상세 ── 화면에서 실제로 고를 수 있는 원료만 한 장씩 만든다.
+     제형은 데이터랩 공개 JSON에 현재 제조 가능 여부가 없으므로 추정하지 않는다. */
+  const detailRows = [...selected.values()].map((row) => {
+    const source = detailById.get(row.id);
+    const seasonalMonths = Array.isArray(source?.sp) && source.sp.length === 12 && source.sp.every(Number.isFinite)
+      ? source.sp.map(round3) : [];
+    const reportDate = isoReportDate(source?.rAsOf);
+    return {
+      ...row,
+      seasonalMonths,
+      seasonalAsOf: seasonalMonths.length ? source.spEnd || null : null,
+      reportCount: source?.r365 > 0 ? source.r365 : null,
+      reportAsOf: source?.r365 > 0 ? reportDate : null,
+      reportPeriodStart: null,
+      broadcastCount: source?.hs > 0 ? source.hs : null,
+      broadcastPeriodStart: source?.hs > 0 ? broadcastStart : null,
+      broadcastPeriodEnd: source?.hs > 0 ? broadcastEnd : null,
+      broadcastTopChannel: source?.hs > 0 ? source.ax?.["채널"]?.[0]?.k || null : null,
+      availableDosageForms: [],
+      dosageFormStatus: "미확인",
+    };
+  }).sort((a, b) => (b.monthlyVolume ?? -1) - (a.monthlyVolume ?? -1) || a.name.localeCompare(b.name, "ko"));
 
   /* ── 인사이트 카드 ── 값은 전부 위에서 뽑은 실값이다. 문장은 관측을 말할 뿐 효능을 말하지 않는다. */
   const weekLabel = risers[0]?.periodLabel ?? `최근 7일 ~${asOf}`;
@@ -576,6 +603,7 @@ async function main() {
     ["signals.json", { meta, rows: signals }],
     ["insights.json", { meta, rows: insights }],
     ["ingredients-top.json", { meta, rows: top100 }],
+    ["ingredient-details.json", { meta, rows: detailRows }],
     ["insight-extra.json", { meta: {
       ...meta, detailFolder, broadcastStart, broadcastEnd,
       reportStart: null, reportStartStatus: "미확인",

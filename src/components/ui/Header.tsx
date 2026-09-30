@@ -14,6 +14,7 @@ const MENU = [
   { href: "/quote/ai/", label: "AI 견적" },
   { href: "/insight/", label: "동향" },
   { href: "/deal/", label: "거래관리" },
+  { href: "/faq/", label: "자주 묻는 질문" },
 ];
 
 /** 관리자 세션에만 붙는 메뉴. */

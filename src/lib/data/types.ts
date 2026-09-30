@@ -76,10 +76,8 @@ export type InsightExtraRow = {
   trust: string;
   count?: number;
   channel?: string | null;
-  priceBand?: string | null;
   periodStart?: string | null;
   periodEnd?: string | null;
-  companies?: string[];
   aliases?: { id: string; name: string; href: string }[];
   asOf?: string | null;
   peakMonth?: string | null;
@@ -162,4 +160,24 @@ export type Signal = {
   rankDelta?: number;
   /** 직전 주 목록 20위 밖이었으면 true. 판정 못 하면 필드가 없다. */
   isNew?: boolean;
+};
+
+/** 플랫폼 안의 원료 한 장. 값은 빌드 때 읽은 데이터랩 공개 JSON만 담는다. */
+export type IngredientDetailRow = Omit<Signal, "monthlyVolume"> & {
+  monthlyVolume: number | null;
+  /** 1~12월 검색 상대지수. 원본이 12개를 모두 주지 않으면 빈 배열이다. */
+  seasonalMonths: number[];
+  seasonalAsOf?: string;
+  /** 최근 제조보고 연결 수. 원본의 0은 자료 없음으로 다뤄 null이다. */
+  reportCount: number | null;
+  reportAsOf?: string;
+  reportPeriodStart?: string | null;
+  /** 수집 기간에 연결된 홈쇼핑 편성 수. 원본의 0은 자료 없음으로 다뤄 null이다. */
+  broadcastCount: number | null;
+  broadcastPeriodStart?: string;
+  broadcastPeriodEnd?: string;
+  broadcastTopChannel?: string | null;
+  /** 과거 신고 제형을 현재 제조 가능 제형으로 바꾸지 않는다. 공개 원본에 없으면 빈 배열이다. */
+  availableDosageForms: string[];
+  dosageFormStatus: "확인" | "미확인";
 };

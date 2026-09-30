@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
 import { getData, type Insight, type InsightExtraRow, type InsightTab, type Signal } from "@/lib/data";
 import { datalabLink, getDatalabMeta, getInsightExtra, listSignalRows, type DatalabMeta, type InsightExtraMeta } from "@/lib/data/datalab";
@@ -75,12 +76,12 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
           <li key={`${kind}-${row.id}`} className={c.extraRow}>
             <div className={c.extraName}>
               <span className={c.extraRank}>{index + 1}</span>
-              <a href={row.href} target="_blank" rel="noopener noreferrer">{row.name}<span className="pf-sr-only"> (새 탭에서 열림)</span></a>
+              <Link href={`/ingredient/?id=${encodeURIComponent(row.id)}`}>{row.name}</Link>
               <small>{row.name === "젖산마그네슘" ? `${row.grade} · 규격 확인 필요` : row.role === "원료" ? row.category || row.role : row.role}</small>
               {row.trust === "검색 오염" && <small>검색 오염 · 해석 주의</small>}
               {kind === "report" && !!row.aliases?.length && <small className={c.extraAliases}>
                 같은 공개 집계값: {row.aliases.map((alias, i) => <span key={alias.id}>
-                  {i > 0 && " · "}<a href={alias.href} target="_blank" rel="noopener noreferrer">{alias.name}</a>
+                  {i > 0 && " · "}<Link href={`/ingredient/?id=${encodeURIComponent(alias.id)}`}>{alias.name}</Link>
                 </span>)}
               </small>}
             </div>
@@ -88,12 +89,10 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
               {kind === "broadcast" && <>
                 <div><dt>방송 연결</dt><dd>{n(row.count)}회</dd></div>
                 <div><dt>최다 채널</dt><dd>{row.channel || "미제공"}</dd></div>
-                <div><dt>최다 가격대</dt><dd>{row.priceBand || "미제공"}</dd></div>
                 <div><dt>편성 기간</dt><dd>{row.periodStart}~{row.periodEnd}</dd></div>
               </>}
               {kind === "report" && <>
                 <div><dt>수집 기간 내 제조보고</dt><dd>{n(row.count)}건</dd></div>
-                <div><dt>연결 업체 최대 3곳</dt><dd>{row.companies?.length ? row.companies.join(" · ") : "미제공"}</dd></div>
                 <div><dt>자료 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
                 <div><dt>수집 시작일</dt><dd>미확인</dd></div>
               </>}

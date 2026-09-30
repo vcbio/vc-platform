@@ -3,9 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ClipboardList, Factory, TrendingUp } from "lucide-react";
 import { Badge, ButtonLink, Card, Container } from "@/components/ui";
-import TrustBar from "@/components/home/TrustBar";
 import SignalBoard from "@/components/home/SignalBoard";
-import { homeStats } from "@/components/home/stats";
 import type { Insight, Signal } from "@/lib/data";
 import s from "@/components/home/home.module.css";
 
@@ -62,8 +60,7 @@ function FeedItem({ insight }: { insight: Insight }) {
 
 export default async function Home() {
   // prebuild가 검증·생성한 같은 JSON을 정적 첫 화면에도 심는다. 옛 로컬 시드가 잠깐 보이지 않는다.
-  const [stats, insightFile, signalFile, extraFile] = await Promise.all([
-    homeStats(),
+  const [insightFile, signalFile, extraFile] = await Promise.all([
     readFile(path.join(process.cwd(), "public/data/insights.json"), "utf8"),
     readFile(path.join(process.cwd(), "public/data/signals.json"), "utf8"),
     readFile(path.join(process.cwd(), "public/data/insight-extra.json"), "utf8"),
@@ -102,7 +99,6 @@ export default async function Home() {
       {/* ── 제조사 ── 주인공이 아니므로 사실 한 줄로만 ── */}
       <div className={s.band}>
         <Container>
-          <TrustBar initial={stats} />
           <p className={s.bandNote}>
             제조사 자료는 내부에서 확인합니다. 조건을 보내 주시면 담당자가 생산 가능 여부를 확인해 회신드립니다.{" "}
             <Link href="/quote/ai/">AI 견적 상담</Link>
