@@ -56,9 +56,9 @@ export default function PrivacyPage() {
           </p>
           <p className="mt-3 leading-7">
             비회원 문의와 제조사 입점 신청의 자동 접수를 막기 위해 Cloudflare, Inc.의 Turnstile을 사용합니다.
-            확인 과정에서 접속 IP 주소, 브라우저·통신 환경 정보와 접속 사이트 정보가 Cloudflare에 전달되어
+            확인 과정에서 접속 IP 주소, 브라우저 User-Agent·TLS 정보와 접속 사이트 정보가 Cloudflare에 전달되어
             사람과 자동 프로그램을 구별하는 데 쓰입니다. 원료·수량·연락처 등 폼 입력 내용은
-            Turnstile에 보내지 않습니다. 자세한 처리 내용은{" "}
+            Turnstile에 보내지 않습니다. 받는 곳은 Cloudflare, Inc.(개인정보 문의: dpo@cloudflare.com)입니다. 자세한 처리 내용은{" "}
             <a className="underline underline-offset-4" href="https://www.cloudflare.com/turnstile-privacy-policy/" target="_blank" rel="noopener noreferrer">Cloudflare의 Turnstile 개인정보 안내</a>에서 확인할 수 있습니다.
           </p>
         </section>
@@ -75,9 +75,13 @@ export default function PrivacyPage() {
             이용할 수 없습니다. 아래 전화로 다른 상담 방법을 문의할 수 있습니다.
           </p>
           <p className="mt-3 leading-7">
-            공개 접수 폼을 열면 자동 접수 방지용 보안 신호가 미국 기업 Cloudflare, Inc.의 국외 네트워크에서
-            처리될 수 있습니다. 보안 신호의 세부 처리·보관은 위 Cloudflare 안내를 확인해 주세요.
-            이 확인을 원하지 않으면 공개 폼 대신 아래 전화로 문의할 수 있습니다.
+            Cloudflare 보안 신호는 공개 접수 폼을 열 때 브라우저에서 HTTPS로 직접 이전됩니다.
+            Cloudflare의 공개 정책상 정보의 주 보관 국가는 미국과 유럽경제지역이며, 글로벌 운영 과정에서
+            다른 운영 국가의 접근·처리도 가능하다고 안내합니다. 목적은 자동 접수 탐지·차단입니다.
+            보유·이용 기간은 보안 목적 달성에 필요한 기간 또는 법적 의무 기간이고,
+            Turnstile 신호의 고정 보관 일수는 Cloudflare가 공개하지 않았습니다.
+            국외 처리를 원하지 않으면 온라인 공개 폼을 사용하지 않고 아래 전화로 문의할 수 있습니다.
+            이 경우 온라인 간편 문의·입점 신청은 이용할 수 없습니다.
           </p>
         </section>
 
@@ -104,7 +108,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <p className="mt-10 text-sm text-slate-600">시행일: 2026년 9월 27일</p>
+        <p className="mt-10 text-sm text-slate-600">시행일: 2026년 9월 30일</p>
         <p className="mt-4"><Link className="underline underline-offset-4" href="/">홈으로 돌아가기</Link></p>
       </article>
     </Container>
