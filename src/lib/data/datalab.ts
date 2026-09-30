@@ -57,6 +57,7 @@ export type InsightExtraMeta = DatalabMeta & {
   reportRawCount: number;
   reportDisplayCount: number;
   forecastAsOf: string;
+  forecastCurrent: boolean;
   lactateHomeExclusion: { name: string; changePct: number; observedAt: string; reason: string } | null;
 };
 

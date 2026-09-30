@@ -216,7 +216,7 @@ export default function InsightTabs() {
           sub="공개 검색·방송 편성·제조보고 자료를 축별로 봅니다. 각 숫자의 기준일은 원료마다 따로 확인해 주세요."
           right={
             <span className={c.headRight}>
-              <Badge tone="neutral">{tab === "broadcast" ? `편성 ${extra?.meta.broadcastEnd ?? "—"}` : tab === "report" ? `제조보고 ${extra?.meta.reportAsOf ?? "—"}` : tab === "trend" ? `예측 ${extra?.meta.forecastAsOf ?? "—"}` : `검색 ${meta?.observedAt ?? "—"}`}</Badge>
+              <Badge tone="neutral">{tab === "broadcast" ? `편성 ${extra?.meta.broadcastEnd ?? "—"}` : tab === "report" ? `제조보고 ${extra?.meta.reportAsOf ?? "—"}` : tab === "trend" ? extra?.meta.forecastCurrent ? `예측 ${extra.meta.forecastAsOf}` : "예측 대기" : `검색 ${meta?.observedAt ?? "—"}`}</Badge>
               <a
                 className={c.cta}
                 href={datalabLink()}
@@ -287,8 +287,10 @@ export default function InsightTabs() {
                     <div className={c.extraGroup}>
                       <h2>계절 반복 <span>{extraRows.filter((row) => row.kind === "season").length}종</span></h2>
                       <ExtraList kind="season" rows={extraRows.filter((row) => row.kind === "season")} />
-                      <h2>2주 예측 <span>{extraRows.filter((row) => row.kind === "forecast").length}종</span></h2>
-                      <p className={c.extraCaution}>최신 예측은 상대지수입니다. 검색량·매출 예측이 아니며, 원료별 예측값과 대상 기간을 함께 표시합니다.</p>
+                      <h2>2주 예측 <span>{extra?.meta.forecastCurrent ? `${extraRows.filter((row) => row.kind === "forecast").length}종` : "자료 대기"}</span></h2>
+                      <p className={c.extraCaution}>{extra?.meta.forecastCurrent
+                        ? "예측은 상대지수입니다. 검색량·매출 예측이 아니며, 원료별 예측값과 대상 기간을 함께 표시합니다."
+                        : `예측 원본 ${extra?.meta.forecastAsOf ?? "미제공"} · 최근 검색 ${meta?.observedAt ?? "미제공"} — 기준일이 달라 예측값을 보류합니다.`}</p>
                       <ExtraList kind="forecast" rows={extraRows.filter((row) => row.kind === "forecast")} />
                       {extra?.meta.lactateHomeExclusion && <p className={c.extraCaution}>
                         젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 플랫폼 분류는 데이터랩 원료 상세의 ‘비인정’을 따르며, 별도 분류 자료와의 차이는 규격 확인 대상으로 남깁니다.

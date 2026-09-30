@@ -110,7 +110,7 @@ async function main() {
     return { data: JSON.parse(bytes.toString("utf8")), hash: sha256(bytes) };
   }
   const { data: PERIOD } = await fetchSource(refPath("PERIOD_SUMMARY_REF"));
-  const { data: FORECAST } = await fetchSource(refPath("NEW_FORECAST_REF"));
+  const { data: forecastSource } = await fetchSource(refPath("NEW_FORECAST_REF"));
   const mainRef = refPath("MAIN_SERIES_REF");
   const { data: MAIN_INDEX, hash: indexHash } = await fetchSource(mainRef);
   if (PERIOD.status !== "complete" || PERIOD.source?.zeroFill !== false ||
@@ -119,9 +119,11 @@ async function main() {
     throw new Error("일별 요약·원본 색인 날짜/해시가 맞지 않습니다");
   }
   const asOf = PERIOD.source.asOf;
-  if (FORECAST.asOf !== asOf || !Array.isArray(FORECAST.items)) {
-    throw new Error("예측 원본의 관측일이 일별 원본과 맞지 않습니다");
-  }
+  if (!Array.isArray(forecastSource.items)) throw new Error("예측 원본 배열이 없습니다");
+  const forecastCurrent = forecastSource.asOf === asOf;
+  // 일별 검색만 먼저 갱신되면 오래된 예측을 숨기고 나머지 자료는 계속 갱신한다.
+  const FORECAST = forecastCurrent ? forecastSource : { ...forecastSource, items: [] };
+  if (!forecastCurrent) log(`예측 보류 — 검색 ${asOf}, 예측 ${forecastSource.asOf ?? "미제공"} 기준일 불일치`);
   const periodById = new Map(PERIOD.ingredients.map((row) => [row.id, row]));
   const shardById = new Map(MAIN_INDEX.items.map((row) => [row.id, row]));
   log(`일별 관측 ${asOf} · 관측 원료 ${PERIOD.source.observedIngredients}/${PERIOD.source.ingredientCount}`);
@@ -610,7 +612,8 @@ async function main() {
       reportAsOf: rawReportRows[0]?.asOf ?? null,
       reportRawCount: rawReportRows.length,
       reportDisplayCount: reportRows.length,
-      forecastAsOf: FORECAST.asOf,
+      forecastAsOf: forecastSource.asOf ?? "미제공",
+      forecastCurrent,
       lactateHomeExclusion: lactateWeek?.changePct < 0
         ? { name: lactate.name, changePct: lactateWeek.changePct, observedAt: asOf,
             reason: "홈 TOP10은 최근 7일 상승 원료만 포함" } : null,
