@@ -34,12 +34,6 @@
       "changePct": 5.3
     },
     {
-      "id": "ing_348838ae589edbdf",
-      "name": "비오틴",
-      "monthlyVolume": 38320,
-      "changePct": 9.8
-    },
-    {
       "id": "ing_702da04fc888f741",
       "name": "히알루론산",
       "monthlyVolume": 35280,
@@ -121,6 +115,12 @@
       "id": "ing_13906ae6ceefbdad",
       "name": "보스웰리아",
       "monthlyVolume": 12700,
+      "changePct": 2.9
+    },
+    {
+      "id": "ing_c67b4b472be30384",
+      "name": "셀레늄",
+      "monthlyVolume": 12530,
       "changePct": 2.9
     }
   ]

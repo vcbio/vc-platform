@@ -43,6 +43,12 @@ export type DatalabMeta = {
   sourceDate: string;
   source: string;
   sourcePage: string;
+  reportSourceCounts?: {
+    C002: Record<string, number>;
+    C003Total: number;
+    C003LinkedReports: number;
+    C003ReportFamilyPairs: number;
+  };
   minVolume: number;
   note: string;
 };

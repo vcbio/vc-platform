@@ -18,8 +18,8 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 
 /** 값을 긁어 오는 대상. 화면 링크용 주소는 `src/lib/data/datalab.ts` 의 DATALAB_URL 이다(같이 바꿀 것). */
-const PAGE = "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
-const BASE = "https://vcbio.github.io/shelf/d/";
+const PAGE = process.env.DATALAB_PAGE || "https://vcbio.github.io/shelf/d/vcbio-market-fable.html";
+const BASE = new URL("./", PAGE).href;
 const OUT_DIR = path.join(process.cwd(), "public", "data");
 /** 관측일별 스냅샷 보관소. 순위 변동(▲▼)은 7일 전 파일이 있어야 계산할 수 있다. */
 const HISTORY_DIR = path.join(OUT_DIR, "history");
@@ -93,7 +93,6 @@ async function main() {
   // 원본 파일명(해시)은 갱신 때마다 바뀐다. 추적용으로 남긴다.
   const refs = [...html.matchAll(/([A-Z0-9_]+_REF)\s*=\s*"([^"]+)"/g)].map(([, k, v]) => `${k}=${BASE}${v}`);
   refs.forEach((r) => log("원본 참조", r));
-  const detailFolder = html.match(/(data-[0-9a-f]+)\/ing_[0-9a-f]+\.json/)?.[1] ?? "";
   const refPath = (key) => {
     const match = html.match(new RegExp(`(?:const\\s+)?${key}\\s*=\\s*"([^"]+)"`));
     if (!match) throw new Error(`${key} 포인터가 없습니다`);
@@ -116,18 +115,25 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
     }
   }
+  const classificationRef = refPath("CLASSIFICATION_REF");
+  const reportLinksRef = refPath("REPORT_LINKS_REF");
+  const broadcastRef = refPath("BROADCAST_REF");
+  const { data: SHARED_CLASSIFICATION, hash: classificationHash } = await fetchSource(classificationRef);
+  const { data: REPORT_LINKS, hash: reportLinksHash } = await fetchSource(reportLinksRef);
+  const { data: BROADCAST, hash: broadcastHash } = await fetchSource(broadcastRef);
+  if (!classificationRef.includes(classificationHash.slice(0, 12)) ||
+      SHARED_CLASSIFICATION.schemaVersion !== "healthfood-classification.a348.v1" ||
+      SHARED_CLASSIFICATION.denominator !== 631 || SHARED_CLASSIFICATION.rows?.length !== 631 ||
+      !reportLinksRef.includes(reportLinksHash.slice(0, 12)) ||
+      REPORT_LINKS.schemaVersion !== "healthfood-report-links.a348.v1" ||
+      REPORT_LINKS.rows?.length !== 631 || REPORT_LINKS.sourceSha256?.classification !== classificationHash ||
+      !broadcastRef.includes(broadcastHash.slice(0, 12)) || !Array.isArray(BROADCAST.rows)) {
+    throw new Error("공통 분류·신고·방송 자료의 해시나 형식이 맞지 않습니다");
+  }
   const { data: PERIOD } = await fetchSource(refPath("PERIOD_SUMMARY_REF"));
-  const { data: BROADCAST } = await fetchSource(refPath("BROADCAST_REF"));
-  const { data: PUBLIC_CLASS } = await fetchSource(refPath("CLASSIFICATION_REF"));
   if (BROADCAST.version !== "homeshopping_view.v1" || !Array.isArray(BROADCAST.rows) ||
       !Array.isArray(BROADCAST.ingredientStats) || BROADCAST.meta?.timezone !== "Asia/Seoul") {
     throw new Error("홈쇼핑 공개 원본의 행·시간대·형식이 맞지 않습니다");
-  }
-  const broadcastStart = BROADCAST.meta?.allObserved?.periodStart;
-  const broadcastEnd = BROADCAST.meta?.allObserved?.periodEnd;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(broadcastStart ?? "") ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(broadcastEnd ?? "")) {
-    throw new Error("홈쇼핑 공개 원본의 전체 편성 기간을 확인할 수 없습니다");
   }
   const { data: forecastSource } = await fetchSource(refPath("NEW_FORECAST_REF"));
   const mainRef = refPath("MAIN_SERIES_REF");
@@ -160,20 +166,42 @@ async function main() {
 
   const DATA = carve(html, "const DATA=[", "[", "]");
   const OBS = carve(html, ", OBS={", "{", "}");
-  if (PUBLIC_CLASS.schemaVersion !== "healthfood-classification.a348.v1" ||
-      PUBLIC_CLASS.denominator !== DATA.length || !Array.isArray(PUBLIC_CLASS.rows) ||
-      PUBLIC_CLASS.rows.length !== DATA.length) {
-    throw new Error("데이터랩 공개 분류 파일의 형식·분모가 맞지 않습니다");
+  const classById = new Map(SHARED_CLASSIFICATION.rows.map((x) => [x.id, x]));
+  const reportsById = new Map(REPORT_LINKS.rows.map((x) => [x.id, x]));
+  if (classById.size !== DATA.length || reportsById.size !== DATA.length ||
+      DATA.some((row) => classById.get(row.id)?.name !== row.name || reportsById.get(row.id)?.name !== row.name)) {
+    throw new Error("원료 631개 ID와 공통 분류·신고 자료가 맞지 않습니다");
   }
-  const classById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row]));
-  if (classById.size !== DATA.length || DATA.some((row) =>
-    classById.get(row.id)?.name !== row.name || !classById.get(row.id)?.branch ||
-    !classById.get(row.id)?.recognitionStatus)) {
-    throw new Error("데이터랩 공개 분류 파일의 원료 ID·이름·표시값이 맞지 않습니다");
+  const broadcastSlots = new Map();
+  const broadcastAsOf = BROADCAST.meta?.asOfDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(broadcastAsOf ?? "")) throw new Error("방송 자료 기준일이 없습니다");
+  const broadcastStart = BROADCAST.rows.map((row) => row.date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") && date <= broadcastAsOf).sort()[0] ?? null;
+  const broadcastEnd = broadcastAsOf;
+  for (const row of BROADCAST.rows) {
+    if (!row.countEligible || !/^\d{4}-\d{2}-\d{2}$/.test(row.date ?? "") || row.date > broadcastAsOf) continue;
+    for (const id of row.ingredientIds ?? []) {
+      if (!classById.has(id)) continue;
+      if (!broadcastSlots.has(id)) broadcastSlots.set(id, new Map());
+      broadcastSlots.get(id).set(row.slotKey, row);
+    }
   }
-  const gradeDisplayById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row.recognitionStatus]));
-  const classDisplayById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row.branch]));
-  log(`DATA ${DATA.length}건 · 공개 5칸 분류 ${classById.size}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
+  const broadcastById = new Map([...broadcastSlots].map(([id, slots]) => {
+    const rows = [...slots.values()].sort((a, b) => a.date.localeCompare(b.date));
+    const channels = new Map();
+    rows.forEach((row) => channels.set(row.channel, (channels.get(row.channel) ?? 0) + 1));
+    const topChannel = [...channels].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+    return [id, { count: rows.length, periodStart: rows[0].date, periodEnd: rows.at(-1).date, topChannel }];
+  }));
+  log(`DATA ${DATA.length}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
+
+  // The single validated ID-keyed sidecar supplies the five classification fields.
+  const gradeDisplayById = new Map(DATA.map((row) => [row.id, classById.get(row.id).recognitionStatus]));
+  const classDisplayById = new Map(DATA.map((row) => [row.id, classById.get(row.id).branch]));
+  if (gradeDisplayById.size !== DATA.length || classDisplayById.size !== DATA.length ||
+      DATA.some((row) => !gradeDisplayById.get(row.id) || !classDisplayById.get(row.id))) {
+    throw new Error("공통 원료 분류 631개가 빠졌습니다");
+  }
+  log("공통 원료 분류 631건 직접 대조");
 
   /* ── 월 검색량 ── 정확일치·실측 하한만 순위에 쓴다. 결측은 0으로 채우지 않는다. */
   let RANKING = { items: [] };
@@ -205,9 +233,12 @@ async function main() {
     };
   }
 
-  /* 공개 5칸 분류의 두 화면 라벨. 플랫폼에서 별도 판정을 하지 않는다. */
-  const classGrade = (d) => classById.get(d.id)?.recognitionStatus ?? "";
-  const classLabel = (d) => classById.get(d.id)?.branch ?? "";
+  /* 두 화면이 같은 원료 ID별 5칸 정본을 사용한다. 옛 DATA 값으로 되돌아가지 않는다. */
+  const classInfo = (d) => classById.get(d.id);
+  const healthScope = (d) => classInfo(d).branch === "건강기능식품 원료";
+  const generalScope = (d) => classInfo(d).branch === "건강보조식품 원료";
+  const classGrade = (d) => classInfo(d).recognitionStatus;
+  const classLabel = (d) => classInfo(d).branch;
 
   /**
    * 지난주 스냅샷 읽기 — 이번 기준일보다 7일 이상 이전인 것 중 가장 최근 것.
@@ -245,7 +276,10 @@ async function main() {
       id: row.id,
       name: row.name,
       category: classLabel(row),
-      functionCategory: classGrade(row) === "고시형" ? classById.get(row.id)?.functionCategory ?? "" : "",
+      functionCategory: classInfo(row).functionCategory,
+      productForm: classInfo(row).productForm,
+      recognitionNumbers: classInfo(row).recognitions,
+      classificationTags: classInfo(row).tags,
       monthlyVolume: volumeOf(row),
       volumeExact: rankById.get(row.id)?.volume?.exact === true,
       volumeDate: searchAsOf(row),
@@ -256,7 +290,7 @@ async function main() {
       source: SOURCE,
       href: href(row),
       grade: classGrade(row),
-      distribution: row.dist || "",
+      distribution: classInfo(row).domesticDistribution,
       verdict: row.verdict || "",
       season: row.season || "",
       seasonMonth: row.seasonMonth || "",
@@ -268,7 +302,7 @@ async function main() {
     };
   }
 
-  const ingredients = DATA.filter((d) => d.role === "원료");
+  const ingredients = DATA.filter((d) => healthScope(d) || generalScope(d));
   const usable = ingredients.filter((d) => d.trust === "쓸만함");
   // 데이터랩 첫 화면의 식품 검색어 목록을 데이터로 읽는다. 판정 함수가 바뀌면 배포를 멈춘다.
   const homeFoodLiteral = html.match(/const HOME_FOOD_NAMES=new Set\(\[([^\]]*)\]\)/)?.[1];
@@ -290,6 +324,8 @@ async function main() {
     .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
+
+  /* 오래된 631개 상세 JSON은 사용하지 않는다. 필요한 칸은 최신 원본에서 직접 계산한다. */
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
@@ -326,68 +362,39 @@ async function main() {
   const isoReportDate = (value) => /^\d{8}$/.test(String(value ?? ""))
     ? `${String(value).slice(0, 4)}-${String(value).slice(4, 6)}-${String(value).slice(6)}` : null;
   const extraBase = (row, kind) => ({
-    kind, id: row.id, name: row.name, href: href(row), role: row.role,
+    kind, id: row.id, name: row.name, href: href(row), role: classLabel(row),
     grade: classGrade(row), category: classLabel(row), trust: row.trust,
   });
-  const broadcastStatsById = new Map(BROADCAST.ingredientStats.map((row) => [row.ingredientId, row]));
-  const channelSlotsById = new Map();
-  for (const item of BROADCAST.rows) {
-    if (!item.countEligible || !item.slotKey || !item.channel) continue;
-    for (const id of new Set(item.ingredientIds ?? [])) {
-      if (!channelSlotsById.has(id)) channelSlotsById.set(id, new Map());
-      const channels = channelSlotsById.get(id);
-      if (!channels.has(item.channel)) channels.set(item.channel, new Set());
-      channels.get(item.channel).add(item.slotKey);
-    }
-  }
-  const topChannelOf = (id) => [...(channelSlotsById.get(id) ?? [])]
-    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0], "ko"))[0]?.[0] ?? null;
   const broadcastRows = DATA.flatMap((row) => {
-    const stat = broadcastStatsById.get(row.id)?.allObserved;
-    if (!(stat?.slotCount > 0)) return [];
-    return [{ ...extraBase(row, "broadcast"), count: stat.slotCount,
-      channel: topChannelOf(row.id),
-      periodStart: stat.periodStart ?? broadcastStart, periodEnd: stat.periodEnd ?? broadcastEnd }];
+    const observation = broadcastById.get(row.id);
+    return observation ? [{ ...extraBase(row, "broadcast"), count: observation.count,
+      channel: observation.topChannel, periodStart: observation.periodStart,
+      periodEnd: observation.periodEnd }] : [];
   }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
-  const rawReportRows = DATA.filter((row) => row.r365 > 0).map((row) => {
-    // 새 상세 파일은 옛 r365를 싣지 않는다. 기존 경고가 붙은 탭은 DATA의 옛 집계만 유지한다.
-    // 새 REPORT_LINKS_REF의 C003/보류 분리 수치는 별도 검증 전까지 글 틀에 넣지 않는다.
-    return { ...extraBase(row, "report"), count: row.r365,
-      companies: String(row.rFirm || "").split(/\s+\/\s+/).filter(Boolean).slice(0, 3),
-      asOf: isoReportDate(row.rAsOf), periodStart: null };
+  const rawReportRows = DATA.flatMap((row) => {
+    const report = reportsById.get(row.id);
+    if (!report || report.healthFunctionalReports + report.healthSupportReportsProvisional + report.heldGeneralReports === 0) return [];
+    return [{ ...extraBase(row, "report"), count: report.healthFunctionalReports,
+      supportCount: report.healthSupportReportsProvisional, heldCount: report.heldGeneralReports,
+      healthFunctionalPeriodStart: report.healthFunctionalPeriodStart,
+      healthFunctionalPeriodEnd: report.healthFunctionalPeriodEnd,
+      healthSupportPeriodStart: report.healthSupportPeriodStart,
+      healthSupportPeriodEnd: report.healthSupportPeriodEnd,
+      heldPeriodStart: report.heldPeriodStart, heldPeriodEnd: report.heldPeriodEnd,
+      companies: report.healthFunctionalTopManufacturers.slice(0, 3),
+      supportCompanies: report.healthSupportTopManufacturersProvisional.slice(0, 3),
+      family: report.family, asOf: REPORT_LINKS.asOf, periodStart: null }];
   }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
-  /* 신고번호가 공개되지 않았다. 집계값·상위 업체가 같고 이름까지 닮은 행만 화면상 한 묶음으로 표시한다.
-     수치는 더하지 않으며 원료별 원본 링크를 모두 보존한다. 실제 동일 신고 판정은 하지 않는다. */
-  const simpleName = (name) => name.replace(/[\s·,()]/g, "").toLowerCase();
-  const relatedNames = (a, b) => {
-    const x = simpleName(a), y = simpleName(b);
-    if (x.includes(y) || y.includes(x)) return true;
-    for (let i = 0; i <= x.length - 3; i++) if (y.includes(x.slice(i, i + 3))) return true;
-    return false;
-  };
-  const sameAggregate = new Map();
-  for (const row of rawReportRows) {
-    if (row.count < 30 || !row.companies.length) continue;
-    const key = `${row.count}|${row.companies.join("|")}`;
-    if (!sameAggregate.has(key)) sameAggregate.set(key, []);
-    sameAggregate.get(key).push(row);
-  }
-  const grouped = new Set();
-  const reportRows = [];
-  for (const row of rawReportRows) {
-    if (grouped.has(row.id)) continue;
-    const key = `${row.count}|${row.companies.join("|")}`;
-    const pool = sameAggregate.get(key) ?? [row];
-    const family = [row];
-    for (let i = 0; i < family.length; i++) {
-      for (const other of pool) {
-        if (!family.includes(other) && relatedNames(family[i].name, other.name)) family.push(other);
-      }
-    }
-    family.forEach((item) => grouped.add(item.id));
-    family.sort((a, b) => simpleName(a.name).length - simpleName(b.name).length || a.name.localeCompare(b.name, "ko"));
-    reportRows.push({ ...family[0], aliases: family.slice(1).map((item) => ({ id: item.id, name: item.name, href: item.href })) });
-  }
+  const seenFamilies = new Set();
+  const reportRows = rawReportRows.filter((row) => {
+    if (seenFamilies.has(row.family)) return false;
+    seenFamilies.add(row.family);
+    return true;
+  }).map((row) => ({ ...row, aliases: (reportsById.get(row.id)?.familyIds ?? [])
+    .filter((id) => id !== row.id).map((id) => ({
+      id, name: DATA.find((item) => item.id === id)?.name ?? id,
+      href: `${PAGE}#view=ingredients&id=${id}&tab=products`,
+    })) }));
   const seasonRows = DATA.filter((row) => row.season === "계절반복").map((row) => ({
     ...extraBase(row, "season"), peakMonth: row.seasonMonth || null,
     asOf: row.spEnd || row.q?.asOf?.["검색"] || null,
@@ -404,8 +411,8 @@ async function main() {
   });
   const lactate = DATA.find((row) => row.name === "젖산마그네슘");
   const lactateWeek = lactate && weekly(lactate);
-  // 업체 실명은 공개 산출물에 넣지 않는다. 내부 중복 묶음 계산에만 사용한다.
-  const publicReportRows = reportRows.map((row) => { const copy = { ...row }; delete copy.companies; return copy; });
+  // 업체명은 공개 신고 C003/C002 원문에서 확인한 상위 3곳만 표시한다.
+  const publicReportRows = reportRows;
   const extraRows = [...broadcastRows, ...publicReportRows, ...seasonRows, ...forecastRows];
   log(`동향 추가: 방송 ${broadcastRows.length} · 제조보고 원본 ${rawReportRows.length}/표시 묶음 ${reportRows.length} · 계절 ${seasonRows.length} · 최신 2주 예측 ${forecastRows.length}`);
   const trendRows = [...new Set([...seasonal, ...forecastable])].filter((d) => volumeOf(d) != null)
@@ -486,9 +493,9 @@ async function main() {
   /* ── 플랫폼 원료 상세 ── 화면에서 실제로 고를 수 있는 원료만 한 장씩 만든다.
      제형은 데이터랩 공개 JSON에 현재 제조 가능 여부가 없으므로 추정하지 않는다. */
   const detailRows = [...selected.values()].map((row) => {
-    const source = DATA.find((item) => item.id === row.id);
-    const broadcastStat = broadcastStatsById.get(row.id)?.allObserved;
-    // 상세 파일의 sp는 최근 12주다. 달력 월별 계절 지수에는 기간 요약 monthly만 쓴다.
+    const report = reportsById.get(row.id);
+    const broadcast = broadcastById.get(row.id);
+    // 월별 계절 지수는 최신 기간 요약에서 가져온다. 옛 상세 파일의 주간 값은 사용하지 않는다.
     const monthly = periodById.get(row.id)?.monthly;
     const calendarMonths = Array.isArray(monthly) && monthly.length === 12
       ? [...monthly].sort((a, b) => a.month - b.month) : [];
@@ -501,7 +508,6 @@ async function main() {
         value != null && (best == null || value > seasonalMonths[best]) ? index : best, null)
       : null;
     const observedMonths = calendarMonths.filter((item) => Number.isFinite(item.mean));
-    const reportDate = isoReportDate(source?.rAsOf);
     return {
       ...row,
       category: classDisplayById.get(row.id),
@@ -512,13 +518,23 @@ async function main() {
       seasonalAsOf: seasonalMonths.length ? asOf : null,
       seasonalPeriodStart: observedMonths.length ? observedMonths.map((item) => item.actualStart).sort()[0] : null,
       seasonalPeriodEnd: observedMonths.length ? observedMonths.map((item) => item.actualEnd).sort().at(-1) : null,
-      reportCount: source?.r365 > 0 ? source.r365 : null,
-      reportAsOf: source?.r365 > 0 ? reportDate : null,
+      reportCount: report.healthFunctionalReports,
+      healthSupportReportCount: report.healthSupportReportsProvisional,
+      heldGeneralReportCount: report.heldGeneralReports,
+      healthFunctionalPeriodStart: report.healthFunctionalPeriodStart,
+      healthFunctionalPeriodEnd: report.healthFunctionalPeriodEnd,
+      healthSupportPeriodStart: report.healthSupportPeriodStart,
+      healthSupportPeriodEnd: report.healthSupportPeriodEnd,
+      heldPeriodStart: report.heldPeriodStart,
+      heldPeriodEnd: report.heldPeriodEnd,
+      reportTopManufacturers: report.healthFunctionalTopManufacturers,
+      supportTopManufacturers: report.healthSupportTopManufacturersProvisional,
+      reportAsOf: REPORT_LINKS.asOf,
       reportPeriodStart: null,
-      broadcastCount: broadcastStat?.slotCount > 0 ? broadcastStat.slotCount : null,
-      broadcastPeriodStart: broadcastStat?.slotCount > 0 ? broadcastStat.periodStart ?? broadcastStart : null,
-      broadcastPeriodEnd: broadcastStat?.slotCount > 0 ? broadcastStat.periodEnd ?? broadcastEnd : null,
-      broadcastTopChannel: broadcastStat?.slotCount > 0 ? topChannelOf(row.id) : null,
+      broadcastCount: broadcast?.count ?? null,
+      broadcastPeriodStart: broadcast?.periodStart ?? null,
+      broadcastPeriodEnd: broadcast?.periodEnd ?? null,
+      broadcastTopChannel: broadcast?.topChannel ?? null,
       availableDosageForms: [],
       dosageFormStatus: "미확인",
     };
@@ -542,24 +558,34 @@ async function main() {
       BROADCAST.meta?.timezone !== "Asia/Seoul" || !Array.isArray(BROADCAST.rows)) {
     throw new Error("홈쇼핑 방송 원본의 날짜·시간대·행을 확인할 수 없습니다");
   }
-  const broadcastAsOf = BROADCAST.meta.asOfDate;
-  if (broadcastAsOf > todayKst) throw new Error(`홈쇼핑 자료 기준일 ${broadcastAsOf}이 현재 ${todayKst}보다 미래입니다`);
-  const broadcastMonday = weekMonday(broadcastAsOf);
-  const broadcastSlots = new Map();
+  const broadcastWeekAsOf = BROADCAST.meta.asOfDate;
+  if (broadcastWeekAsOf > todayKst) throw new Error(`홈쇼핑 자료 기준일 ${broadcastWeekAsOf}이 현재 ${todayKst}보다 미래입니다`);
+  const broadcastMonday = weekMonday(broadcastWeekAsOf);
+  const broadcastWeekSlots = new Map();
   for (const item of BROADCAST.rows) {
-    if (item.date < broadcastMonday || item.date > broadcastAsOf || item.countEligible !== true ||
+    if (item.date < broadcastMonday || item.date > broadcastWeekAsOf || item.countEligible !== true ||
         item.scheduleFreshness !== "live_observed_at_capture" || !item.slotKey) continue;
     for (const id of new Set(item.ingredientIds ?? [])) {
-      if (!broadcastSlots.has(id)) broadcastSlots.set(id, new Set());
-      broadcastSlots.get(id).add(item.slotKey);
+      if (!broadcastWeekSlots.has(id)) broadcastWeekSlots.set(id, new Set());
+      broadcastWeekSlots.get(id).add(item.slotKey);
     }
   }
-  const broadcastWeek = [...broadcastSlots].map(([id, slots]) => ({
+  const broadcastWeek = [...broadcastWeekSlots].map(([id, slots]) => ({
     row: DATA.find((item) => item.id === id), count: slots.size,
   })).filter((item) => item.row && articleEligibleIds.has(item.row.id) && item.count > 0)
     .sort((a, b) => b.count - a.count || (volumeOf(b.row) ?? 0) - (volumeOf(a.row) ?? 0) ||
       a.row.name.localeCompare(b.row.name, "ko"));
-  log(`이번 주 확인 편성 ${broadcastMonday}~${broadcastAsOf} · 원료명 연결 ${broadcastWeek.length}종 · 최다 ${broadcastWeek[0]?.row.name ?? "없음"} ${broadcastWeek[0]?.count ?? 0}회`);
+  log(`이번 주 확인 편성 ${broadcastMonday}~${broadcastWeekAsOf} · 원료명 연결 ${broadcastWeek.length}종 · 최다 ${broadcastWeek[0]?.row.name ?? "없음"} ${broadcastWeek[0]?.count ?? 0}회`);
+  // 기능 분류는 두 화면이 공유하는 공식 근거 기반 칸으로 센다. 보류는 제외한다.
+  const catById = new Map(DATA.map((d) => [d.id, classInfo(d).functionCategory]));
+  const catCount = risers.reduce((acc, r) => {
+    const k = catById.get(r.id);
+    if (!k || k === "보류" || k.startsWith("해당없음")) return acc;
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {});
+  const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
+
   const insights = [
     {
       id: "dl-weekly-top",
@@ -619,13 +645,22 @@ async function main() {
       publishedAt: FORECAST.asOf,
     }] : []),
     {
+      id: "dl-trend-category",
+      tab: "trend",
+      title: topCat ? `상승 원료가 몰린 분류 — ${topCat[0]}` : "상승 원료의 기능성 분류",
+      summary: `주간 상승 상위 ${risers.length}종을 기능성 분류로 나누면 ${topCat ? `${topCat[0]} 분류가 ${topCat[1]}종으로 가장 많습니다` : "한쪽으로 몰리지 않고 고르게 나뉩니다"}. 분류가 붙지 않은 원료는 세지 않았습니다.`,
+      body: `분류는 데이터랩과 이 화면이 같은 공개 원료 분류 파일에서 읽습니다. 보류는 세지 않았습니다. 같은 분류가 여럿 오르는지는 복합 배합을 검토할 때 참고할 수 있습니다.`,
+      source: SOURCE,
+      publishedAt: asOf,
+    },
+    {
       id: "dl-safety-unapproved",
       tab: "safety",
       title: `데이터랩 공개 분류가 비인정으로 표시한 원료 ${unapproved.length}종`,
       summary: `${names(unapproved, 3)} 등은 데이터랩 공개 분류에서 비인정으로 표시됩니다. 이 표시만으로 식품 사용·기능성 표시 가능 여부를 단정하지 않습니다.`,
       body: `월 검색량은 관심 참고값입니다. 실제 제품에 사용할 원료의 규격·국내 인정 상태·표시 문구는 각각 확인해야 합니다.`,
       source: SOURCE,
-      publishedAt: PUBLIC_CLASS.asOf,
+      publishedAt: SHARED_CLASSIFICATION.asOf,
     },
     {
       id: "dl-safety-medicinal",
@@ -634,7 +669,7 @@ async function main() {
       summary: `${names(medicinal, 3)} 등 의약품 성분이 원료 검색어와 함께 잡힙니다. 참고로만 두고 제품 기획에는 넣지 않습니다.`,
       body: `검색량이 크다고 해서 식품 원료로 쓸 수 있다는 뜻이 아닙니다. 데이터랩은 이런 항목을 의약품(참고)으로 따로 표시해 둡니다. 이 화면도 같은 표시를 그대로 달아 둡니다.`,
       source: SOURCE,
-      publishedAt: PUBLIC_CLASS.asOf,
+      publishedAt: SHARED_CLASSIFICATION.asOf,
     },
     {
       id: "dl-safety-notes",
@@ -656,6 +691,10 @@ async function main() {
     totalIngredients: PERIOD.source.ingredientCount,
     source: SOURCE,
     sourcePage: PAGE,
+    classificationRef, classificationSha256: classificationHash,
+    reportLinksRef, reportLinksSha256: reportLinksHash,
+    broadcastRef, broadcastSha256: broadcastHash,
+    reportSourceCounts: REPORT_LINKS.sourceCounts,
     rawSource: OBS.rawSource,
     catalogCount: DATA.length,
     historyYears: (() => {
@@ -676,7 +715,7 @@ async function main() {
     ["ingredients-top.json", { meta, rows: top100 }],
     ["ingredient-details.json", { meta, rows: detailRows }],
     ["insight-extra.json", { meta: {
-      ...meta, detailFolder, broadcastStart, broadcastEnd,
+      ...meta, broadcastStart, broadcastEnd,
       reportStart: null, reportStartStatus: "미확인",
       reportAsOf: rawReportRows[0]?.asOf ?? null,
       reportRawCount: rawReportRows.length,

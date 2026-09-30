@@ -77,7 +77,7 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
                       {r.grade}
                     </span>
                   )}
-                  {[r.category, r.functionCategory].filter(Boolean).join(" · ")}
+                  {[r.category, r.functionCategory?.startsWith("해당없음") ? "" : r.functionCategory].filter(Boolean).join(" · ")}
                   {/* 바깥으로 나가는 링크라는 표시. 줄 위로 손이 오면 드러난다. */}
                   <span className={c.goMark} aria-hidden="true">
                     상세 보기

@@ -48,14 +48,14 @@ const TABS: { id: InsightTab; label: string; lead: string; hash: string; more: s
   {
     id: "broadcast",
     label: "홈쇼핑 방송",
-    lead: "수집한 홈쇼핑 편성 연결 수를 많은 순서로 봅니다. 과거 방송과 예정 편성이 섞여 있습니다.",
+    lead: "기준일까지 날짜가 확인된 홈쇼핑 편성 연결 수를 봅니다. 예정 편성은 세지 않습니다.",
     hash: "#view=ingredients",
     more: "원료별 방송 상세는 데이터랩에서",
   },
   {
     id: "report",
     label: "제조보고",
-    lead: "수집 기간 내 원료명에 연결된 제조보고 건수입니다. 제품 수나 현재 생산능력이 아닙니다.",
+    lead: "C003 건기식 신고와 C002 건강보조식품 후보·보류를 나누어 봅니다. 판매량은 아닙니다.",
     hash: "#view=ingredients",
     more: "원료별 제조보고 상세는 데이터랩에서",
   },
@@ -71,16 +71,16 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
   return (
     <ol className={c.extraList}>
       {rows.map((row, index) => {
-        const quoteBlocked = row.role.includes("의약품") || row.grade === "의약품" || row.category.includes("규격 확인 필요") || row.trust === "검색 오염";
+        const quoteBlocked = ["범위 밖", "참고", "보류"].includes(row.category) || row.grade === "의약품" || row.trust === "검색 오염";
         return (
           <li key={`${kind}-${row.id}`} className={c.extraRow}>
             <div className={c.extraName}>
               <span className={c.extraRank}>{index + 1}</span>
               <Link href={`/ingredient/?id=${encodeURIComponent(row.id)}`}>{row.name}</Link>
-              <small>{row.name === "젖산마그네슘" ? `${row.grade} · 규격 확인 필요` : row.role === "원료" ? row.category || row.role : row.role}</small>
+              <small>{row.name === "젖산마그네슘" ? `${row.category} · 마그네슘 함량·제품 요건 확인` : row.category || row.role}</small>
               {row.trust === "검색 오염" && <small>검색 오염 · 해석 주의</small>}
               {kind === "report" && !!row.aliases?.length && <small className={c.extraAliases}>
-                같은 공개 집계값: {row.aliases.map((alias, i) => <span key={alias.id}>
+                같은 원료명 묶음 · 합산하지 않음: {row.aliases.map((alias, i) => <span key={alias.id}>
                   {i > 0 && " · "}<Link href={`/ingredient/?id=${encodeURIComponent(alias.id)}`}>{alias.name}</Link>
                 </span>)}
               </small>}
@@ -92,9 +92,13 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
                 <div><dt>편성 기간</dt><dd>{row.periodStart}~{row.periodEnd}</dd></div>
               </>}
               {kind === "report" && <>
-                <div><dt>수집 기간 내 제조보고</dt><dd>{n(row.count)}건</dd></div>
+                <div><dt>건강기능식품 신고 · C003</dt><dd>{n(row.count)}건</dd></div>
+                <div><dt>건강보조식품 후보 · C002</dt><dd>{n(row.supportCount)}건</dd></div>
+                <div><dt>분류 보류</dt><dd>{n(row.heldCount)}건</dd></div>
+                <div><dt>건기식 신고일</dt><dd>{row.healthFunctionalPeriodStart || "미확인"}~{row.healthFunctionalPeriodEnd || "미확인"}</dd></div>
+                <div><dt>건강보조식품 후보 신고일</dt><dd>{row.healthSupportPeriodStart || "미확인"}~{row.healthSupportPeriodEnd || "미확인"}</dd></div>
                 <div><dt>자료 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
-                <div><dt>수집 시작일</dt><dd>미확인</dd></div>
+                {!!row.companies?.length && <div><dt>건기식 신고 상위 업체</dt><dd>{row.companies.map(([name, count]) => `${name} ${n(count)}건`).join(" · ")}</dd></div>}
               </>}
               {kind === "season" && <>
                 <div><dt>계절 고점</dt><dd>{row.peakMonth ? `${row.peakMonth}월` : "미제공"}</dd></div>
@@ -205,9 +209,9 @@ export default function InsightTabs() {
   const extraRows = extra?.rows.filter((row) => {
     if (tab === "trend") return row.kind === "season" || row.kind === "forecast";
     if (row.kind !== tab) return false;
-    if (tab !== "report" || showAllReports) return true;
-    return row.role === "원료" && row.trust === "쓸만함" &&
-      (row.category === "건강기능식품 원료" || row.category === "일반식품 원료");
+    if (tab !== "report") return true;
+    const valid = row.category === "건강기능식품 원료" || row.category === "건강보조식품 원료";
+    return valid || (showAllReports && row.category === "보류");
   }) ?? [];
   const visibleCount = tab === "weekly" || tab === "safety" ? rows?.length ?? 0 : extraRows.length;
   const usesExtra = tab === "trend" || tab === "broadcast" || tab === "report";
@@ -305,10 +309,9 @@ export default function InsightTabs() {
                     </div>
                   ) : tab === "broadcast" || tab === "report" ? (
                     <div className={c.extraGroup}>
-                      {tab === "report" && <p className={c.extraCaution} role="note"><strong>일반식품 신고가 섞인 값, 집계 기준 수정 중</strong></p>}
-                      {tab === "report" && <p className={c.extraCaution}>원본 {extra?.meta.reportRawCount}원료 중 같은 수치·상위 업체·유사한 이름은 {extra?.meta.reportDisplayCount}묶음으로 표시합니다. 수치를 더하지 않았고 실제 동일 신고번호인지는 미검증입니다. 수집 시작일도 미확인입니다.</p>}
-                      {tab === "report" && <button type="button" className={c.reportToggle} aria-pressed={showAllReports} onClick={() => setShowAllReports((value) => !value)}>{showAllReports ? "원료만 보기" : "전체 보기 · 식재료·첨가물 포함"}</button>}
-                      {tab === "broadcast" && <p className={c.extraCaution}>방송 연결은 과거·예정 편성이 섞여 있으며 실제 판매량을 뜻하지 않습니다.</p>}
+                      {tab === "report" && <p className={c.extraCaution} role="note">2026-09-29 전체 원본: 건기식 {extra?.meta.reportSourceCounts?.C003Total.toLocaleString("ko-KR") ?? "미제공"}건 중 원료 연결 {extra?.meta.reportSourceCounts?.C003LinkedReports.toLocaleString("ko-KR") ?? "미제공"}건 · 일반식품 {Object.values(extra?.meta.reportSourceCounts?.C002 ?? {}).reduce((sum, value) => sum + value, 0).toLocaleString("ko-KR")}건을 건강보조식품 후보·보류·범위 밖으로 나눴습니다. 같은 원료명 묶음은 합산하지 않았습니다.</p>}
+                      {tab === "report" && <button type="button" className={c.reportToggle} aria-pressed={showAllReports} onClick={() => setShowAllReports((value) => !value)}>{showAllReports ? "보류 숨기기" : "보류 원료도 보기"}</button>}
+                      {tab === "broadcast" && <p className={c.extraCaution}>날짜가 확인된 편성 기록만 셌습니다. 편성은 실제 송출·판매량을 뜻하지 않습니다.</p>}
                       <ExtraList kind={tab} rows={extraRows} />
                     </div>
                   ) : rows.length > 0 ? (
@@ -355,15 +358,15 @@ export default function InsightTabs() {
                 <Card title="이 탭 요약">
                   <dl>
                     <KV label={tab === "trend" ? "표시 항목" : tab === "report" ? "표시 묶음" : "목록 원료"}>{visibleCount}종</KV>
-                    {tab === "report" && <KV label="원본 원료명">{extra?.meta.reportRawCount ?? "—"}종</KV>}
+                    {tab === "report" && <KV label="신고 연결 원료명">{extra?.meta.reportRawCount ?? "—"}종</KV>}
                     <KV label="읽는 글">{notes.length}건</KV>
-                    <KV label="관측 구간">{usesExtra ? tab === "broadcast" ? `${extra?.meta.broadcastStart}~${extra?.meta.broadcastEnd}` : tab === "report" ? "시작일 미확인" : "원료별 카드 참조" : topRow?.periodLabel ?? "—"}</KV>
+                    <KV label="관측 구간">{usesExtra ? tab === "broadcast" ? `${extra?.meta.broadcastStart}~${extra?.meta.broadcastEnd}` : "원료별 카드 참조" : topRow?.periodLabel ?? "—"}</KV>
                     <KV label="자료 기준일">{tab === "broadcast" ? extra?.meta.broadcastEnd ?? "—" : tab === "report" ? extra?.meta.reportAsOf ?? "—" : tab === "trend" ? extra?.meta.forecastAsOf ?? "—" : meta?.observedAt ?? "—"}</KV>
                   </dl>
                   <Note>
-                    {tab === "broadcast" ? "수집한 편성 연결 건수입니다. 과거·예정이 섞여 있으며 판매량은 아닙니다." :
-                      tab === "report" ? "수집 시작일이 공개되지 않았습니다. 보고 매칭 건수는 제품 수가 아니며 다른 이름과 중복될 수 있습니다." :
-                      tab === "trend" ? "계절 판정 기준일과 최신 예측 기준일이 다릅니다. 예측 통계 조건 통과는 제품 적합성 승인이 아닙니다." :
+                    {tab === "broadcast" ? "기준일까지 날짜가 확인된 편성 연결 건수입니다. 편성은 실제 송출·판매량이 아닙니다." :
+                      tab === "report" ? "건기식 신고·건강보조식품 후보·보류를 나눴습니다. 같은 원료명 묶음은 합산하지 않았고, 원료별 신고일은 각 카드에 적었습니다. 판매량은 아닙니다." :
+                      tab === "trend" ? "예측의 기준일과 대상 기간은 각 카드에서 확인합니다. 통계 조건 통과가 제품 적합성 승인은 아닙니다." :
                       "월 검색량은 참고값입니다. 변화율은 최근 관측 7일의 일평균을 앞선 7일과 견준 값이며, 기준값이 0이거나 빠진 원료는 비워 둡니다. 인정 지위와 제품화 가능 여부는 담당자 확인이 필요합니다."}
                   </Note>
                 </Card>

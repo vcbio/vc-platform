@@ -75,6 +75,16 @@ export type InsightExtraRow = {
   category: string;
   trust: string;
   count?: number;
+  supportCount?: number;
+  heldCount?: number;
+  healthFunctionalPeriodStart?: string | null;
+  healthFunctionalPeriodEnd?: string | null;
+  healthSupportPeriodStart?: string | null;
+  healthSupportPeriodEnd?: string | null;
+  heldPeriodStart?: string | null;
+  heldPeriodEnd?: string | null;
+  companies?: [string, number][];
+  supportCompanies?: [string, number][];
   channel?: string | null;
   periodStart?: string | null;
   periodEnd?: string | null;
@@ -141,6 +151,10 @@ export type Signal = {
   grade?: string;
   /** 기능성 분류 (수면·관절·혈행 …). 데이터랩이 분류를 붙이지 않았으면 빈 값이다. */
   functionCategory?: string;
+  /** 두 화면이 공유하는 원료 분류의 나머지 칸과 분리된 꼬리표. */
+  productForm?: string;
+  recognitionNumbers?: { number: string; company: string }[];
+  classificationTags?: string[];
   /** 직전 주 기저가 8주 최고의 20% 미만이라 변화율이 크게 튄 줄. 화면에 그 사실을 적는다. */
   lowBase?: boolean;
   /** 유통 형태 (예: 일반식품(마그네슘 제형)). */
@@ -180,6 +194,16 @@ export type IngredientDetailRow = Omit<Signal, "monthlyVolume"> & {
   seasonalPeriodEnd?: string | null;
   /** 최근 제조보고 연결 수. 원본의 0은 자료 없음으로 다뤄 null이다. */
   reportCount: number | null;
+  healthSupportReportCount?: number;
+  heldGeneralReportCount?: number;
+  healthFunctionalPeriodStart?: string | null;
+  healthFunctionalPeriodEnd?: string | null;
+  healthSupportPeriodStart?: string | null;
+  healthSupportPeriodEnd?: string | null;
+  heldPeriodStart?: string | null;
+  heldPeriodEnd?: string | null;
+  reportTopManufacturers?: [string, number][];
+  supportTopManufacturers?: [string, number][];
   reportAsOf?: string;
   reportPeriodStart?: string | null;
   /** 수집 기간에 연결된 홈쇼핑 편성 수. 원본의 0은 자료 없음으로 다뤄 null이다. */
