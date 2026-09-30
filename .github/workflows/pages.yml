@@ -6,6 +6,11 @@ on:
     paths-ignore:
       - "public/data/history/**"
   workflow_dispatch:
+    inputs:
+      alert_test:
+        description: "관리자 Actions 실패 메일 알림 시험 (사이트 배포 안 함)"
+        type: boolean
+        default: false
   schedule: [{ cron: "30 22 * * *" }]   # 매일 07:30 KST — 데이터랩 갱신 반영
 permissions:
   # 일별 스냅샷을 저장소에 되돌려 넣어야 해서 write 가 필요하다.
@@ -27,6 +32,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
+          VC_PLATFORM_ALERT_TEST: ${{ inputs.alert_test }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.VC_PLATFORM_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.VC_PLATFORM_SUPABASE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_VC_AI_ENDPOINT: ${{ vars.VC_PLATFORM_AI_ENDPOINT }}

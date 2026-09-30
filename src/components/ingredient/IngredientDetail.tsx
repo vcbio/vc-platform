@@ -64,7 +64,7 @@ export default function IngredientDetail() {
 
   const observed = row.changeStatus !== "미제공";
   const quoteBlocked = row.grade === "의약품";
-  const needsReview = row.category?.includes("규격 확인 필요");
+  const needsReview = row.classificationNeedsReview === true || row.category?.includes("규격 확인 필요");
   return <section className={c.page}><Container>
     <nav className={c.breadcrumb} aria-label="현재 위치"><Link href="/">홈</Link><span aria-hidden="true">/</span><span>원료 상세</span></nav>
     <header className={c.head}>

@@ -79,6 +79,9 @@ const round1 = (n) => Math.round(n * 10) / 10;
 const round3 = (n) => Math.round(n * 1000) / 1000;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const dateAt = (iso, offset) => new Date(Date.parse(`${iso}T00:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
+const kstToday = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const weekMonday = (iso) => dateAt(iso, -((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7));
+const daysBetween = (from, to) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
 async function main() {
   log("읽는 중:", PAGE);
@@ -90,26 +93,42 @@ async function main() {
   // 원본 파일명(해시)은 갱신 때마다 바뀐다. 추적용으로 남긴다.
   const refs = [...html.matchAll(/([A-Z0-9_]+_REF)\s*=\s*"([^"]+)"/g)].map(([, k, v]) => `${k}=${BASE}${v}`);
   refs.forEach((r) => log("원본 참조", r));
-  const detailFolder = html.match(/(data-[0-9a-f]+)\/ing_[0-9a-f]+\.json/)?.[1];
-  const broadcastDates = html.match(/수집한 방송 연결[\s\S]{0,300}?(\d{4}-\d{2}-\d{2})~(\d{2}-\d{2})/);
-  if (!detailFolder || !broadcastDates) throw new Error("원료 상세 파일 또는 홈쇼핑 편성 기간을 찾지 못했습니다");
-  const broadcastStart = broadcastDates[1];
-  const broadcastEndYear = Number(broadcastDates[2].slice(0, 2)) < Number(broadcastStart.slice(5, 7))
-    ? Number(broadcastStart.slice(0, 4)) + 1 : Number(broadcastStart.slice(0, 4));
-  const broadcastEnd = `${broadcastEndYear}-${broadcastDates[2]}`;
-  log(`원료 상세 ${detailFolder} · 홈쇼핑 편성 ${broadcastStart}~${broadcastEnd}`);
+  const detailFolder = html.match(/(data-[0-9a-f]+)\/ing_[0-9a-f]+\.json/)?.[1] ?? "";
   const refPath = (key) => {
     const match = html.match(new RegExp(`(?:const\\s+)?${key}\\s*=\\s*"([^"]+)"`));
     if (!match) throw new Error(`${key} 포인터가 없습니다`);
     return match[1];
   };
   async function fetchSource(relative) {
-    const response = await fetch(new URL(relative, BASE));
-    if (!response.ok) throw new Error(`${relative}: HTTP ${response.status}`);
-    const bytes = Buffer.from(await response.arrayBuffer());
-    return { data: JSON.parse(bytes.toString("utf8")), hash: sha256(bytes) };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch(new URL(relative, BASE));
+        if (!response.ok) {
+          if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2)
+            throw new Error(`${relative}: HTTP ${response.status}`);
+        } else {
+          const bytes = Buffer.from(await response.arrayBuffer());
+          return { data: JSON.parse(bytes.toString("utf8")), hash: sha256(bytes) };
+        }
+      } catch (error) {
+        if (attempt === 2 || /HTTP (?!429|50[0234])/.test(String(error))) throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
   }
   const { data: PERIOD } = await fetchSource(refPath("PERIOD_SUMMARY_REF"));
+  const { data: BROADCAST } = await fetchSource(refPath("BROADCAST_REF"));
+  const { data: PUBLIC_CLASS } = await fetchSource(refPath("CLASSIFICATION_REF"));
+  if (BROADCAST.version !== "homeshopping_view.v1" || !Array.isArray(BROADCAST.rows) ||
+      !Array.isArray(BROADCAST.ingredientStats) || BROADCAST.meta?.timezone !== "Asia/Seoul") {
+    throw new Error("홈쇼핑 공개 원본의 행·시간대·형식이 맞지 않습니다");
+  }
+  const broadcastStart = BROADCAST.meta?.allObserved?.periodStart;
+  const broadcastEnd = BROADCAST.meta?.allObserved?.periodEnd;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(broadcastStart ?? "") ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(broadcastEnd ?? "")) {
+    throw new Error("홈쇼핑 공개 원본의 전체 편성 기간을 확인할 수 없습니다");
+  }
   const { data: forecastSource } = await fetchSource(refPath("NEW_FORECAST_REF"));
   const mainRef = refPath("MAIN_SERIES_REF");
   const { data: MAIN_INDEX, hash: indexHash } = await fetchSource(mainRef);
@@ -119,6 +138,17 @@ async function main() {
     throw new Error("일별 요약·원본 색인 날짜/해시가 맞지 않습니다");
   }
   const asOf = PERIOD.source.asOf;
+  const todayKst = kstToday();
+  const sourceLagDays = daysBetween(asOf, todayKst);
+  if (process.env.VC_PLATFORM_ALERT_TEST === "true") {
+    console.warn("::warning::[시험] VC 플랫폼 데이터랩 갱신 중단 메일 알림 경로 점검");
+    throw new Error("[시험] Actions 실패 알림을 확인하기 위한 중단 — 기존 공개 사이트는 유지됩니다");
+  }
+  if (!Number.isFinite(sourceLagDays) || sourceLagDays < 0) throw new Error(`데이터랩 기준일 ${asOf}이 현재 ${todayKst}와 맞지 않습니다`);
+  if (sourceLagDays > 2) {
+    console.warn(`::warning::데이터랩 일별 관측이 ${sourceLagDays}일 지연됐습니다 (${asOf} → ${todayKst}). 관리자 Actions 메일 알림을 확인하세요.`);
+    throw new Error("데이터랩 갱신 중단 — 오래된 자료 배포를 중단합니다");
+  }
   if (!Array.isArray(forecastSource.items)) throw new Error("예측 원본 배열이 없습니다");
   const forecastCurrent = forecastSource.asOf === asOf;
   // 일별 검색만 먼저 갱신되면 오래된 예측을 숨기고 나머지 자료는 계속 갱신한다.
@@ -130,80 +160,20 @@ async function main() {
 
   const DATA = carve(html, "const DATA=[", "[", "]");
   const OBS = carve(html, ", OBS={", "{", "}");
-  // 분류 라벨의 정본. 없으면 DATA 의 s2·s4 만으로 같은 판정을 한다(데이터랩 함수와 동일한 ?? 순서).
-  let CLASSIFICATION = { items: [] };
-  try {
-    CLASSIFICATION = carve(html, "CLASSIFICATION={", "{", "}");
-  } catch {
-    log("주의 — CLASSIFICATION 을 못 읽었습니다. s2·s4 만으로 분류합니다.");
+  if (PUBLIC_CLASS.schemaVersion !== "healthfood-classification.a348.v1" ||
+      PUBLIC_CLASS.denominator !== DATA.length || !Array.isArray(PUBLIC_CLASS.rows) ||
+      PUBLIC_CLASS.rows.length !== DATA.length) {
+    throw new Error("데이터랩 공개 분류 파일의 형식·분모가 맞지 않습니다");
   }
-  const classById = new Map((CLASSIFICATION.items ?? []).map((x) => [x.id, x]));
-  log(`DATA ${DATA.length}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
-
-  // 공개 HTML의 첫 화면 표시 규칙을 읽기 전용 데이터로 대조한다. 원격 JS 실행은 금지.
-  // 규칙이 바뀌면 이 두 해시가 달라져 배포를 중단하고 새 표시를 다시 검토한다.
-  const gradeRuleStart = html.indexOf("function gradeInfo(id){");
-  const gradeRuleEnd = html.indexOf("const esc=s=>", gradeRuleStart);
-  const gradeLabelsRule = html.match(/const GRADE_LABELS=\{[^{}]+\};/)?.[0];
-  const classRule = html.match(/const classInfo=d=>[\s\S]{0,2000}?function classLabel\(d\)\{[^{}]+\}/)?.[0];
-  if (gradeRuleStart < 0 || gradeRuleEnd < 0 ||
-      sha256(Buffer.from(html.slice(gradeRuleStart, gradeRuleEnd))) !== "9c294f9cf2db676a0454ab7b2f81adb8e4a5a2649240be622d3b6c2107b5fe6d" ||
-      !gradeLabelsRule || sha256(Buffer.from(gradeLabelsRule)) !== "c8c9df6ce73af5befccd92578a97cb7863f212a8a72fc7220dbbc1bb7f561c65" ||
-      !classRule || sha256(Buffer.from(classRule)) !== "99428b0561d177ca191590b7559b57984f9714a730e4e3165d2a7620e1b3aa9f") {
-    throw new Error("데이터랩 첫 화면 분류 규칙이 바뀌었습니다 — 검토 전 배포 중단");
+  const classById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row]));
+  if (classById.size !== DATA.length || DATA.some((row) =>
+    classById.get(row.id)?.name !== row.name || !classById.get(row.id)?.branch ||
+    !classById.get(row.id)?.recognitionStatus)) {
+    throw new Error("데이터랩 공개 분류 파일의 원료 ID·이름·표시값이 맞지 않습니다");
   }
-  const gradeMap = carve(html, "const MAP=", "{", "}");
-  const rawGradeById = carve(html, "const GRADE_RAW_BY_ID=", "{", "}");
-  const recognitionNumbersById = carve(html, "const RECOGNITION_NUMBERS_BY_ID=", "{", "}");
-  if (gradeMap.schemaVersion !== "A311EfficacyDisplayTagsV1" || gradeMap.perId?.length !== DATA.length ||
-      DATA.some((row) => rawGradeById[row.id] !== row.grade)) {
-    throw new Error("데이터랩 표시 분류 자료의 ID·원본 등급이 맞지 않습니다");
-  }
-  const gradeEvidenceById = new Map(gradeMap.perId.map((row) => [row.ingredientId, row]));
-  if (gradeEvidenceById.size !== DATA.length || DATA.some((row) => !gradeEvidenceById.has(row.id))) {
-    throw new Error("데이터랩 표시 분류의 원료 ID가 중복되거나 빠졌습니다");
-  }
-  const specialGrades = new Map([
-    ["ing_fe4ff6ec1c9f3b72", "고시형 · 마그네슘 원료"],
-    ["ing_304fbb1a972d232d", "고시형 · 프로폴리스추출물"],
-    ["ing_5a3de34d5287e327", "고시형"],
-    ["ing_63f4008ff00761b4", "현행 고시 제외"],
-    ["ing_e9828b4a4cd9049f", "고시형 · EPA 및 DHA 함유 유지"],
-  ]);
-  const gradeDisplay = (d) => {
-    const raw = d.grade || "";
-    if (specialGrades.has(d.id) && (d.id !== "ing_63f4008ff00761b4" || raw === "고시형") &&
-        (d.id !== "ing_fe4ff6ec1c9f3b72" || raw === "비인정") &&
-        (d.id !== "ing_e9828b4a4cd9049f" || raw === "고시형")) return specialGrades.get(d.id);
-    if (raw === "개별인정") {
-      const types = new Set((gradeEvidenceById.get(d.id)?.officialTopicTags ?? [])
-        .flatMap((tag) => (tag.evidenceRows ?? []).map((evidence) => evidence.listType)));
-      if (types.has("high_type") && types.has("individual")) return "인정 구분 확인 필요";
-      if (types.has("high_type")) return "고시형 표기 · 구분 확인";
-      if (!types.has("individual") && recognitionNumbersById[d.id]) return "인정번호 확인";
-      if (!types.has("individual")) return "분류 확인 필요";
-      return "개별인정형";
-    }
-    return { "고시형": "고시형", "비인정": "일반원료", "의약품": "의약품" }[raw] || "미확인";
-  };
-  const foodSearchNames = new Set(["그릭요거트", "병아리콩", "카무트효소", "흑염소진액", "견과류"]);
-  const classDisplay = (d) => {
-    const info = classById.get(d.id) ?? {};
-    const health = info.healthScope ?? d.s2;
-    const general = !health && (info.generalScope ?? d.s4);
-    if (info.defaultInclude === false) return "원료 아닌 참고 분류";
-    if (health) return info.registrationKind === "generic_related_keyword" ? "건기식 관련 검색어" : "건강기능식품 원료";
-    if (general) return "일반식품 원료";
-    if (d.role?.includes("의약품")) return "의약품 참고";
-    return info.displayClassification || (foodSearchNames.has(d.name) ? "식품·제품명 검색어" : "원료명 검색어");
-  };
-  const gradeDisplayById = new Map(DATA.map((row) => [row.id, gradeDisplay(row)]));
-  const classDisplayById = new Map(DATA.map((row) => [row.id, classDisplay(row)]));
-  if (gradeDisplayById.size !== DATA.length || classDisplayById.size !== DATA.length ||
-      DATA.some((row) => !gradeDisplayById.get(row.id) || !classDisplayById.get(row.id))) {
-    throw new Error("데이터랩 첫 화면 분류 631개를 모두 읽지 못했습니다");
-  }
-  log(`데이터랩 첫 화면 분류 ${gradeDisplayById.size}건 직접 추출`);
+  const gradeDisplayById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row.recognitionStatus]));
+  const classDisplayById = new Map(PUBLIC_CLASS.rows.map((row) => [row.id, row.branch]));
+  log(`DATA ${DATA.length}건 · 공개 5칸 분류 ${classById.size}건 · 옛 주간 OBS ${OBS.items.length}건은 순위 계산에 사용하지 않음`);
 
   /* ── 월 검색량 ── 정확일치·실측 하한만 순위에 쓴다. 결측은 0으로 채우지 않는다. */
   let RANKING = { items: [] };
@@ -235,26 +205,9 @@ async function main() {
     };
   }
 
-  /* ── 분류 라벨 ── 데이터랩 페이지의 classLabel() 을 그대로 옮겼다.
-     우리가 문구를 만들지 않는다 — 데이터랩이 화면에 쓰는 말을 그대로 쓴다. */
-  const classInfo = (d) => classById.get(d.id) ?? {};
-  const healthScope = (d) => classInfo(d).healthScope ?? d.s2;
-  const generalScope = (d) => !healthScope(d) && (classInfo(d).generalScope ?? d.s4);
-  const classificationConflict = (d) => {
-    const x = classInfo(d);
-    return x.registrationKind === "listed_nutrient_source" && x.gradeFilter && d.grade && x.gradeFilter !== d.grade;
-  };
-  const classGrade = (d) => classificationConflict(d) ? d.grade : classInfo(d).gradeFilter || d.grade;
-  function classLabel(d) {
-    const x = classInfo(d);
-    if (x.defaultInclude === false) return "원료 아닌 참고 분류";
-    if (classificationConflict(d)) return "영양성분 원료형태 · 규격 확인 필요";
-    if (healthScope(d)) return x.registrationKind === "generic_related_keyword" ? "건기식 관련 검색어" : "건강기능식품 원료";
-    if (generalScope(d)) return "일반식품 원료";
-    if (d.role?.includes("의약품")) return "의약품 참고";
-    // 데이터랩도 모르는 줄이다. 그럴듯한 말을 지어 채우지 않고 비워 둔다.
-    return x.displayClassification || "";
-  }
+  /* 공개 5칸 분류의 두 화면 라벨. 플랫폼에서 별도 판정을 하지 않는다. */
+  const classGrade = (d) => classById.get(d.id)?.recognitionStatus ?? "";
+  const classLabel = (d) => classById.get(d.id)?.branch ?? "";
 
   /**
    * 지난주 스냅샷 읽기 — 이번 기준일보다 7일 이상 이전인 것 중 가장 최근 것.
@@ -292,7 +245,7 @@ async function main() {
       id: row.id,
       name: row.name,
       category: classLabel(row),
-      functionCategory: row.cat && row.cat !== "기타" ? row.cat : "",
+      functionCategory: classGrade(row) === "고시형" ? classById.get(row.id)?.functionCategory ?? "" : "",
       monthlyVolume: volumeOf(row),
       volumeExact: rankById.get(row.id)?.volume?.exact === true,
       volumeDate: searchAsOf(row),
@@ -328,6 +281,7 @@ async function main() {
   // 현재 공개 데이터랩은 치아씨드를 원료로 두지만 대표님은 홈 순위 제외를 직접 지시했다.
   homeFoodNames.add("치아씨드");
   const homeIngredient = (d) => d.role !== "일반 식재료" && !homeFoodNames.has(d.name);
+  const articleEligibleIds = new Set(usable.filter(homeIngredient).map((row) => row.id));
 
   /* ── ① 오늘의 신호 (signals.json) ── 오른 원료 중 월 검색량이 큰 순서.
      퍼센트로 줄을 세우면 월 1,150회짜리가 1위로 올라온다 — 절대량이 먼저다. */
@@ -336,18 +290,6 @@ async function main() {
     .sort((a, b) => volumeOf(b) - volumeOf(a) || weekly(b).changePct - weekly(a).changePct)
     .slice(0, 20)
     .map((d) => toSignal(d, []));
-
-  /* 원료별 상세 해시는 공개 HTML에서 매번 찾는다. 새 동향 탭이 이 값을 사용한다. */
-  const detailCandidates = DATA;
-  const detailById = new Map();
-  for (let start = 0; start < detailCandidates.length; start += 12) {
-    await Promise.all(detailCandidates.slice(start, start + 12).map(async (row) => {
-      const { data: detail } = await fetchSource(`${detailFolder}/${row.id}.json`);
-      if (detail.id !== row.id || detail.name !== row.name) throw new Error(`${row.id} 상세 파일 원료 동일성 불일치`);
-      detailById.set(row.id, detail);
-    }));
-  }
-  log(`플랫폼 원료 상세 ${detailById.size}건 직접 확인`);
 
   /* ── 순위 변동 ── 지난주 스냅샷의 순위를 그대로 쓴다.
      같은 주 안에서 여러 번 돌려도 값이 흔들리지 않고, 검색량이 바뀐 것도 반영된다. */
@@ -387,19 +329,32 @@ async function main() {
     kind, id: row.id, name: row.name, href: href(row), role: row.role,
     grade: classGrade(row), category: classLabel(row), trust: row.trust,
   });
-  const broadcastRows = DATA.filter((row) => row.hs > 0).map((row) => {
-    const detail = detailById.get(row.id);
-    if (detail?.hs !== row.hs) throw new Error(`${row.id} 방송 수가 목록(${row.hs})·상세(${detail?.hs ?? "없음"})에서 다릅니다`);
-    return { ...extraBase(row, "broadcast"), count: detail.hs,
-      channel: detail.ax?.["채널"]?.[0]?.k || null,
-      periodStart: broadcastStart, periodEnd: broadcastEnd };
+  const broadcastStatsById = new Map(BROADCAST.ingredientStats.map((row) => [row.ingredientId, row]));
+  const channelSlotsById = new Map();
+  for (const item of BROADCAST.rows) {
+    if (!item.countEligible || !item.slotKey || !item.channel) continue;
+    for (const id of new Set(item.ingredientIds ?? [])) {
+      if (!channelSlotsById.has(id)) channelSlotsById.set(id, new Map());
+      const channels = channelSlotsById.get(id);
+      if (!channels.has(item.channel)) channels.set(item.channel, new Set());
+      channels.get(item.channel).add(item.slotKey);
+    }
+  }
+  const topChannelOf = (id) => [...(channelSlotsById.get(id) ?? [])]
+    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0], "ko"))[0]?.[0] ?? null;
+  const broadcastRows = DATA.flatMap((row) => {
+    const stat = broadcastStatsById.get(row.id)?.allObserved;
+    if (!(stat?.slotCount > 0)) return [];
+    return [{ ...extraBase(row, "broadcast"), count: stat.slotCount,
+      channel: topChannelOf(row.id),
+      periodStart: stat.periodStart ?? broadcastStart, periodEnd: stat.periodEnd ?? broadcastEnd }];
   }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
   const rawReportRows = DATA.filter((row) => row.r365 > 0).map((row) => {
-    const detail = detailById.get(row.id);
-    if (detail?.r365 !== row.r365) throw new Error(`${row.id} 제조보고 수가 목록(${row.r365})·상세(${detail?.r365 ?? "없음"})에서 다릅니다`);
-    return { ...extraBase(row, "report"), count: detail.r365,
-      companies: String(detail.rFirm || "").split(/\s+\/\s+/).filter(Boolean).slice(0, 3),
-      asOf: isoReportDate(detail.rAsOf), periodStart: null };
+    // 새 상세 파일은 옛 r365를 싣지 않는다. 기존 경고가 붙은 탭은 DATA의 옛 집계만 유지한다.
+    // 새 REPORT_LINKS_REF의 C003/보류 분리 수치는 별도 검증 전까지 글 틀에 넣지 않는다.
+    return { ...extraBase(row, "report"), count: row.r365,
+      companies: String(row.rFirm || "").split(/\s+\/\s+/).filter(Boolean).slice(0, 3),
+      asOf: isoReportDate(row.rAsOf), periodStart: null };
   }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
   /* 신고번호가 공개되지 않았다. 집계값·상위 업체가 같고 이름까지 닮은 행만 화면상 한 묶음으로 표시한다.
      수치는 더하지 않으며 원료별 원본 링크를 모두 보존한다. 실제 동일 신고 판정은 하지 않는다. */
@@ -461,7 +416,7 @@ async function main() {
   /* ── ④ 표시·안전 ── 기능성 표시가 제한되는 지위인데 검색은 많은 원료 + 의약품 성분. */
   // 지위는 CLASSIFICATION 이 덮어쓴 값(classGrade)으로 본다 — 화면에 찍히는 값과 같아야 한다.
   const unapproved = usable
-    .filter((d) => classGrade(d) === "비인정" && volumeOf(d) >= MIN_VOLUME)
+    .filter((d) => homeIngredient(d) && gradeDisplayById.get(d.id) === "비인정" && volumeOf(d) >= MIN_VOLUME)
     .sort((a, b) => volumeOf(b) - volumeOf(a))
     .slice(0, 12);
   const medicinal = DATA.filter((d) => classGrade(d) === "의약품")
@@ -531,7 +486,8 @@ async function main() {
   /* ── 플랫폼 원료 상세 ── 화면에서 실제로 고를 수 있는 원료만 한 장씩 만든다.
      제형은 데이터랩 공개 JSON에 현재 제조 가능 여부가 없으므로 추정하지 않는다. */
   const detailRows = [...selected.values()].map((row) => {
-    const source = detailById.get(row.id);
+    const source = DATA.find((item) => item.id === row.id);
+    const broadcastStat = broadcastStatsById.get(row.id)?.allObserved;
     // 상세 파일의 sp는 최근 12주다. 달력 월별 계절 지수에는 기간 요약 monthly만 쓴다.
     const monthly = periodById.get(row.id)?.monthly;
     const calendarMonths = Array.isArray(monthly) && monthly.length === 12
@@ -550,6 +506,7 @@ async function main() {
       ...row,
       category: classDisplayById.get(row.id),
       gradeDisplay: gradeDisplayById.get(row.id),
+      classificationNeedsReview: String(classById.get(row.id)?.old?.displayClassification ?? "").includes("규격 확인 필요"),
       seasonalMonths,
       seasonalPeakMonth: highestMonth == null ? null : highestMonth + 1,
       seasonalAsOf: seasonalMonths.length ? asOf : null,
@@ -558,10 +515,10 @@ async function main() {
       reportCount: source?.r365 > 0 ? source.r365 : null,
       reportAsOf: source?.r365 > 0 ? reportDate : null,
       reportPeriodStart: null,
-      broadcastCount: source?.hs > 0 ? source.hs : null,
-      broadcastPeriodStart: source?.hs > 0 ? broadcastStart : null,
-      broadcastPeriodEnd: source?.hs > 0 ? broadcastEnd : null,
-      broadcastTopChannel: source?.hs > 0 ? source.ax?.["채널"]?.[0]?.k || null : null,
+      broadcastCount: broadcastStat?.slotCount > 0 ? broadcastStat.slotCount : null,
+      broadcastPeriodStart: broadcastStat?.slotCount > 0 ? broadcastStat.periodStart ?? broadcastStart : null,
+      broadcastPeriodEnd: broadcastStat?.slotCount > 0 ? broadcastStat.periodEnd ?? broadcastEnd : null,
+      broadcastTopChannel: broadcastStat?.slotCount > 0 ? topChannelOf(row.id) : null,
       availableDosageForms: [],
       dosageFormStatus: "미확인",
     };
@@ -574,17 +531,35 @@ async function main() {
   const names = (arr, n = 3) => arr.slice(0, n).map((x) => x.name).join(" · ");
 
   const persistent = [...risers].sort((a, b) => (b.riseWeeks ?? 0) - (a.riseWeeks ?? 0));
-  const septemberSeason = trendRows.filter((r) => r.seasonMonth === "9");
-  // 기능성 분류는 데이터랩 원본의 cat 값으로 센다. "기타"는 분류가 아니라 미지정이라 빼고 센다.
-  const catById = new Map(DATA.map((d) => [d.id, d.cat]));
-  const catCount = risers.reduce((acc, r) => {
-    const k = catById.get(r.id);
-    if (!k || k === "기타") return acc;
-    acc[k] = (acc[k] ?? 0) + 1;
-    return acc;
-  }, {});
-  const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
-
+  const forecastArticle = forecastable.filter(homeIngredient)
+    .sort((a, b) => volumeOf(b) - volumeOf(a));
+  const nextMonth = Number(todayKst.slice(5, 7)) % 12 + 1;
+  const endOfThisMonth = new Date(Date.UTC(Number(todayKst.slice(0, 4)), Number(todayKst.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  const nextSeasonal = detailRows.filter((row) => articleEligibleIds.has(row.id) && row.season === "계절반복" &&
+    row.seasonalPeakMonth === nextMonth && row.monthlyVolume != null)
+    .sort((a, b) => b.monthlyVolume - a.monthlyVolume);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(BROADCAST.meta?.asOfDate ?? "") ||
+      BROADCAST.meta?.timezone !== "Asia/Seoul" || !Array.isArray(BROADCAST.rows)) {
+    throw new Error("홈쇼핑 방송 원본의 날짜·시간대·행을 확인할 수 없습니다");
+  }
+  const broadcastAsOf = BROADCAST.meta.asOfDate;
+  if (broadcastAsOf > todayKst) throw new Error(`홈쇼핑 자료 기준일 ${broadcastAsOf}이 현재 ${todayKst}보다 미래입니다`);
+  const broadcastMonday = weekMonday(broadcastAsOf);
+  const broadcastSlots = new Map();
+  for (const item of BROADCAST.rows) {
+    if (item.date < broadcastMonday || item.date > broadcastAsOf || item.countEligible !== true ||
+        item.scheduleFreshness !== "live_observed_at_capture" || !item.slotKey) continue;
+    for (const id of new Set(item.ingredientIds ?? [])) {
+      if (!broadcastSlots.has(id)) broadcastSlots.set(id, new Set());
+      broadcastSlots.get(id).add(item.slotKey);
+    }
+  }
+  const broadcastWeek = [...broadcastSlots].map(([id, slots]) => ({
+    row: DATA.find((item) => item.id === id), count: slots.size,
+  })).filter((item) => item.row && articleEligibleIds.has(item.row.id) && item.count > 0)
+    .sort((a, b) => b.count - a.count || (volumeOf(b.row) ?? 0) - (volumeOf(a.row) ?? 0) ||
+      a.row.name.localeCompare(b.row.name, "ko"));
+  log(`이번 주 확인 편성 ${broadcastMonday}~${broadcastAsOf} · 원료명 연결 ${broadcastWeek.length}종 · 최다 ${broadcastWeek[0]?.row.name ?? "없음"} ${broadcastWeek[0]?.count ?? 0}회`);
   const insights = [
     {
       id: "dl-weekly-top",
@@ -614,41 +589,43 @@ async function main() {
       source: SOURCE,
       publishedAt: asOf,
     },
-    {
-      id: "dl-trend-season",
+    ...(broadcastWeek[0] ? [{
+      id: "dl-broadcast-week",
+      tab: "broadcast",
+      title: `이번 주 확인된 홈쇼핑 편성 연결 최다 — ${broadcastWeek[0].row.name}`,
+      summary: `${broadcastMonday}~${broadcastAsOf} 확인 편성에서 ${broadcastWeek[0].row.name} 원료명에 연결된 방송 슬롯은 ${broadcastWeek[0].count}회입니다. 판매량이나 실제 배합 확인은 아닙니다.`,
+      body: `상품명에 연결된 원료명을 기준으로 같은 채널·시작시각의 상품 옵션은 한 번만 셌습니다. 아직 방송 전인 예정 편성과 오래된 보존 편성은 이번 집계에서 제외했습니다.`,
+      source: SOURCE,
+      publishedAt: broadcastAsOf,
+      homeValidThrough: dateAt(broadcastMonday, 6),
+    }] : []),
+    ...(nextSeasonal.length ? [{
+      id: "dl-trend-next-season",
       tab: "trend",
-      title: `9월마다 되돌아오는 원료 ${septemberSeason.length}종`,
-      summary: `데이터랩이 계절 반복으로 본 원료 중 9월이 고점인 쪽은 ${names(septemberSeason, 3)} 등 ${septemberSeason.length}종입니다.`,
-      body: `계절 반복 판정은 여러 해의 월별 관측에서 같은 달이 거듭 높게 나왔는지를 본 결과입니다. 올해도 같으리라는 보장은 아니지만, 생산 리드타임이 6~10주인 제형이라면 지금 물어볼 이유는 됩니다.`,
+      title: `다음 달 ${nextMonth}월이 월평균 최고인 원료 — ${nextSeasonal[0].name} 등 ${nextSeasonal.length}종`,
+      summary: `계절반복 판정 원료 중 월평균 최고가 달력 ${nextMonth}월인 원료는 ${nextSeasonal.length}종입니다. 월 검색량 순 첫 원료는 ${nextSeasonal[0].name}(${nextSeasonal[0].volumeExact ? "" : "최소 "}${num(nextSeasonal[0].monthlyVolume)}회)입니다.`,
+      body: `달력 월별 지수는 여러 해의 같은 달 관측을 평균한 값입니다. 이 과거 흐름이 다음 달에도 반복된다는 예측이나 제품 적합성 판정은 아닙니다.`,
       source: SOURCE,
       publishedAt: asOf,
-    },
-    {
+      homeValidThrough: endOfThisMonth,
+    }] : []),
+    ...(forecastCurrent && forecastArticle.length ? [{
       id: "dl-trend-forecast",
       tab: "trend",
-      title: `2주 예측 조건을 통과한 원료 ${forecastIds.size}종`,
-      summary: `데이터랩의 2주 예측 통계 조건을 통과한 원료는 전체 ${forecastIds.size}종입니다. 이 플랫폼의 표시 대상 중에는 ${forecastable.length}종이 있습니다.`,
+      title: `2주 예측 원본 ${forecastIds.size}종 · 플랫폼 표시 ${forecastArticle.length}종`,
+      summary: `데이터랩의 2주 예측 통계 조건 통과는 ${forecastIds.size}종이고, 이 플랫폼의 원료 표시 범위에는 ${forecastArticle.length}종입니다. 월 검색량 순으로 보면 ${names(forecastArticle, 3)} 등이 있습니다.`,
       body: `통계 조건을 통과해도 실제 제품 기획에 적합하다는 뜻은 아닙니다. 예측은 데이터랩 원본의 결과이며 이 플랫폼은 따로 계산하지 않습니다.`,
       source: SOURCE,
-      publishedAt: asOf,
-    },
-    {
-      id: "dl-trend-category",
-      tab: "trend",
-      title: topCat ? `상승 원료가 몰린 분류 — ${topCat[0]}` : "상승 원료의 기능성 분류",
-      summary: `주간 상승 상위 ${risers.length}종을 기능성 분류로 나누면 ${topCat ? `${topCat[0]} 분류가 ${topCat[1]}종으로 가장 많습니다` : "한쪽으로 몰리지 않고 고르게 나뉩니다"}. 분류가 붙지 않은 원료는 세지 않았습니다.`,
-      body: `분류는 데이터랩이 원료에 붙여 둔 값입니다. 같은 분류에 여러 원료가 동시에 오르면 단일 원료보다 카테고리 자체가 움직이는 경우가 있어, 복합 배합을 검토할 때 먼저 봅니다.`,
-      source: SOURCE,
-      publishedAt: asOf,
-    },
+      publishedAt: FORECAST.asOf,
+    }] : []),
     {
       id: "dl-safety-unapproved",
       tab: "safety",
-      title: `검색은 많지만 기능성 인정이 없는 원료 ${unapproved.length}종`,
-      summary: `${names(unapproved, 3)} 등은 검색이 많은 편이지만 데이터랩 원료 상세에서 고시형·개별인정형으로 표시되지 않습니다. 식품 사용·기능성 표시 가능 여부는 원료별 규격 확인 전까지 미확정입니다.`,
-      body: `인정 지위는 데이터랩이 정리한 공개 자료 값입니다. 기획 단계에서 이 구분을 놓치면 표시·광고 문구를 다시 써야 하고, 그때는 이미 디자인과 인쇄가 끝나 있는 경우가 많습니다. 최종 판단은 관할 기관 고시와 개별 품목 확인이 우선입니다.`,
+      title: `데이터랩 공개 분류가 비인정으로 표시한 원료 ${unapproved.length}종`,
+      summary: `${names(unapproved, 3)} 등은 데이터랩 공개 분류에서 비인정으로 표시됩니다. 이 표시만으로 식품 사용·기능성 표시 가능 여부를 단정하지 않습니다.`,
+      body: `월 검색량은 관심 참고값입니다. 실제 제품에 사용할 원료의 규격·국내 인정 상태·표시 문구는 각각 확인해야 합니다.`,
       source: SOURCE,
-      publishedAt: asOf,
+      publishedAt: PUBLIC_CLASS.asOf,
     },
     {
       id: "dl-safety-medicinal",
@@ -657,7 +634,7 @@ async function main() {
       summary: `${names(medicinal, 3)} 등 의약품 성분이 원료 검색어와 함께 잡힙니다. 참고로만 두고 제품 기획에는 넣지 않습니다.`,
       body: `검색량이 크다고 해서 식품 원료로 쓸 수 있다는 뜻이 아닙니다. 데이터랩은 이런 항목을 의약품(참고)으로 따로 표시해 둡니다. 이 화면도 같은 표시를 그대로 달아 둡니다.`,
       source: SOURCE,
-      publishedAt: asOf,
+      publishedAt: PUBLIC_CLASS.asOf,
     },
     {
       id: "dl-safety-notes",

@@ -95,7 +95,10 @@ export type Insight = {
   summary: string;
   body: string;
   source: string;
+  /** 글에 사용한 자료의 기준일. 글 생성 시각으로 새 날짜를 채우지 않는다. */
   publishedAt: string;
+  /** 이번 주·다음 달처럼 방문일에 따라 뜻이 바뀌는 홈 문구의 마지막 표시일. */
+  homeValidThrough?: string;
 };
 
 /** 매칭 입력 조건. 비워 둔 항목은 조건에서 제외한다. */
@@ -167,6 +170,8 @@ export type IngredientDetailRow = Omit<Signal, "monthlyVolume"> & {
   monthlyVolume: number | null;
   /** 데이터랩 첫 화면의 ID별 표시 문구. 옛 DATA.grade와 구별한다. */
   gradeDisplay: string;
+  /** 공개 분류 원문이 규격 재확인을 요구한 원료. 인정 상태 문구와 별도다. */
+  classificationNeedsReview?: boolean;
   /** 공개 기간 요약의 달력 1~12월 검색 평균 상대지수. 결측은 null이다. */
   seasonalMonths: (number | null)[];
   seasonalPeakMonth?: number | null;

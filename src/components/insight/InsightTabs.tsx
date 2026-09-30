@@ -144,6 +144,7 @@ export default function InsightTabs() {
   );
   const [showAllReports, setShowAllReports] = useState(false);
   const [meta, setMeta] = useState<DatalabMeta | null>(null);
+  const [allNotes, setAllNotes] = useState<Insight[] | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
@@ -167,6 +168,12 @@ export default function InsightTabs() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getData().listInsights().then((rows) => alive && setAllNotes(rows)).catch(() => alive && setAllNotes([]));
+    return () => { alive = false; };
   }, []);
 
   const pick = useCallback((next: InsightTab) => {
@@ -293,7 +300,7 @@ export default function InsightTabs() {
                         : `예측 원본 ${extra?.meta.forecastAsOf ?? "미제공"} · 최근 검색 ${meta?.observedAt ?? "미제공"} — 기준일이 달라 예측값을 보류합니다.`}</p>
                       <ExtraList kind="forecast" rows={extraRows.filter((row) => row.kind === "forecast")} />
                       {extra?.meta.lactateHomeExclusion && <p className={c.extraCaution}>
-                        젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 플랫폼 분류는 데이터랩 원료 상세의 ‘비인정’을 따르며, 별도 분류 자료와의 차이는 규격 확인 대상으로 남깁니다.
+                        젖산마그네슘은 최근 7일 {extra.meta.lactateHomeExclusion.changePct.toFixed(1)}%로 하락해 홈의 상승 원료 TOP10에서 빠졌습니다. 공개 분류는 데이터랩 최신 분류를 따르며 원료 규격은 별도로 확인해야 합니다.
                       </p>}
                     </div>
                   ) : tab === "broadcast" || tab === "report" ? (
@@ -364,6 +371,21 @@ export default function InsightTabs() {
             </div>
           )}
         </div>
+        <section id="industry-articles" className={c.notes} style={{ scrollMarginTop: 80 }} aria-label="업계 자료 전체 글">
+          <h2>이번 생성본 업계 자료 전체</h2>
+          <p className="pf-help">이전 기준일의 글도 보존합니다. 각 글의 날짜를 확인해 주세요.</p>
+          {allNotes === null ? <p className="pf-help">글을 불러오는 중입니다.</p> : allNotes.length === 0 ? <p className="pf-help">읽을 수 있는 글이 없습니다.</p> :
+            allNotes.map((note) => <article key={note.id} className={c.note}>
+              <h3>{note.title}</h3>
+              <p>{note.summary}</p>
+              <details className={s.detail}><summary>자세히 보기</summary><p style={{ marginTop: 10 }}>{note.body}</p></details>
+              <div className={c.noteMeta}>
+                <span>{TABS.find((item) => item.id === note.tab)?.label ?? "업계 자료"}</span>
+                <time dateTime={note.publishedAt}>기준일 {Number(note.publishedAt.slice(5, 7))}월 {Number(note.publishedAt.slice(8, 10))}일</time>
+                <span>출처 · {note.source}</span>
+              </div>
+            </article>)}
+        </section>
       </div>
     </Container>
   );

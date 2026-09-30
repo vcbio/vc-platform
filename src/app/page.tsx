@@ -2,22 +2,14 @@ import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ClipboardList, Factory, TrendingUp } from "lucide-react";
-import { Badge, ButtonLink, Card, Container } from "@/components/ui";
+import { ButtonLink, Card, Container } from "@/components/ui";
 import SignalBoard from "@/components/home/SignalBoard";
+import IndustryFeed from "@/components/home/IndustryFeed";
 import type { Insight, Signal } from "@/lib/data";
 import s from "@/components/home/home.module.css";
 
 /** 데이터랩 원본 주소 — 정의는 `src/lib/data/constants.ts` 한 곳(순환 import 방지용 분리, 2026-09-21). */
 import { DATALAB_URL } from "@/lib/data/constants";
-
-/** 동향 탭을 사람이 읽는 말로 바꾼다. 색만으로 구분하지 않고 글자를 함께 쓴다. */
-const TAB_LABEL = {
-  weekly: { text: "주간 메모", tone: "info" as const },
-  trend: { text: "시장 동향", tone: "neutral" as const },
-  safety: { text: "안전·표시", tone: "warn" as const },
-  broadcast: { text: "홈쇼핑 방송", tone: "info" as const },
-  report: { text: "제조보고", tone: "neutral" as const },
-};
 
 /** 쓰는 순서 세 단계. 「준비 중」이 없는, 지금 되는 것만 적는다. */
 const STEPS = [
@@ -40,23 +32,6 @@ const STEPS = [
     desc: "조건에 맞는 제조사를 추려 회신드립니다",
   },
 ];
-
-function FeedItem({ insight }: { insight: Insight }) {
-  const tag = TAB_LABEL[insight.tab];
-  return (
-    <li>
-      <span className={s.tag}>
-        <Badge tone={tag.tone}>{tag.text}</Badge>
-      </span>
-      <span className={s.feedTxt}>
-        <Link href="/insight/">{insight.title}</Link>
-        <span className={s.feedMeta}>
-          {insight.publishedAt} · {insight.source}
-        </span>
-      </span>
-    </li>
-  );
-}
 
 export default async function Home() {
   // prebuild가 검증·생성한 같은 JSON을 정적 첫 화면에도 심는다. 옛 로컬 시드가 잠깐 보이지 않는다.
@@ -112,16 +87,12 @@ export default async function Home() {
             title="업계 자료"
             padded={false}
             action={
-              <ButtonLink href="/insight/" variant="ghost" size="sm">
+              <ButtonLink href="/insight/#industry-articles" variant="ghost" size="sm">
                 전체 보기
               </ButtonLink>
             }
           >
-            <ul className={s.feed}>
-              {insights.slice(0, 3).map((i) => (
-                <FeedItem key={i.id} insight={i} />
-              ))}
-            </ul>
+            <IndustryFeed insights={insights} />
             <div className={s.feedFoot}>
               <a
                 href={DATALAB_URL}
