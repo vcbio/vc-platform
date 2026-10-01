@@ -40,6 +40,8 @@ jobs:
           NEXT_PUBLIC_VC_AI_ENDPOINT: ${{ vars.VC_PLATFORM_AI_ENDPOINT }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.VC_PLATFORM_TURNSTILE_SITE_KEY }}
           NEXT_PUBLIC_MANUFACTURER_INTAKE_ENABLED: ${{ vars.VC_PLATFORM_MANUFACTURER_INTAKE_ENABLED }}
+          GOOGLE_SITE_VERIFICATION: ${{ vars.VC_PLATFORM_GOOGLE_SITE_VERIFICATION }}
+          NAVER_SITE_VERIFICATION: ${{ vars.VC_PLATFORM_NAVER_SITE_VERIFICATION }}
       # prebuild 가 만든 실제 관측일 스냅샷을 저장소에 남긴다.
       # 다음 회차가 이 파일을 읽어 순위 변동(▲▼)을 낸다.
       - name: Commit daily snapshot

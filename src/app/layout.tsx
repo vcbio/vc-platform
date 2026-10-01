@@ -3,7 +3,15 @@ import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import "./globals.css";
 
-export const metadata = pageMetadata("원료 동향과 제조 상담", "주식회사 브이씨바이오의 건강기능식품 B2B OEM/ODM 상담 플랫폼. 원료·시장 동향을 확인하고 제조 문의를 남기세요.", "/");
+export const metadata = {
+  ...pageMetadata("원료 동향과 제조 상담", "주식회사 브이씨바이오의 건강기능식품 B2B OEM/ODM 상담 플랫폼. 원료·시장 동향을 확인하고 제조 문의를 남기세요.", "/"),
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION?.trim() || undefined,
+    other: process.env.NAVER_SITE_VERIFICATION?.trim()
+      ? { "naver-site-verification": process.env.NAVER_SITE_VERIFICATION.trim() }
+      : {},
+  },
+};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
