@@ -95,8 +95,8 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
                 <div><dt>건강기능식품 신고</dt><dd>{n(row.count)}건</dd></div>
                 <div><dt>건강보조식품 후보</dt><dd>{n(row.supportCount)}건</dd></div>
                 <div><dt>분류 보류</dt><dd>{n(row.heldCount)}건</dd></div>
-                <div><dt>건기식 신고일</dt><dd>{row.healthFunctionalPeriodStart || "미확인"}~{row.healthFunctionalPeriodEnd || "미확인"}</dd></div>
-                <div><dt>건강보조식품 후보 신고일</dt><dd>{row.healthSupportPeriodStart || "미확인"}~{row.healthSupportPeriodEnd || "미확인"}</dd></div>
+                {(row.count ?? 0) > 0 && <div><dt>건기식 신고일</dt><dd>{row.healthFunctionalPeriodStart || "미확인"}~{row.healthFunctionalPeriodEnd || "미확인"}</dd></div>}
+                {(row.supportCount ?? 0) > 0 && <div><dt>건강보조식품 후보 신고일</dt><dd>{row.healthSupportPeriodStart || "미확인"}~{row.healthSupportPeriodEnd || "미확인"}</dd></div>}
                 <div><dt>자료 기준일</dt><dd>{row.asOf || "미제공"}</dd></div>
                 {!!row.companies?.length && <div><dt>건기식 신고 상위 업체</dt><dd>{row.companies.map(([name, count]) => `${name} ${n(count)}건`).join(" · ")}</dd></div>}
               </>}
