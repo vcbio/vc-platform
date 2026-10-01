@@ -182,7 +182,7 @@ function ingredientSvg(row, logoMarkup) {
     <rect x="80" y="462" width="900" height="3" fill="${COLORS.orange}"/>
     <text x="80" y="527" fill="${COLORS.ink}" font-family="${FONT}" font-size="34" font-weight="700" letter-spacing="-0.5">월 검색량 ${volume}</text>
     <text x="80" y="572" fill="${COLORS.muted}" font-family="${FONT}" font-size="19" font-weight="500">${observed}</text>
-    <text x="980" y="572" fill="${COLORS.muted}" font-family="${FONT}" font-size="17" font-weight="600" text-anchor="end">VC 플랫폼</text>
+    <text x="980" y="572" fill="${COLORS.muted}" font-family="${FONT}" font-size="17" font-weight="600" text-anchor="end">Vita Core Platform</text>
   `);
 }
 

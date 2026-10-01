@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   return (
     <Container>
       <article className="mx-auto w-full max-w-3xl py-12 text-slate-800 sm:py-16">
-        <p className="text-sm font-semibold text-slate-600">주식회사 브이씨바이오 · VC 플랫폼</p>
+        <p className="text-sm font-semibold text-slate-600">주식회사 브이씨바이오 · Vita Core Platform</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">개인정보 처리방침</h1>
         <p className="mt-5 leading-7">
           고객정보와 견적은 상담을 위해 받습니다. 견적 내용은 공개되지 않으며 로그인한 고객 본인과
