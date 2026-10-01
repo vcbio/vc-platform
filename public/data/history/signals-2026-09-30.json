@@ -1,0 +1,127 @@
+{
+  "observedAt": "2026-09-30",
+  "basis": "rolling7",
+  "source": "한국 공개자료 · 데이터랩",
+  "rows": [
+    {
+      "id": "ing_fe4ff6ec1c9f3b72",
+      "name": "젖산마그네슘",
+      "monthlyVolume": 152760,
+      "changePct": 23
+    },
+    {
+      "id": "ing_7478199ee3e9cb57",
+      "name": "포스파티딜세린",
+      "monthlyVolume": 60780,
+      "changePct": 0.9
+    },
+    {
+      "id": "ing_6321af524fa7087c",
+      "name": "라이코펜",
+      "monthlyVolume": 48860,
+      "changePct": 143.8
+    },
+    {
+      "id": "ing_348838ae589edbdf",
+      "name": "비오틴",
+      "monthlyVolume": 38320,
+      "changePct": 3.2
+    },
+    {
+      "id": "ing_702da04fc888f741",
+      "name": "히알루론산",
+      "monthlyVolume": 35280,
+      "changePct": 29.9
+    },
+    {
+      "id": "ing_4e5af721d4019c5d",
+      "name": "NMN",
+      "monthlyVolume": 32810,
+      "changePct": 2.4
+    },
+    {
+      "id": "ing_06aee214244b6375",
+      "name": "흑염소",
+      "monthlyVolume": 27940,
+      "changePct": 3
+    },
+    {
+      "id": "ing_d4fbbc4fd53ae6bd",
+      "name": "프로바이오틱스",
+      "monthlyVolume": 27200,
+      "changePct": 8
+    },
+    {
+      "id": "ing_32356e62f83ce1d1",
+      "name": "폴리코사놀",
+      "monthlyVolume": 26310,
+      "changePct": 69
+    },
+    {
+      "id": "ing_32c0cbe44cc23c13",
+      "name": "보이차",
+      "monthlyVolume": 25830,
+      "changePct": 9
+    },
+    {
+      "id": "ing_5ad5a851b0a4dc89",
+      "name": "MSM",
+      "monthlyVolume": 25130,
+      "changePct": 10.3
+    },
+    {
+      "id": "ing_9cb1d32431347f51",
+      "name": "쏘팔메토",
+      "monthlyVolume": 22940,
+      "changePct": 11.9
+    },
+    {
+      "id": "ing_ab5769a379aea8a3",
+      "name": "단백질바",
+      "monthlyVolume": 20360,
+      "changePct": 42.9
+    },
+    {
+      "id": "ing_2e5beab753b653a1",
+      "name": "석류",
+      "monthlyVolume": 18440,
+      "changePct": 1.6
+    },
+    {
+      "id": "ing_cc309b2b33417cb0",
+      "name": "초석잠",
+      "monthlyVolume": 13170,
+      "changePct": 4.3
+    },
+    {
+      "id": "ing_a57eab66661a22d6",
+      "name": "회화나무",
+      "monthlyVolume": 12880,
+      "changePct": 15.4
+    },
+    {
+      "id": "ing_13906ae6ceefbdad",
+      "name": "보스웰리아",
+      "monthlyVolume": 12700,
+      "changePct": 5.5
+    },
+    {
+      "id": "ing_9e05ab036fe1f816",
+      "name": "매스틱검",
+      "monthlyVolume": 12300,
+      "changePct": 14.9
+    },
+    {
+      "id": "ing_90da6652147a2f60",
+      "name": "마그네슘글리시네이트",
+      "monthlyVolume": 11420,
+      "changePct": 3.2
+    },
+    {
+      "id": "ing_a45b9e660b5f5b08",
+      "name": "석류즙",
+      "monthlyVolume": 11030,
+      "changePct": 20.4
+    }
+  ]
+}
