@@ -93,7 +93,7 @@ export default function IngredientSearch({
   function choose(row: Row) {
     setOpen(false);
     setQ("");
-    router.push(`/ingredient/?id=${encodeURIComponent(row.id)}`);
+    router.push(`/ingredient/${encodeURIComponent(row.id)}/`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

@@ -24,6 +24,11 @@ export default function Footer() {
           </p>
           <p><Link href="/privacy/">개인정보 처리방침</Link></p>
         </div>
+        <div style={{ marginTop: 24, fontSize: 13, lineHeight: 1.8, overflowWrap: "anywhere" }}>
+          <p>주식회사 브이씨바이오 · 대표자 김민식 · 사업자등록번호 540-86-03514</p>
+          <p>대전광역시 유성구 장대로 106, 2층-제이69호(장대동)</p>
+          <p>문의 <a href="mailto:vcplatform@gmail.com">vcplatform@gmail.com</a></p>
+        </div>
       </Container>
     </footer>
   );

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/build-datalab.mjs",
+    "prebuild": "node scripts/build-datalab.mjs && node scripts/build-share-images.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

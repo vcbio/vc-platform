@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ButtonLink, Container } from "@/components/ui";
 import type { IngredientDetailRow } from "@/lib/data";
@@ -53,10 +54,22 @@ function Months({ values }: { values: (number | null)[] }) {
   </div>;
 }
 
-export default function IngredientDetail() {
-  const id = useSyncExternalStore(subscribe, readId, serverId);
-  const [payload, setPayload] = useState<Payload | null | undefined>();
-  useEffect(() => { let alive = true; load().then((data) => alive && setPayload(data)); return () => { alive = false; }; }, []);
+export default function IngredientDetail({ initialRow, sourcePage }: { initialRow?: IngredientDetailRow; sourcePage?: string }) {
+  const queryId = useSyncExternalStore(subscribe, readId, serverId);
+  const router = useRouter();
+  const id = initialRow?.id ?? queryId;
+  const [loadedPayload, setPayload] = useState<Payload | null | undefined>();
+  const payload: Payload | null | undefined = initialRow ? { meta: { sourcePage: sourcePage ?? "" }, rows: [initialRow] } : loadedPayload;
+  useEffect(() => {
+    if (initialRow) return;
+    let alive = true;
+    load().then((data) => {
+      if (!alive) return;
+      setPayload(data);
+      if (data?.rows.some((row) => row.id === queryId)) router.replace(`/ingredient/${encodeURIComponent(queryId)}/`);
+    });
+    return () => { alive = false; };
+  }, [initialRow, queryId, router]);
   const row = payload?.rows.find((item) => item.id === id);
 
   if (payload === undefined) return <Container><p className={c.state}>원료 자료를 불러오는 중입니다.</p></Container>;

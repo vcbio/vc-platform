@@ -96,7 +96,7 @@ export default function PrivacyPage() {
             개인정보 보호업무 및 고충처리 담당: 주식회사 브이씨바이오 대표 김민식<br />
             전화: <a className="underline underline-offset-4" href="tel:023183321">02-318-3321</a>
           </p>
-          <p className="mt-3 text-sm leading-6 text-slate-600">상담 전용 이메일은 개설 후 안내하겠습니다.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-600">상담 전용 이메일: <a href="mailto:vcplatform@gmail.com">vcplatform@gmail.com</a></p>
         </section>
 
         <section className={sectionClass}>

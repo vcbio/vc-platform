@@ -155,7 +155,7 @@ export default function SignalBoard({ initial, homeExclusion }: { initial: Signa
         <div className={s.deckMain}>
           {/* 이 화면의 제목은 문구가 아니라 지금 뜨는 원료 이름이다 */}
           <h1 className={s.deckName}>
-            <Link href={`/ingredient/?id=${encodeURIComponent(top.id)}`}>{top.name}</Link>
+            <Link href={`/ingredient/${encodeURIComponent(top.id)}/`}>{top.name}</Link>
             {top.category && <em>{top.category}</em>}
           </h1>
 

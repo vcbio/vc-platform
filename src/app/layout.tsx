@@ -1,13 +1,9 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/pageMetadata";
 import Header from "@/components/ui/Header";
 import Footer from "@/components/ui/Footer";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "VC 플랫폼 — Value Chain Platform · 건강기능식품 B2B OEM/ODM 매칭",
-  description:
-    "건강기능식품 B2B OEM/ODM 견적 상담 플랫폼. 고객의 조건을 접수해 적합한 제조사를 검토하고, 원료·시장 동향을 제공합니다.",
-};
+export const metadata = pageMetadata("원료 동향과 제조 상담", "주식회사 브이씨바이오의 건강기능식품 B2B OEM/ODM 상담 플랫폼. 원료·시장 동향을 확인하고 제조 문의를 남기세요.", "/");
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

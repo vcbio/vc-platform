@@ -76,12 +76,12 @@ function ExtraList({ rows, kind }: { rows: InsightExtraRow[]; kind: InsightExtra
           <li key={`${kind}-${row.id}`} className={c.extraRow}>
             <div className={c.extraName}>
               <span className={c.extraRank}>{index + 1}</span>
-              <Link href={`/ingredient/?id=${encodeURIComponent(row.id)}`}>{row.name}</Link>
+              <Link href={`/ingredient/${encodeURIComponent(row.id)}/`}>{row.name}</Link>
               <small>{row.name === "젖산마그네슘" ? `${row.category} · 마그네슘 함량·제품 요건 확인` : row.category || row.role}</small>
               {row.trust === "검색 오염" && <small>검색 오염 · 해석 주의</small>}
               {kind === "report" && !!row.aliases?.length && <small className={c.extraAliases}>
                 같은 원료명 묶음 · 합산하지 않음: {row.aliases.map((alias, i) => <span key={alias.id}>
-                  {i > 0 && " · "}<Link href={`/ingredient/?id=${encodeURIComponent(alias.id)}`}>{alias.name}</Link>
+                  {i > 0 && " · "}<Link href={`/ingredient/${encodeURIComponent(alias.id)}/`}>{alias.name}</Link>
                 </span>)}
               </small>}
             </div>

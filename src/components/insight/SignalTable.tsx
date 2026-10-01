@@ -63,7 +63,7 @@ export default function SignalTable({ rows }: { rows: Signal[] }) {
               <td className={c.nameCell}>
                 <Link
                   className={c.nameLink}
-                  href={`/ingredient/?id=${encodeURIComponent(r.id)}`}
+                  href={`/ingredient/${encodeURIComponent(r.id)}/`}
                 >
                   {r.name}
                 </Link>

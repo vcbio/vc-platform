@@ -109,7 +109,7 @@ export default function MatchClient() {
             <span className={s.signalLabel}>지금 뜨는 원료로 조건 잡기</span>
             {signals.map((sig) => (
               <span key={sig.id} className={s.signalItem}>
-                <Link href={`/ingredient/?id=${encodeURIComponent(sig.id)}`}>{sig.name}</Link>
+                <Link href={`/ingredient/${encodeURIComponent(sig.id)}/`}>{sig.name}</Link>
                 <em>월 {sig.monthlyVolume.toLocaleString("ko-KR")}회</em>
                 <b>
                   {sig.periodLabel.split(" ")[0]}{" "}

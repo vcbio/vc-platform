@@ -1,0 +1,6 @@
+.page { padding: 80px 0; max-width: 700px; }
+.page h1 { font-size: clamp(28px, 5vw, 44px); margin: 16px 0; }
+.page p { line-height: 1.7; }
+.code { color: var(--pf-accent); font-size: 18px; font-weight: 700; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+@media (max-width: 480px) { .page { padding: 48px 0; } }
