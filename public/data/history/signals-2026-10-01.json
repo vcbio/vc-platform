@@ -1,0 +1,55 @@
+{
+  "observedAt": "2026-10-01",
+  "basis": "rolling7",
+  "source": "한국 공개자료 · 데이터랩",
+  "rows": [
+    {
+      "id": "ing_fe4ff6ec1c9f3b72",
+      "name": "젖산마그네슘",
+      "monthlyVolume": 152760,
+      "changePct": 13.1
+    },
+    {
+      "id": "ing_7478199ee3e9cb57",
+      "name": "포스파티딜세린",
+      "monthlyVolume": 60780,
+      "changePct": 14.7
+    },
+    {
+      "id": "ing_6321af524fa7087c",
+      "name": "라이코펜",
+      "monthlyVolume": 48860,
+      "changePct": 59.7
+    },
+    {
+      "id": "ing_d4fbbc4fd53ae6bd",
+      "name": "프로바이오틱스",
+      "monthlyVolume": 27200,
+      "changePct": 0.6
+    },
+    {
+      "id": "ing_32356e62f83ce1d1",
+      "name": "폴리코사놀",
+      "monthlyVolume": 26310,
+      "changePct": 86.2
+    },
+    {
+      "id": "ing_9cb1d32431347f51",
+      "name": "쏘팔메토",
+      "monthlyVolume": 22940,
+      "changePct": 2
+    },
+    {
+      "id": "ing_9e05ab036fe1f816",
+      "name": "매스틱검",
+      "monthlyVolume": 12300,
+      "changePct": 9.7
+    },
+    {
+      "id": "ing_63bfb3b63f08be34",
+      "name": "저분자콜라겐",
+      "monthlyVolume": 11180,
+      "changePct": 5.5
+    }
+  ]
+}
